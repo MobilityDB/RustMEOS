@@ -1,0 +1,14 @@
+[package]
+name = "meos"
+version = "0.1.0"
+license = "postgres"
+authors = ["David García Morillo <david.garcia.morillo@ulb.be>"]
+keywords = ["meos", "libmeos", "mobility", "geotemporal", "gis"]
+categories = ["external-ffi-bindings", "algorithms"]
+description = "Rust bindings for MEOS C API"
+readme = "README.md"
+edition = "2021"
+
+[dependencies]
+chrono = "0.4.38"
+meos-sys = { path = "sys", version = "*" }
