@@ -9,6 +9,7 @@ keywords = ["meos", "libmeos", "mobility", "geotemporal", "gis"]
 categories = ["external-ffi-bindings", "algorithms"]
 description = "MEOS C API bindings"
 readme = "README.md"
+license = "postgres"
 edition = "2021"
 
 [dependencies]
