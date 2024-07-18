@@ -104,12 +104,13 @@ impl BitAnd<FloatSpanSet> for FloatSpanSet {
     /// # Example
     ///
     /// ```
-    /// # use meos::collections::number::float_span::{FloatSpanSet, FloatSpan};
+    /// # use meos::collections::number::float_span::FloatSpan;
+    /// # use meos::collections::number::float_span_set::FloatSpanSet;
     /// # use meos::collections::base::span::Span;
     ///
     /// let span_set1 = FloatSpanSet::new();
     /// let span_set2 = FloatSpanSet::new();
-    /// todo!()
+    /// todo!();
     /// // Perform intersection
     /// if let Some(intersection_set) = span_set1.clone() & span_set2.clone() {
     ///     println!("Intersection: {:?}", intersection_set);
@@ -144,9 +145,10 @@ impl BitOr for FloatSpanSet {
     /// # Example
     ///
     /// ```
-    /// # use meos::collections::number::float_span::{FloatSpanSet, FloatSpan};
+    /// # use meos::collections::number::float_span::FloatSpan;
+    /// # use meos::collections::number::float_span_set::FloatSpanSet;
     /// # use meos::collections::base::span::Span;
-    /// todo!()
+    /// todo!();
     /// let span_set1 = FloatSpanSet::new();
     /// let span_set2 = FloatSpanSet::new();
     ///
