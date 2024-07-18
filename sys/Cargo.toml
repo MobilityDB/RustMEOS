@@ -11,5 +11,6 @@ description = "MEOS C API bindings"
 readme = "README.md"
 license-file = "LICENSE"
 edition = "2021"
+links = "meos"
 
 [dependencies]
