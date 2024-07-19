@@ -116,16 +116,12 @@ pub trait Collection: PartialEq + Debug + FromStr + Hash {
 //  $type: The type of the container: spanset, span, or set
 //  $subtype: The type of what is contained: float, int, geo, etc.
 //  $subtype_type: The actual type in Rust of the subtype: f64, i32, etc.
-macro_rules! generate_collection_methods {
+macro_rules! impl_collection {
     ($type:ident, $subtype:ident, $subtype_type:ty) => {
         type Type = $subtype_type;
         paste::paste! {
             fn is_contained_in(&self, container: &Self) -> bool {
                 unsafe { meos_sys::[<contained _ $type _ $type>](self.inner(), container.inner()) }
-            }
-
-            fn contains(&self, content: &$subtype_type) -> bool {
-                unsafe { meos_sys::[<contains _ $type _ $subtype>](self.inner(), content.clone()) }
             }
 
             fn overlaps(&self, other: &Self) -> bool {
@@ -151,4 +147,4 @@ macro_rules! generate_collection_methods {
     };
 }
 
-pub(crate) use generate_collection_methods;
+pub(crate) use impl_collection;

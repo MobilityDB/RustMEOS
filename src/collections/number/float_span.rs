@@ -1,13 +1,13 @@
 use std::{
     cmp,
-    ffi::CString,
+    ffi::{c_void, CStr, CString},
     fmt::Debug,
     hash::Hash,
     ops::{BitAnd, Range, RangeInclusive},
     str::FromStr,
 };
 
-use collection::{generate_collection_methods, Collection};
+use collection::{impl_collection, Collection};
 use span::Span;
 
 use crate::{collections::base::*, errors::ParseSpanError};
@@ -19,13 +19,19 @@ pub struct FloatSpan {
 impl Drop for FloatSpan {
     fn drop(&mut self) {
         unsafe {
-            let _ = Box::from_raw(self._inner);
+            meos_sys::free(self._inner as *mut c_void);
         }
     }
 }
 
+impl Collection for FloatSpan {
+    impl_collection!(span, float, f64);
+    fn contains(&self, content: &f64) -> bool {
+        unsafe { meos_sys::contains_span_float(self.inner(), *content) }
+    }
+}
+
 impl span::Span for FloatSpan {
-    type Type = f64;
     fn inner(&self) -> *const meos_sys::Span {
         self._inner
     }
@@ -54,7 +60,7 @@ impl span::Span for FloatSpan {
     /// let span: FloatSpan = (12.9..67.8).into();
     /// let lower = span.lower();
     /// ```
-    fn lower(&self) -> <Self as Span>::Type {
+    fn lower(&self) -> Self::Type {
         unsafe { meos_sys::floatspan_lower(self.inner()) }
     }
 
@@ -72,7 +78,7 @@ impl span::Span for FloatSpan {
     ///
     /// assert_eq!(span.upper(), 67.8)
     /// ```
-    fn upper(&self) -> <Self as Span>::Type {
+    fn upper(&self) -> Self::Type {
         unsafe { meos_sys::floatspan_upper(self.inner()) }
     }
 
@@ -147,10 +153,6 @@ impl span::Span for FloatSpan {
         };
         FloatSpan::from_inner(modified)
     }
-}
-
-impl Collection for FloatSpan {
-    generate_collection_methods!(span, float, f64);
 }
 
 impl Clone for FloatSpan {
@@ -287,13 +289,13 @@ impl From<RangeInclusive<f32>> for FloatSpan {
 
 impl Debug for FloatSpan {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let out_str = unsafe { meos_sys::floatspan_out(self._inner, 3) };
         // Default of 3 decimal digits
-        let result = unsafe { CString::from_raw(meos_sys::floatspan_out(self._inner, 3)) };
-        if let Ok(str) = result.to_str() {
-            f.write_str(str)
-        } else {
-            Err(std::fmt::Error)
-        }
+        let c_str = unsafe { CStr::from_ptr(out_str) };
+        let str = c_str.to_str().map_err(|_| std::fmt::Error)?;
+        let result = f.write_str(str);
+        unsafe { meos_sys::free(out_str as *mut c_void) };
+        result
     }
 }
 

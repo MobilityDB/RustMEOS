@@ -1,4 +1,4 @@
-use std::ffi::{c_char, CString};
+use std::ffi::{c_char, CStr, CString};
 
 use super::{collection::Collection, span::Span};
 
@@ -8,7 +8,7 @@ pub trait SpanSet: Collection {
 
     /// Creates a new `Span` from a WKB representation.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `hexwkb` - A string slice containing the WKB representation.
     ///
     /// ## Returns
@@ -20,7 +20,7 @@ pub trait SpanSet: Collection {
 
     /// Creates a new `Span` from a hexadecimal WKB representation.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `hexwkb` - A string slice containing the hexadecimal WKB representation.
     ///
     /// ## Returns
@@ -50,9 +50,10 @@ pub trait SpanSet: Collection {
     fn as_hexwkb(&self) -> String {
         unsafe {
             let hexwkb_ptr = meos_sys::spanset_as_hexwkb(self.inner(), 1, std::ptr::null_mut());
-            CString::from_raw(hexwkb_ptr as *mut c_char)
-                .into_string()
+            CStr::from_ptr(hexwkb_ptr as *mut c_char)
+                .to_str()
                 .unwrap()
+                .to_owned()
         }
     }
 
@@ -85,6 +86,17 @@ pub trait SpanSet: Collection {
                 .collect()
         }
     }
+
+    fn width(&self, ignore_gaps: bool) -> Self::Type;
+
+    /// Return a new `SpanSet` with the lower and upper bounds shifted by `delta`.
+    fn shift(&self, delta: Self::Type) -> Self;
+
+    /// Return a new `SpanSet` with the lower and upper bounds scaled so that the width is `width`.
+    fn scale(&self, width: Self::Type) -> Self;
+
+    /// Return a new `SpanSet` with the lower and upper bounds shifted by `delta` and scaled so that the width is `width`.
+    fn shift_scale(&self, delta: Option<Self::Type>, width: Option<Self::Type>) -> Self;
 
     fn hash(&self) -> u32 {
         unsafe { meos_sys::spanset_hash(self.inner()) }

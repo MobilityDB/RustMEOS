@@ -14,3 +14,4 @@ edition = "2021"
 [dependencies]
 paste = "1.0.15"
 meos-sys = { path = "sys", version = "0.1.0" }
+chrono = "0.4.38"
