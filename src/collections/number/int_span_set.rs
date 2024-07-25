@@ -22,7 +22,7 @@ pub struct IntSpanSet {
 impl Drop for IntSpanSet {
     fn drop(&mut self) {
         unsafe {
-            meos_sys::free(self._inner as *mut c_void);
+            libc::free(self._inner as *mut c_void);
         }
     }
 }
@@ -133,7 +133,7 @@ impl span_set::SpanSet for IntSpanSet {
         IntSpanSet::from_inner(modified)
     }
 
-    /// Calculates the distance between this `IntSpanSet` and a n integer (`value`).
+    /// Calculates the distance between this `IntSpanSet` and an integer (`value`).
     ///
     /// ## Arguments
     /// * `value` - An i32 to calculate the distance to.
@@ -175,6 +175,30 @@ impl span_set::SpanSet for IntSpanSet {
     /// ```
     fn distance_to_span_set(&self, other: &Self) -> i32 {
         unsafe { meos_sys::distance_intspanset_intspanset(self.inner(), other.inner()).into() }
+    }
+
+    /// Calculates the distance between this `IntSpanSet` and a `IntSpan`.
+    ///
+    /// ## Arguments
+    /// * `other` - A `IntSpan` to calculate the distance to.
+    ///
+    /// ## Returns
+    /// A `TimeDelta` representing the distance in seconds between the span set and the span.
+    ///
+    /// ## Example
+    /// ```
+    /// # use meos::collections::number::int_span_set::IntSpanSet;
+    /// # use meos::collections::base::span_set::SpanSet;
+    /// # use meos::collections::base::span::Span;
+    /// # use meos::collections::number::int_span::IntSpan;
+    ///
+    /// let span_set: IntSpanSet = [(2019..2023).into(), (2029..2030).into()].iter().collect();
+    /// let span: IntSpan = (2009..2010).into();
+    /// let distance = span_set.distance_to_span(&span);
+    /// assert_eq!(distance, 10);
+    /// ```
+    fn distance_to_span(&self, span: &Self::SpanType) -> Self::SubsetType {
+        unsafe { meos_sys::distance_intspanset_intspan(self.inner(), span.inner()) }
     }
 }
 
@@ -223,7 +247,7 @@ impl Debug for IntSpanSet {
         let c_str = unsafe { CStr::from_ptr(out_str) };
         let str = c_str.to_str().map_err(|_| std::fmt::Error)?;
         let result = f.write_str(str);
-        unsafe { meos_sys::free(out_str as *mut c_void) };
+        unsafe { libc::free(out_str as *mut c_void) };
         result
     }
 }

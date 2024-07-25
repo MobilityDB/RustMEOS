@@ -85,7 +85,7 @@ pub trait SpanSet: Collection + FromIterator<Self::SpanType> {
     }
 
     fn spans(&self) -> Vec<Self::SpanType> {
-        let spans = unsafe { meos_sys::spanset_spans(self.inner()) };
+        let spans = unsafe { meos_sys::spanset_spanarr(self.inner()) };
         let size = self.num_spans() as usize;
         unsafe {
             Vec::from_raw_parts(spans, size, size)
@@ -129,9 +129,11 @@ pub trait SpanSet: Collection + FromIterator<Self::SpanType> {
         unsafe { meos_sys::spanset_hash(self.inner()) }
     }
 
-    fn distance_to_value(&self, other: &Self::Type) -> Self::SubsetType;
+    fn distance_to_value(&self, value: &Self::Type) -> Self::SubsetType;
 
     fn distance_to_span_set(&self, other: &Self) -> Self::SubsetType;
+
+    fn distance_to_span(&self, span: &Self::SpanType) -> Self::SubsetType;
 }
 
 macro_rules! impl_iterator {

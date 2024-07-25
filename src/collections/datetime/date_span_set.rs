@@ -25,7 +25,7 @@ pub struct DateSpanSet {
 impl Drop for DateSpanSet {
     fn drop(&mut self) {
         unsafe {
-            meos_sys::free(self._inner as *mut c_void);
+            libc::free(self._inner as *mut c_void);
         }
     }
 }
@@ -197,7 +197,7 @@ impl span_set::SpanSet for DateSpanSet {
     /// ## Example
     /// ```
     /// # use meos::collections::datetime::date_span_set::DateSpanSet;
-    /// # use crate::meos::collections::base::span_set::SpanSet;
+    /// # use meos::collections::base::span_set::SpanSet;
     /// # use chrono::{TimeDelta, TimeZone, Utc};
     /// # use meos::init;
     /// use std::str::FromStr;
@@ -211,6 +211,37 @@ impl span_set::SpanSet for DateSpanSet {
         unsafe {
             TimeDelta::days(
                 meos_sys::distance_datespanset_datespanset(self.inner(), other.inner()).into(),
+            )
+        }
+    }
+
+    /// Calculates the distance between this `DateSpanSet` and a `DateSpan`.
+    ///
+    /// ## Arguments
+    /// * `other` - A `DateSpan` to calculate the distance to.
+    ///
+    /// ## Returns
+    /// A `TimeDelta` representing the distance in seconds between the span set and the span.
+    ///
+    /// ## Example
+    /// ```
+    /// # use meos::collections::datetime::date_span_set::DateSpanSet;
+    /// # use meos::collections::base::span_set::SpanSet;
+    /// # use meos::collections::datetime::date_span::DateSpan;
+    /// # use meos::collections::base::span::Span;
+    /// # use chrono::{TimeDelta, TimeZone, Utc};
+    /// # use meos::init;
+    /// use std::str::FromStr;
+    /// # init();
+    /// let span_set = DateSpanSet::from_str("{[2019-09-08, 2019-09-10], [2019-09-11, 2019-09-12]}").unwrap();
+    /// let span = DateSpan::from_str("[2018-08-07, 2018-08-17]").unwrap();
+    /// let distance = span_set.distance_to_span(&span);
+    /// assert_eq!(distance, TimeDelta::days(387));
+    /// ```
+    fn distance_to_span(&self, span: &Self::SpanType) -> TimeDelta {
+        unsafe {
+            TimeDelta::days(
+                meos_sys::distance_datespanset_datespan(self.inner(), span.inner()).into(),
             )
         }
     }
@@ -261,7 +292,7 @@ impl Debug for DateSpanSet {
         let c_str = unsafe { CStr::from_ptr(out_str) };
         let str = c_str.to_str().map_err(|_| std::fmt::Error)?;
         let result = f.write_str(str);
-        unsafe { meos_sys::free(out_str as *mut c_void) };
+        unsafe { libc::free(out_str as *mut c_void) };
         result
     }
 }

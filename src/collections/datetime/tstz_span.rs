@@ -22,7 +22,7 @@ pub struct TsTzSpan {
 impl Drop for TsTzSpan {
     fn drop(&mut self) {
         unsafe {
-            meos_sys::free(self._inner as *mut c_void);
+            libc::free(self._inner as *mut c_void);
         }
     }
 }
@@ -419,7 +419,7 @@ impl Debug for TsTzSpan {
         let c_str = unsafe { CStr::from_ptr(out_str) };
         let str = c_str.to_str().map_err(|_| std::fmt::Error)?;
         let result = f.write_str(str);
-        unsafe { meos_sys::free(out_str as *mut c_void) };
+        unsafe { libc::free(out_str as *mut c_void) };
         result
     }
 }

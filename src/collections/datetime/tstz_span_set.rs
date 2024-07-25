@@ -27,7 +27,7 @@ pub struct TsTzSpanSet {
 impl Drop for TsTzSpanSet {
     fn drop(&mut self) {
         unsafe {
-            meos_sys::free(self._inner as *mut c_void);
+            libc::free(self._inner as *mut c_void);
         }
     }
 }
@@ -217,6 +217,37 @@ impl span_set::SpanSet for TsTzSpanSet {
             ) as i64)
         }
     }
+
+    /// Calculates the distance between this `TsTzSpanSet` and a `TsTzSpan`.
+    ///
+    /// ## Arguments
+    /// * `other` - A `TsTzSpan` to calculate the distance to.
+    ///
+    /// ## Returns
+    /// A `TimeDelta` representing the distance in seconds between the span set and the span.
+    ///
+    /// ## Example
+    /// ```
+    /// # use meos::collections::datetime::tstz_span_set::TsTzSpanSet;
+    /// # use meos::collections::base::span_set::SpanSet;
+    /// # use meos::collections::datetime::tstz_span::TsTzSpan;
+    /// # use meos::collections::base::span::Span;
+    /// # use chrono::{TimeDelta, TimeZone, Utc};
+    /// # use meos::init;
+    /// use std::str::FromStr;
+    /// # init();
+    /// let span_set = TsTzSpanSet::from_str("{[2019-09-08 00:00:00+00, 2019-09-10 00:00:00+00], [2019-09-11 00:00:00+00, 2019-09-12 00:00:00+00]}").unwrap();
+    /// let span = TsTzSpan::from_str("[2018-08-07 00:00:00+00, 2018-08-17 00:00:00+00]").unwrap();
+    /// let distance = span_set.distance_to_span(&span);
+    /// assert_eq!(distance, TimeDelta::days(387));
+    /// ```
+    fn distance_to_span(&self, span: &Self::SpanType) -> Self::SubsetType {
+        unsafe {
+            TimeDelta::seconds(
+                meos_sys::distance_tstzspanset_tstzspan(self.inner(), span.inner()) as i64,
+            )
+        }
+    }
 }
 
 impl Clone for TsTzSpanSet {
@@ -264,7 +295,7 @@ impl Debug for TsTzSpanSet {
         let c_str = unsafe { CStr::from_ptr(out_str) };
         let str = c_str.to_str().map_err(|_| std::fmt::Error)?;
         let result = f.write_str(str);
-        unsafe { meos_sys::free(out_str as *mut c_void) };
+        unsafe { libc::free(out_str as *mut c_void) };
         result
     }
 }

@@ -22,7 +22,7 @@ pub struct FloatSpanSet {
 impl Drop for FloatSpanSet {
     fn drop(&mut self) {
         unsafe {
-            meos_sys::free(self._inner as *mut c_void);
+            libc::free(self._inner as *mut c_void);
         }
     }
 }
@@ -176,6 +176,31 @@ impl span_set::SpanSet for FloatSpanSet {
     fn distance_to_span_set(&self, other: &Self) -> f64 {
         unsafe { meos_sys::distance_floatspanset_floatspanset(self.inner(), other.inner()).into() }
     }
+
+    /// Calculates the distance between this `FloatSpanSet` and a `FloatSpan`.
+    ///
+    /// ## Arguments
+    /// * `other` - A `FloatSpan` to calculate the distance to.
+    ///
+    /// ## Returns
+    /// A `TimeDelta` representing the distance in seconds between the span set and the span.
+    ///
+    /// ## Example
+    /// ```
+    /// # use meos::collections::number::float_span_set::FloatSpanSet;
+    /// # use meos::collections::base::span_set::SpanSet;
+    /// # use meos::collections::datetime::date_span::DateSpan;
+    /// # use meos::collections::base::span::Span;
+    /// # use meos::collections::number::float_span::FloatSpan;
+    ///
+    /// let span_set: FloatSpanSet = [(2019.0..2023.5).into(), (2029.0..2030.5).into()].iter().collect();
+    /// let span: FloatSpan = (2009.0..2013.5).into();
+    /// let distance = span_set.distance_to_span(&span);
+    /// assert_eq!(distance, 5.5);
+    /// ```
+    fn distance_to_span(&self, span: &Self::SpanType) -> Self::SubsetType {
+        unsafe { meos_sys::distance_floatspanset_floatspan(self.inner(), span.inner()).into() }
+    }
 }
 
 impl Clone for FloatSpanSet {
@@ -223,7 +248,7 @@ impl Debug for FloatSpanSet {
         let c_str = unsafe { CStr::from_ptr(out_str) };
         let str = c_str.to_str().map_err(|_| std::fmt::Error)?;
         let result = f.write_str(str);
-        unsafe { meos_sys::free(out_str as *mut c_void) };
+        unsafe { libc::free(out_str as *mut c_void) };
         result
     }
 }
