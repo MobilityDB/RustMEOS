@@ -9,7 +9,8 @@ use super::{collection::Collection, span::Span};
 
 pub trait SpanSet: Collection + FromIterator<Self::SpanType> {
     type SpanType: Span;
-    type ScaleShiftType;
+    /// Type used to represent subsets (duration, widths, etc.)
+    type SubsetType;
     fn inner(&self) -> *const meos_sys::SpanSet;
 
     /// Creates a new `Span` from a WKB representation.
@@ -97,17 +98,14 @@ pub trait SpanSet: Collection + FromIterator<Self::SpanType> {
     fn width(&self, ignore_gaps: bool) -> Self::Type;
 
     /// Return a new `SpanSet` with the lower and upper bounds shifted by `delta`.
-    fn shift(&self, delta: Self::ScaleShiftType) -> Self;
+    fn shift(&self, delta: Self::SubsetType) -> Self;
 
     /// Return a new `SpanSet` with the lower and upper bounds scaled so that the width is `width`.
-    fn scale(&self, width: Self::ScaleShiftType) -> Self;
+    fn scale(&self, width: Self::SubsetType) -> Self;
 
     /// Return a new `SpanSet` with the lower and upper bounds shifted by `delta` and scaled so that the width is `width`.
-    fn shift_scale(
-        &self,
-        delta: Option<Self::ScaleShiftType>,
-        width: Option<Self::ScaleShiftType>,
-    ) -> Self;
+    fn shift_scale(&self, delta: Option<Self::SubsetType>, width: Option<Self::SubsetType>)
+        -> Self;
 
     fn intersection(&self, other: &Self) -> Option<Self> {
         let result = unsafe { meos_sys::intersection_spanset_spanset(self.inner(), other.inner()) };
@@ -130,6 +128,10 @@ pub trait SpanSet: Collection + FromIterator<Self::SpanType> {
     fn hash(&self) -> u32 {
         unsafe { meos_sys::spanset_hash(self.inner()) }
     }
+
+    fn distance_to_value(&self, other: &Self::Type) -> Self::SubsetType;
+
+    fn distance_to_span_set(&self, other: &Self) -> Self::SubsetType;
 }
 
 macro_rules! impl_iterator {

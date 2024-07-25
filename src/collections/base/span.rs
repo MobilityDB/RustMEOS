@@ -3,7 +3,8 @@ use std::ffi::{CStr, CString};
 use super::{collection::Collection, span_set::SpanSet};
 
 pub trait Span: Collection {
-    type ScaleShiftType;
+    /// Type used to represent subsets (duration, widths, etc.)
+    type SubsetType;
     fn inner(&self) -> *const meos_sys::Span;
 
     /// Creates a new `Span` from a WKB representation.
@@ -57,6 +58,9 @@ pub trait Span: Collection {
 
     fn lower(&self) -> Self::Type;
     fn upper(&self) -> Self::Type;
+
+    fn distance_to_value(&self, value: &Self::Type) -> Self::SubsetType;
+    fn distance_to_span(&self, other: &Self) -> Self::SubsetType;
 
     /// Checks if the lower bound of the span is inclusive.
     ///
@@ -122,17 +126,14 @@ pub trait Span: Collection {
     }
 
     /// Return a new `Span` with the lower and upper bounds shifted by `delta`.
-    fn shift(&self, delta: Self::ScaleShiftType) -> Self;
+    fn shift(&self, delta: Self::SubsetType) -> Self;
 
     /// Return a new `Span` with the lower and upper bounds scaled so that the width is `width`.
-    fn scale(&self, width: Self::ScaleShiftType) -> Self;
+    fn scale(&self, width: Self::SubsetType) -> Self;
 
     /// Return a new `Span` with the lower and upper bounds shifted by `delta` and scaled so that the width is `width`.
-    fn shift_scale(
-        &self,
-        delta: Option<Self::ScaleShiftType>,
-        width: Option<Self::ScaleShiftType>,
-    ) -> Self;
+    fn shift_scale(&self, delta: Option<Self::SubsetType>, width: Option<Self::SubsetType>)
+        -> Self;
 
     fn to_spanset<T: SpanSet<Type = Self::Type>>(&self) -> T {
         unsafe { T::from_inner(meos_sys::span_to_spanset(self.inner())) }

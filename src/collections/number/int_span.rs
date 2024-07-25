@@ -32,7 +32,7 @@ impl Collection for IntSpan {
 }
 
 impl span::Span for IntSpan {
-    type ScaleShiftType = Self::Type;
+    type SubsetType = Self::Type;
     fn inner(&self) -> *const meos_sys::Span {
         self._inner
     }
@@ -153,6 +153,51 @@ impl span::Span for IntSpan {
             meos_sys::intspan_shift_scale(self._inner, d, w, delta.is_some(), width.is_some())
         };
         IntSpan::from_inner(modified)
+    }
+
+    /// Calculates the distance between this `IntSpan` and an int.
+    ///
+    /// ## Arguments
+    /// * `value` - An `i32` to calculate the distance to.
+    ///
+    /// ## Returns
+    /// An `i32` representing the distance between the span and the value.
+    ///
+    /// ## Example
+    /// ```
+    /// # use meos::collections::number::int_span::IntSpan;
+    /// # use meos::collections::base::span::Span;
+    ///
+    /// let span: IntSpan = (12..67).into();
+    /// let distance = span.distance_to_value(&8);
+    ///
+    /// assert_eq!(distance, 4);
+    /// ```
+    fn distance_to_value(&self, value: &i32) -> i32 {
+        unsafe { meos_sys::distance_span_int(self.inner(), *value).into() }
+    }
+
+    /// Calculates the distance between this `IntSpan` and another `IntSpan`.
+    ///
+    /// ## Arguments
+    /// * `other` - An `IntSpan` to calculate the distance to.
+    ///
+    /// ## Returns
+    /// An `i32` representing the distance between the two spans.
+    ///
+    /// ## Example
+    /// ```
+    /// # use meos::collections::number::int_span::IntSpan;
+    /// # use meos::collections::base::span::Span;
+    ///
+    /// let span1: IntSpan = (12..67).into();
+    /// let span2: IntSpan = (10..11).into();
+    /// let distance = span1.distance_to_span(&span2);
+    ///
+    /// assert_eq!(distance, 2);
+    /// ```
+    fn distance_to_span(&self, other: &Self) -> i32 {
+        unsafe { meos_sys::distance_intspan_intspan(self.inner(), other.inner()).into() }
     }
 }
 

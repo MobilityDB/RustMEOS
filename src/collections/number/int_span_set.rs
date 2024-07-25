@@ -36,7 +36,7 @@ impl Collection for IntSpanSet {
 
 impl span_set::SpanSet for IntSpanSet {
     type SpanType = IntSpan;
-    type ScaleShiftType = <Self as Collection>::Type;
+    type SubsetType = <Self as Collection>::Type;
     fn inner(&self) -> *const meos_sys::SpanSet {
         self._inner
     }
@@ -132,6 +132,50 @@ impl span_set::SpanSet for IntSpanSet {
         };
         IntSpanSet::from_inner(modified)
     }
+
+    /// Calculates the distance between this `IntSpanSet` and a n integer (`value`).
+    ///
+    /// ## Arguments
+    /// * `value` - An i32 to calculate the distance to.
+    ///
+    /// ## Returns
+    /// An `i32` representing the distance between the span set and the value.
+    ///
+    /// ## Example
+    /// ```
+    /// # use meos::collections::number::int_span_set::IntSpanSet;
+    /// # use meos::collections::base::span_set::SpanSet;
+    /// let span_set: IntSpanSet = [(2019..2023).into(), (2029..2030).into()].iter().collect();
+    /// let distance = span_set.distance_to_value(&2032);
+    /// assert_eq!(distance, 3);
+    /// ```
+    fn distance_to_value(&self, value: &Self::Type) -> i32 {
+        unsafe { meos_sys::distance_spanset_int(self.inner(), *value).into() }
+    }
+
+    /// Calculates the distance between this `IntSpanSet` and another `IntSpanSet`.
+    ///
+    /// ## Arguments
+    /// * `other` - An `IntSpanSet` to calculate the distance to.
+    ///
+    /// ## Returns
+    /// An `i32` representing the distance between the two spansets.
+    ///
+    /// ## Example
+    /// ```
+    /// # use meos::collections::number::int_span_set::IntSpanSet;
+    /// # use meos::collections::base::span_set::SpanSet;
+    /// # use meos::collections::base::span::Span;
+    ///
+    /// let span_set1: IntSpanSet = [(2019..2023).into(), (2029..2030).into()].iter().collect();
+    /// let span_set2: IntSpanSet = [(2049..2050).into(), (2059..2600).into()].iter().collect();
+    /// let distance = span_set1.distance_to_span_set(&span_set2);
+    ///
+    /// assert_eq!(distance, 20);
+    /// ```
+    fn distance_to_span_set(&self, other: &Self) -> i32 {
+        unsafe { meos_sys::distance_intspanset_intspanset(self.inner(), other.inner()).into() }
+    }
 }
 
 impl Clone for IntSpanSet {
@@ -163,7 +207,7 @@ impl std::str::FromStr for IntSpanSet {
 
 impl From<String> for IntSpanSet {
     fn from(value: String) -> Self {
-        IntSpanSet::from_str(&value).expect("Failed to parse the span")
+        IntSpanSet::from_str(&value).expect("Failed to parse the span set")
     }
 }
 

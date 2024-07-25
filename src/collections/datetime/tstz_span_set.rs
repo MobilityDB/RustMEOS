@@ -18,6 +18,7 @@ use crate::errors::ParseError;
 
 use super::create_interval;
 use super::tstz_span::TsTzSpan;
+use super::MICROSECONDS_UNTIL_2000;
 
 pub struct TsTzSpanSet {
     _inner: *mut meos_sys::SpanSet,
@@ -40,7 +41,7 @@ impl Collection for TsTzSpanSet {
 
 impl span_set::SpanSet for TsTzSpanSet {
     type SpanType = TsTzSpan;
-    type ScaleShiftType = TimeDelta;
+    type SubsetType = TimeDelta;
     fn inner(&self) -> *const meos_sys::SpanSet {
         self._inner
     }
@@ -154,6 +155,68 @@ impl span_set::SpanSet for TsTzSpanSet {
         let modified = unsafe { meos_sys::tstzspanset_shift_scale(self._inner, d, w) };
         TsTzSpanSet::from_inner(modified)
     }
+
+    /// Calculates the distance between this `TsTzSpanSet` and a specific timestamp (`value`).
+    ///
+    /// ## Arguments
+    /// * `value` - A timestamp represented by `TimeDelta` from the Unix epoch.
+    ///
+    /// ## Returns
+    /// A `TimeDelta` representing the distance in seconds between this `TsTzSpanSet` and the given timestamp.
+    ///
+    /// ## Example
+    /// ```
+    /// # use meos::collections::datetime::tstz_span_set::TsTzSpanSet;
+    /// # use meos::collections::base::span_set::SpanSet;
+    /// # use chrono::{TimeDelta, TimeZone, Utc};
+    /// # use meos::init;
+    /// use std::str::FromStr;
+    /// # init();
+    /// let span_set = TsTzSpanSet::from_str("{[2019-09-08 00:00:00+00, 2019-09-10 00:00:00+00], [2019-09-11 00:00:00+00, 2019-09-12 00:00:00+00]}").unwrap();
+    /// let timestamp = Utc.with_ymd_and_hms(2019, 9, 5, 0, 0, 0).unwrap();
+    /// let distance = span_set.distance_to_value(&timestamp);
+    /// assert_eq!(distance, TimeDelta::days(3));
+    /// ```
+    fn distance_to_value(&self, value: &DateTime<Utc>) -> TimeDelta {
+        unsafe {
+            TimeDelta::seconds(
+                meos_sys::distance_spanset_timestamptz(
+                    self.inner(),
+                    value.timestamp_micros() - MICROSECONDS_UNTIL_2000,
+                ) as i64, // It returns the number of seconds: https://github.com/MobilityDB/MobilityDB/blob/6b60876817b53bc33967f7df50ab8e1f482b0133/meos/src/general/span_ops.c#L2292
+            )
+        }
+    }
+
+    /// Calculates the distance between this `TsTzSpanSet` and another `TsTzSpanSet`.
+    ///
+    /// ## Arguments
+    /// * `other` - Another `TsTzSpanSet` to calculate the distance to.
+    ///
+    /// ## Returns
+    /// A `TimeDelta` representing the distance in seconds between the two span sets.
+    ///
+    /// ## Example
+    /// ```
+    /// # use meos::collections::datetime::tstz_span_set::TsTzSpanSet;
+    /// # use crate::meos::collections::base::span_set::SpanSet;
+    /// # use chrono::{TimeDelta, TimeZone, Utc};
+    /// # use meos::init;
+    /// use std::str::FromStr;
+    /// # init();
+    /// let span_set1 = TsTzSpanSet::from_str("{[2019-09-08 00:00:00+00, 2019-09-10 00:00:00+00], [2019-09-11 00:00:00+00, 2019-09-12 00:00:00+00]}").unwrap();
+    /// let span_set2 = TsTzSpanSet::from_str("{[2018-08-07 00:00:00+00, 2018-08-17 00:00:00+00], [2018-10-17 00:00:00+00, 2018-10-20 00:00:00+00]}").unwrap();
+    /// let distance = span_set1.distance_to_span_set(&span_set2);
+    /// assert_eq!(distance, TimeDelta::days(323));
+    /// ```
+    fn distance_to_span_set(&self, other: &Self) -> TimeDelta {
+        unsafe {
+            TimeDelta::seconds(meos_sys::distance_tstzspanset_tstzspanset(
+                self.inner(),
+                other.inner(),
+            ) as i64)
+        }
+    }
 }
 
 impl Clone for TsTzSpanSet {
@@ -185,7 +248,7 @@ impl std::str::FromStr for TsTzSpanSet {
 
 impl From<String> for TsTzSpanSet {
     fn from(value: String) -> Self {
-        TsTzSpanSet::from_str(&value).expect("Failed to parse the span")
+        TsTzSpanSet::from_str(&value).expect("Failed to parse the span set")
     }
 }
 

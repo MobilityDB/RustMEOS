@@ -16,6 +16,7 @@ use crate::collections::base::*;
 use crate::errors::ParseError;
 
 use super::date_span::DateSpan;
+use super::DAYS_UNTIL_2000;
 
 pub struct DateSpanSet {
     _inner: *mut meos_sys::SpanSet,
@@ -38,7 +39,7 @@ impl Collection for DateSpanSet {
 
 impl span_set::SpanSet for DateSpanSet {
     type SpanType = DateSpan;
-    type ScaleShiftType = TimeDelta;
+    type SubsetType = TimeDelta;
     fn inner(&self) -> *const meos_sys::SpanSet {
         self._inner
     }
@@ -148,6 +149,71 @@ impl span_set::SpanSet for DateSpanSet {
         };
         DateSpanSet::from_inner(modified)
     }
+
+    /// Calculates the distance between this `DateSpanSet` and a specific timestamp (`value`).
+    ///
+    /// ## Arguments
+    /// * `value` - A timestamp represented by `TimeDelta` from the Unix epoch.
+    ///
+    /// ## Returns
+    /// A `TimeDelta` representing the distance in seconds between this `DateSpanSet` and the given timestamp.
+    ///
+    /// ## Example
+    /// ```
+    /// # use meos::collections::datetime::date_span_set::DateSpanSet;
+    /// # use meos::collections::base::span_set::SpanSet;
+    /// # use chrono::{TimeDelta, TimeZone, NaiveDate};
+    /// # use meos::init;
+    /// use std::str::FromStr;
+    /// # init();
+    /// let span_set = DateSpanSet::from_str("{[2019-09-08, 2019-09-10], [2019-09-11, 2019-09-12]}").unwrap();
+    /// let timestamp = NaiveDate::from_ymd_opt(2019, 9, 5).unwrap();
+    /// let distance = span_set.distance_to_value(&timestamp);
+    /// assert_eq!(distance, TimeDelta::days(3));
+    /// ```
+    fn distance_to_value(&self, other: &Self::Type) -> TimeDelta {
+        unsafe {
+            TimeDelta::days(
+                meos_sys::distance_spanset_date(
+                    self.inner(),
+                    other
+                        .checked_sub_days(DAYS_UNTIL_2000)
+                        .unwrap()
+                        .num_days_from_ce(),
+                )
+                .into(),
+            )
+        }
+    }
+
+    /// Calculates the distance between this `DateSpanSet` and another `DateSpanSet`.
+    ///
+    /// ## Arguments
+    /// * `other` - Another `DateSpanSet` to calculate the distance to.
+    ///
+    /// ## Returns
+    /// A `TimeDelta` representing the distance in seconds between the two span sets.
+    ///
+    /// ## Example
+    /// ```
+    /// # use meos::collections::datetime::date_span_set::DateSpanSet;
+    /// # use crate::meos::collections::base::span_set::SpanSet;
+    /// # use chrono::{TimeDelta, TimeZone, Utc};
+    /// # use meos::init;
+    /// use std::str::FromStr;
+    /// # init();
+    /// let span_set1 = DateSpanSet::from_str("{[2019-09-08, 2019-09-10], [2019-09-11, 2019-09-12]}").unwrap();
+    /// let span_set2 = DateSpanSet::from_str("{[2018-08-07, 2018-08-17], [2018-10-17, 2018-10-20]}").unwrap();
+    /// let distance = span_set1.distance_to_span_set(&span_set2);
+    /// assert_eq!(distance, TimeDelta::days(323));
+    /// ```
+    fn distance_to_span_set(&self, other: &Self) -> TimeDelta {
+        unsafe {
+            TimeDelta::days(
+                meos_sys::distance_datespanset_datespanset(self.inner(), other.inner()).into(),
+            )
+        }
+    }
 }
 
 impl Clone for DateSpanSet {
@@ -179,7 +245,7 @@ impl std::str::FromStr for DateSpanSet {
 
 impl From<String> for DateSpanSet {
     fn from(value: String) -> Self {
-        DateSpanSet::from_str(&value).expect("Failed to parse the span")
+        DateSpanSet::from_str(&value).expect("Failed to parse the span set")
     }
 }
 

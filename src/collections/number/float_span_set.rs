@@ -37,7 +37,7 @@ impl Collection for FloatSpanSet {
 
 impl span_set::SpanSet for FloatSpanSet {
     type SpanType = FloatSpan;
-    type ScaleShiftType = <Self as Collection>::Type;
+    type SubsetType = <Self as Collection>::Type;
     fn inner(&self) -> *const meos_sys::SpanSet {
         self._inner
     }
@@ -133,6 +133,49 @@ impl span_set::SpanSet for FloatSpanSet {
         };
         FloatSpanSet::from_inner(modified)
     }
+
+    /// Calculates the distance between this `FloatSpanSet` and an integer (`value`).
+    ///
+    /// ## Arguments
+    /// * `value` - An f64 to calculate the distance to.
+    ///
+    /// ## Returns
+    /// An `f64` representing the distance between the span set and the value.
+    ///
+    /// ## Example
+    /// ```
+    /// # use meos::collections::number::float_span_set::FloatSpanSet;
+    /// # use meos::collections::base::span_set::SpanSet;
+    /// let span_set: FloatSpanSet = [(2019.0..2023.5).into(), (2029.0..2030.5).into()].iter().collect();
+    /// let distance = span_set.distance_to_value(&2032.5);
+    /// assert_eq!(distance, 2.0);
+    /// ```
+    fn distance_to_value(&self, other: &Self::Type) -> f64 {
+        unsafe { meos_sys::distance_spanset_float(self.inner(), *other).into() }
+    }
+
+    /// Calculates the distance between this `FloatSpanSet` and another `FloatSpanSet`.
+    ///
+    /// ## Arguments
+    /// * `other` - An `FloatSpanSet` to calculate the distance to.
+    ///
+    /// ## Returns
+    /// An `f64` representing the distance between the two spansets.
+    ///
+    /// ## Example
+    /// ```
+    /// # use meos::collections::number::float_span_set::FloatSpanSet;
+    /// # use meos::collections::base::span_set::SpanSet;
+    /// # use meos::collections::base::span::Span;
+    ///
+    /// let span_set1: FloatSpanSet = [(2019.0..2023.5).into(), (2029.0..2030.5).into()].iter().collect();
+    /// let span_set2: FloatSpanSet = [(2049.0..2050.5).into(), (2059.0..2600.5).into()].iter().collect();
+    /// let distance = span_set1.distance_to_span_set(&span_set2);
+    ///
+    /// assert_eq!(distance, 18.5);
+    fn distance_to_span_set(&self, other: &Self) -> f64 {
+        unsafe { meos_sys::distance_floatspanset_floatspanset(self.inner(), other.inner()).into() }
+    }
 }
 
 impl Clone for FloatSpanSet {
@@ -164,7 +207,7 @@ impl std::str::FromStr for FloatSpanSet {
 
 impl From<String> for FloatSpanSet {
     fn from(value: String) -> Self {
-        FloatSpanSet::from_str(&value).expect("Failed to parse the span")
+        FloatSpanSet::from_str(&value).expect("Failed to parse the span set")
     }
 }
 

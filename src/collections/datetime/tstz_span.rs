@@ -13,6 +13,8 @@ use span::Span;
 
 use crate::{collections::base::*, errors::ParseError};
 
+use super::{create_interval, MICROSECONDS_UNTIL_2000};
+
 pub struct TsTzSpan {
     _inner: *mut meos_sys::Span,
 }
@@ -25,19 +27,6 @@ impl Drop for TsTzSpan {
     }
 }
 
-const MICROSECONDS_UNTIL_2000: i64 = 946684800000000;
-
-fn create_interval(t: TimeDelta) -> meos_sys::Interval {
-    let time_in_microseconds = t.num_microseconds().unwrap_or(0);
-    let total_days = t.num_days() as i32;
-
-    meos_sys::Interval {
-        time: time_in_microseconds,
-        day: total_days,
-        month: 0,
-    }
-}
-
 impl Collection for TsTzSpan {
     impl_collection!(span, date, DateTime<Utc>);
 
@@ -47,7 +36,7 @@ impl Collection for TsTzSpan {
 }
 
 impl span::Span for TsTzSpan {
-    type ScaleShiftType = TimeDelta;
+    type SubsetType = TimeDelta;
     fn inner(&self) -> *const meos_sys::Span {
         self._inner
     }
@@ -218,6 +207,66 @@ impl span::Span for TsTzSpan {
 
         let modified = unsafe { meos_sys::tstzspan_shift_scale(self._inner, d, w) };
         TsTzSpan::from_inner(modified)
+    }
+    /// Calculates the distance between this `TsTzSpan` and a specific timestamp (`value`).
+    ///
+    /// ## Arguments
+    /// * `value` - Anvalue `TsTzSpan` to calculate the distance to.
+    ///
+    /// ## Returns
+    /// A `TimeDelta` representing the distance in seconds between the two spans.
+    ///
+    /// ## Example
+    /// ```
+    /// # use meos::collections::datetime::tstz_span::TsTzSpan;
+    /// # use meos::init;
+    /// use std::str::FromStr;
+    /// # use meos::collections::base::span::Span;
+    /// use chrono::TimeDelta;
+    /// # init();
+    /// let span1 = TsTzSpan::from_str("[2019-09-08 00:00:00+00, 2019-09-10 00:00:00+00]").unwrap();
+    /// let span2 = TsTzSpan::from_str("[2019-09-12 00:00:00+00, 2019-09-14 00:00:00+00]").unwrap();
+    /// let distance = span1.distance_to_span(&span2);
+    /// assert_eq!(distance, TimeDelta::days(2));
+    /// ```
+    fn distance_to_value(&self, value: &Self::Type) -> TimeDelta {
+        unsafe {
+            TimeDelta::seconds(
+                meos_sys::distance_span_timestamptz(
+                    self.inner(),
+                    value.timestamp_micros() - MICROSECONDS_UNTIL_2000,
+                ) as i64, // It returns the number of seconds: https://github.com/MobilityDB/MobilityDB/blob/6b60876817b53bc33967f7df50ab8e1f482b0133/meos/src/general/span_ops.c#L2292
+            )
+        }
+    }
+
+    /// Calculates the distance between this `TsTzSpan` and another `TsTzSpan`.
+    ///
+    /// ## Arguments
+    /// * `other` - Another `TsTzSpan` to calculate the distance to.
+    ///
+    /// ## Returns
+    /// A `TimeDelta` representing the distance in seconds between the two spans.
+    ///
+    /// ## Example
+    /// ```
+    /// # use meos::collections::datetime::tstz_span::TsTzSpan;
+    /// # use meos::collections::base::span::Span;
+    /// # use chrono::{TimeDelta, TimeZone, Utc};
+    /// # use meos::init;
+    /// use std::str::FromStr;
+    /// # init();
+    /// let span_set1 = TsTzSpan::from_str("[2019-09-08 00:00:00+00, 2019-09-10 00:00:00+00]").unwrap();
+    /// let span_set2 = TsTzSpan::from_str("[2018-08-07 00:00:00+00, 2018-08-17 00:00:00+00]").unwrap();
+    /// let distance = span_set1.distance_to_span(&span_set2);
+    /// assert_eq!(distance, TimeDelta::days(387));
+    /// ```
+    fn distance_to_span(&self, other: &Self) -> TimeDelta {
+        unsafe {
+            TimeDelta::seconds(
+                meos_sys::distance_tstzspan_tstzspan(self.inner(), other.inner()) as i64,
+            )
+        }
     }
 }
 

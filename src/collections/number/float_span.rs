@@ -32,7 +32,7 @@ impl Collection for FloatSpan {
 }
 
 impl span::Span for FloatSpan {
-    type ScaleShiftType = Self::Type;
+    type SubsetType = Self::Type;
     fn inner(&self) -> *const meos_sys::Span {
         self._inner
     }
@@ -153,6 +153,14 @@ impl span::Span for FloatSpan {
             meos_sys::floatspan_shift_scale(self._inner, d, w, delta.is_some(), width.is_some())
         };
         FloatSpan::from_inner(modified)
+    }
+
+    fn distance_to_value(&self, other: &Self::Type) -> f64 {
+        unsafe { meos_sys::distance_span_float(self.inner(), *other).into() }
+    }
+
+    fn distance_to_span(&self, other: &Self) -> f64 {
+        unsafe { meos_sys::distance_floatspan_floatspan(self.inner(), other.inner()).into() }
     }
 }
 
