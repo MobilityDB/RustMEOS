@@ -3,3 +3,5 @@ MobilityDB
 bitacora.md
 Cargo.lock
 .vscode
+test
+test.c

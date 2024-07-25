@@ -1,6 +1,6 @@
 use std::{fmt::Debug, hash::Hash, str::FromStr};
 
-pub trait Collection: PartialEq + Debug + FromStr + Hash {
+pub trait Collection: PartialEq + Debug + FromStr + Hash + Clone {
     type Type: Clone;
     // Topological Operations
 

@@ -7,11 +7,14 @@ use std::{
     str::FromStr,
 };
 
-use chrono::{Datelike, NaiveDate};
+use chrono::{Datelike, NaiveDate, TimeDelta};
 use collection::{impl_collection, Collection};
 use span::Span;
 
-use crate::{collections::base::*, errors::ParseSpanError};
+use crate::{
+    collections::{base::*, datetime::DAYS_UNTIL_2000},
+    errors::ParseError,
+};
 
 pub struct DateSpan {
     _inner: *mut meos_sys::Span,
@@ -34,6 +37,7 @@ impl Collection for DateSpan {
 }
 
 impl span::Span for DateSpan {
+    type ScaleShiftType = TimeDelta;
     fn inner(&self) -> *const meos_sys::Span {
         self._inner
     }
@@ -56,15 +60,23 @@ impl span::Span for DateSpan {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::number::date_span::DateSpan;
+    /// # use meos::collections::datetime::date_span::DateSpan;
     /// # use meos::collections::base::span::Span;
+    /// # use chrono::naive::NaiveDate;
     ///
-    /// let span: DateSpan = (12..67).into();
+    /// let from_ymd_opt = |y, m, d| NaiveDate::from_ymd_opt(y, m, d).unwrap();
+    ///
+    /// let span: DateSpan = (from_ymd_opt(2023, 1, 1)..from_ymd_opt(2023, 1, 15)).into();
     /// let lower = span.lower();
+    /// assert_eq!(lower, from_ymd_opt(2023, 1, 1));
     /// ```
     fn lower(&self) -> Self::Type {
         let num_of_days = unsafe { meos_sys::datespan_lower(self.inner()) };
-        NaiveDate::from_num_days_from_ce_opt(num_of_days).expect("Wrong date returned from meos")
+        println!("{num_of_days}");
+        NaiveDate::from_num_days_from_ce_opt(num_of_days)
+            .expect("Wrong date returned from meos")
+            .checked_add_days(DAYS_UNTIL_2000)
+            .unwrap()
     }
 
     /// Returns the upper bound of the span.
@@ -74,84 +86,110 @@ impl span::Span for DateSpan {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::number::date_span::DateSpan;
+    /// # use meos::collections::datetime::date_span::DateSpan;
     /// # use meos::collections::base::span::Span;
+    /// # use chrono::naive::NaiveDate;
     ///
-    /// let span: DateSpan = (12..67).dateo();;
+    /// let from_ymd_opt = |y, m, d| NaiveDate::from_ymd_opt(y, m, d).unwrap();
     ///
-    /// assert_eq!(span.upper(), 67)
+    /// let span: DateSpan = (from_ymd_opt(2023, 1, 1)..from_ymd_opt(2023, 1, 15)).into();
+    /// let upper = span.upper();
+    /// assert_eq!(upper, from_ymd_opt(2023, 1, 15));
     /// ```
     fn upper(&self) -> Self::Type {
         let num_of_days = unsafe { meos_sys::datespan_upper(self.inner()) };
-        NaiveDate::from_num_days_from_ce_opt(num_of_days).expect("Wrong date returned from meos")
+        NaiveDate::from_num_days_from_ce_opt(num_of_days)
+            .expect("Wrong date returned from meos")
+            .checked_add_days(DAYS_UNTIL_2000)
+            .unwrap()
     }
 
     /// Return a new `DateSpan` with the lower and upper bounds shifted by `delta`.
     ///
     /// # Arguments
-    /// * `delta` - The value to shift by.
+    /// * `delta` - The value to shift by, as a `NaiveDate`.
     ///
     /// # Returns
     /// A new `DateSpan` instance.
     ///
     /// # Example
     /// ```
-    /// # use meos::collections::number::date_span::DateSpan;
+    /// # use meos::collections::datetime::date_span::DateSpan;
     /// # use meos::collections::base::span::Span;
+    /// use chrono::naive::NaiveDate;
+    /// use chrono::TimeDelta;
     ///
-    /// let span: DateSpan = (12..67).dateo();
-    /// let shifted_span = span.shift(5);
+    /// let from_ymd_opt = |y, m, d| NaiveDate::from_ymd_opt(y, m, d).unwrap();
     ///
-    /// assert_eq!(shifted_span, (17..72).dateo())
+    /// let span: DateSpan = (from_ymd_opt(2023, 1, 1)..from_ymd_opt(2023, 1, 15)).into();
+    /// let shifted_span = span.shift(TimeDelta::days(5));
+    /// let expected_span: DateSpan = (from_ymd_opt(2023, 1, 6)..from_ymd_opt(2023, 1, 20)).into();
+    /// assert_eq!(shifted_span, expected_span);
     /// ```
-    fn shift(&self, delta: NaiveDate) -> DateSpan {
+    fn shift(&self, delta: TimeDelta) -> DateSpan {
         self.shift_scale(Some(delta), None)
     }
 
     /// Return a new `DateSpan` with the lower and upper bounds scaled so that the width is `width`.
     ///
     /// # Arguments
-    /// * `width` - The new width.
+    /// * `width` - The new width, as a `NaiveDate`.
     ///
     /// # Returns
     /// A new `DateSpan` instance.
     ///
     /// # Example
     /// ```
-    /// # use meos::collections::number::date_span::DateSpan;
+    /// # use meos::collections::datetime::date_span::DateSpan;
     /// # use meos::collections::base::span::Span;
+    /// use chrono::naive::NaiveDate;
+    /// use chrono::TimeDelta;
     ///
-    /// let span: DateSpan = (12..67).dateo();
-    /// let scaled_span = span.scale(10);
+    /// let from_ymd_opt = |y, m, d| NaiveDate::from_ymd_opt(y, m, d).unwrap();
     ///
-    /// assert_eq!(scaled_span, (12..23).dateo())
+    /// let span: DateSpan = (from_ymd_opt(2023, 1, 1)..from_ymd_opt(2023, 1, 15)).into();
+    /// let scaled_span = span.scale(TimeDelta::days(5));
+    /// let expected_span: DateSpan = (from_ymd_opt(2023, 1, 1)..from_ymd_opt(2023, 1, 07)).into();
+    /// assert_eq!(scaled_span, expected_span);
     /// ```
-    fn scale(&self, width: NaiveDate) -> DateSpan {
+    fn scale(&self, width: TimeDelta) -> DateSpan {
         self.shift_scale(None, Some(width))
     }
 
     /// Return a new `DateSpan` with the lower and upper bounds shifted by `delta` and scaled so that the width is `width`.
     ///
     /// # Arguments
-    /// * `delta` - The value to shift by.
-    /// * `width` - The new width.
+    /// * `delta` - The value to shift by, as a `NaiveDate`.
+    /// * `width` - The new width, as a `NaiveDate`.
     ///
     /// # Returns
     /// A new `DateSpan` instance.
     ///
     /// # Example
     /// ```
-    /// # use meos::collections::number::date_span::DateSpan;
+    /// # use meos::collections::datetime::date_span::DateSpan;
     /// # use meos::collections::base::span::Span;
+    /// use chrono::naive::NaiveDate;
+    /// use chrono::TimeDelta;
     ///
-    /// let span: DateSpan = (12..67).into();
-    /// let shifted_scaled_span = span.shift_scale(Some(5), Some(10));
+    /// let from_ymd_opt = |y, m, d| NaiveDate::from_ymd_opt(y, m, d).unwrap();
     ///
-    /// assert_eq!(shifted_scaled_span, (17..28).dateo())
+    /// let span: DateSpan = (from_ymd_opt(2023, 1, 1)..from_ymd_opt(2023, 1, 15)).into();
+    /// let shifted_scaled_span = span.shift_scale(Some(TimeDelta::days(5)), Some(TimeDelta::days(10)));
+    /// let expected_span: DateSpan = (from_ymd_opt(2023, 1, 6)..from_ymd_opt(2023, 1, 17)).into();
+    /// assert_eq!(shifted_scaled_span, expected_span);
     /// ```
-    fn shift_scale(&self, delta: Option<NaiveDate>, width: Option<NaiveDate>) -> DateSpan {
-        let d = delta.unwrap_or_default().num_days_from_ce();
-        let w = width.unwrap_or_default().num_days_from_ce();
+    fn shift_scale(&self, delta: Option<TimeDelta>, width: Option<TimeDelta>) -> DateSpan {
+        let d = delta
+            .unwrap_or_default()
+            .num_days()
+            .try_into()
+            .expect("Number too big");
+        let w = width
+            .unwrap_or_default()
+            .num_days()
+            .try_into()
+            .expect("Number too big");
         let modified = unsafe {
             meos_sys::datespan_shift_scale(self._inner, d, w, delta.is_some(), width.is_some())
         };
@@ -175,7 +213,7 @@ impl Hash for DateSpan {
 }
 
 impl std::str::FromStr for DateSpan {
-    type Err = ParseSpanError;
+    type Err = ParseError;
     /// Parses a `DateSpan` from a string representation.
     ///
     /// ## Arguments
@@ -189,26 +227,29 @@ impl std::str::FromStr for DateSpan {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::number::date_span::DateSpan;
+    /// # use meos::collections::datetime::date_span::DateSpan;
     /// # use meos::collections::base::span::Span;
     /// # use std::str::FromStr;
+    /// # use meos::init;
+    /// use chrono::NaiveDate;
+    /// # init();
+    /// let from_ymd_opt = |y, m, d| NaiveDate::from_ymd_opt(y, m, d).unwrap();
     ///
-    /// let span: DateSpan = "(12, 67)".parse().expect("Failed to parse span");
-    /// assert_eq!(span.lower(), 13);
-    /// assert_eq!(span.upper(), 67);
+    /// let span: DateSpan = "(2019-09-08, 2019-09-10)".parse().expect("Failed to parse span");
+    /// assert_eq!(span.lower(), from_ymd_opt(2019, 9, 9));
+    /// assert_eq!(span.upper(), from_ymd_opt(2019, 9, 10));
     /// ```
     fn from_str(string: &str) -> Result<Self, Self::Err> {
-        CString::new(string)
-            .map_err(|_| ParseSpanError)
-            .map(|string| {
-                let inner = unsafe { meos_sys::datespan_in(string.as_ptr()) };
-                Self::from_inner(inner)
-            })
+        CString::new(string).map_err(|_| ParseError).map(|string| {
+            println!("{string:?}");
+            let inner = unsafe { meos_sys::datespan_in(string.as_ptr()) };
+            Self::from_inner(inner)
+        })
     }
 }
 
 impl From<String> for DateSpan {
-    /// Converts a `String` dateo a `DateSpan`.
+    /// Converts a `String` into a `DateSpan`.
     ///
     /// ## Arguments
     /// * `value` - A `String` containing the representation of a `DateSpan`.
@@ -217,18 +258,25 @@ impl From<String> for DateSpan {
     /// * A `DateSpan` instance.
     ///
     /// ## Panics
-    /// * Panics if the string cannot be parsed dateo a `DateSpan`.
+    /// * Panics if the string cannot be parsed into a `DateSpan`.
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::number::date_span::DateSpan;
-    /// # use std::string::String;
+    /// # use meos::collections::datetime::date_span::DateSpan;
     /// # use meos::collections::base::span::Span;
+    /// # use std::string::String;
+    /// # use meos::init;
     ///
-    /// let span_str = String::from("(12, 67)");
-    /// let span: DateSpan = span_str.dateo();
-    /// assert_eq!(span.lower(), 13);
-    /// assert_eq!(span.upper(), 67);
+    /// use chrono::NaiveDate;
+    ///
+    /// # init();
+    ///
+    /// let from_ymd_opt = |y, m, d| NaiveDate::from_ymd_opt(y, m, d).unwrap();
+    ///
+    /// let span_str = String::from("(2019-09-08, 2019-09-10)");
+    /// let span: DateSpan = span_str.into();
+    /// assert_eq!(span.lower(), from_ymd_opt(2019, 9, 9));
+    /// assert_eq!(span.upper(), from_ymd_opt(2019, 9, 10));
     /// ```
     fn from(value: String) -> Self {
         DateSpan::from_str(&value).expect("Failed to parse the span")
@@ -246,12 +294,14 @@ impl cmp::PartialEq for DateSpan {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::number::date_span::DateSpan;
+    /// # use meos::collections::datetime::date_span::DateSpan;
     /// # use meos::collections::base::span::Span;
-    /// # use std::str::FromStr;
+    /// use chrono::naive::NaiveDate;
     ///
-    /// let span1: DateSpan = (12..67).dateo();
-    /// let span2: DateSpan = (12..67).dateo();
+    /// let from_ymd_opt = |y, m, d| NaiveDate::from_ymd_opt(y, m, d).unwrap();
+    ///
+    /// let span1: DateSpan = (from_ymd_opt(1, 1, 1)..from_ymd_opt(2, 2, 2)).into();
+    /// let span2: DateSpan = (from_ymd_opt(1, 1, 1)..from_ymd_opt(2, 2, 2)).into();
     /// assert_eq!(span1, span2);
     /// ```
     fn eq(&self, other: &Self) -> bool {
@@ -265,8 +315,13 @@ impl From<Range<NaiveDate>> for DateSpan {
     fn from(Range { start, end }: Range<NaiveDate>) -> Self {
         let inner = unsafe {
             meos_sys::datespan_make(
-                start.num_days_from_ce(),
-                end.num_days_from_ce(),
+                start
+                    .checked_sub_days(DAYS_UNTIL_2000)
+                    .unwrap()
+                    .num_days_from_ce(),
+                end.checked_sub_days(DAYS_UNTIL_2000)
+                    .unwrap()
+                    .num_days_from_ce(),
                 true,
                 false,
             )
@@ -279,8 +334,16 @@ impl From<RangeInclusive<NaiveDate>> for DateSpan {
     fn from(range: RangeInclusive<NaiveDate>) -> Self {
         let inner = unsafe {
             meos_sys::datespan_make(
-                range.start().num_days_from_ce(),
-                range.end().num_days_from_ce(),
+                range
+                    .start()
+                    .checked_sub_days(DAYS_UNTIL_2000)
+                    .unwrap()
+                    .num_days_from_ce(),
+                range
+                    .end()
+                    .checked_sub_days(DAYS_UNTIL_2000)
+                    .unwrap()
+                    .num_days_from_ce(),
                 true,
                 true,
             )
@@ -313,15 +376,18 @@ impl BitAnd for DateSpan {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::number::date_span::DateSpan;
+    /// # use meos::collections::datetime::date_span::DateSpan;
     /// # use meos::collections::base::span::Span;
     /// # use std::str::FromStr;
+    /// use chrono::naive::NaiveDate;
     ///
-    /// let span1: DateSpan = (12..67).dateo();
-    /// let span2: DateSpan = (50..90).dateo();
-    /// let dateersection = (span1 & span2).unwrap();
+    /// let from_ymd_opt = |y, m, d| NaiveDate::from_ymd_opt(y, m, d).unwrap();
     ///
-    /// assert_eq!(dateersection, (50..67).dateo())
+    /// let span1: DateSpan = (from_ymd_opt(1, 1, 1)..from_ymd_opt(1, 1, 11)).into();
+    /// let span2: DateSpan = (from_ymd_opt(1, 1, 9)..from_ymd_opt(2, 1, 11)).into();
+    /// let date_intersection = (span1 & span2).unwrap();
+    ///
+    /// assert_eq!(date_intersection, (from_ymd_opt(1, 1, 9)..from_ymd_opt(1, 1, 11)).into())
     /// ```
     fn bitand(self, other: Self) -> Self::Output {
         // Replace with actual function call or logic

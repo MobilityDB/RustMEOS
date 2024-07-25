@@ -10,7 +10,7 @@ use std::{
 use collection::{impl_collection, Collection};
 use span::Span;
 
-use crate::{collections::base::*, errors::ParseSpanError};
+use crate::{collections::base::*, errors::ParseError};
 
 pub struct FloatSpan {
     _inner: *mut meos_sys::Span,
@@ -32,6 +32,7 @@ impl Collection for FloatSpan {
 }
 
 impl span::Span for FloatSpan {
+    type ScaleShiftType = Self::Type;
     fn inner(&self) -> *const meos_sys::Span {
         self._inner
     }
@@ -171,7 +172,7 @@ impl Hash for FloatSpan {
 }
 
 impl std::str::FromStr for FloatSpan {
-    type Err = ParseSpanError;
+    type Err = ParseError;
     /// Parses a `FloatSpan` from a string representation.
     ///
     /// ## Arguments
@@ -194,12 +195,10 @@ impl std::str::FromStr for FloatSpan {
     /// assert_eq!(span.upper(), 67.8);
     /// ```
     fn from_str(string: &str) -> Result<Self, Self::Err> {
-        CString::new(string)
-            .map_err(|_| ParseSpanError)
-            .map(|string| {
-                let inner = unsafe { meos_sys::floatspan_in(string.as_ptr()) };
-                Self::from_inner(inner)
-            })
+        CString::new(string).map_err(|_| ParseError).map(|string| {
+            let inner = unsafe { meos_sys::floatspan_in(string.as_ptr()) };
+            Self::from_inner(inner)
+        })
     }
 }
 
@@ -322,14 +321,8 @@ impl BitAnd for FloatSpan {
     ///
     /// assert_eq!(intersection, (50.0..67.8).into())
     /// ```
-    fn bitand(self, other: Self) -> Self::Output {
-        // Replace with actual function call or logic
-        let result = unsafe { meos_sys::intersection_span_span(self._inner, other._inner) };
-        if !result.is_null() {
-            Some(FloatSpan::from_inner(result))
-        } else {
-            None
-        }
+    fn bitand(self, other: FloatSpan) -> Self::Output {
+        self.intersection(&other)
     }
 }
 

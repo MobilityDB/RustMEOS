@@ -1,9 +1,15 @@
-use std::ffi::{c_char, CStr, CString};
+use std::{
+    ffi::{c_char, CStr, CString},
+    ptr,
+};
+
+use crate::init;
 
 use super::{collection::Collection, span::Span};
 
-pub trait SpanSet: Collection {
+pub trait SpanSet: Collection + FromIterator<Self::SpanType> {
     type SpanType: Span;
+    type ScaleShiftType;
     fn inner(&self) -> *const meos_sys::SpanSet;
 
     /// Creates a new `Span` from a WKB representation.
@@ -26,12 +32,13 @@ pub trait SpanSet: Collection {
     /// ## Returns
     /// * A new `Span` instance.
     fn from_hexwkb(hexwkb: &str) -> Self {
+        init();
         let c_string = CString::new(hexwkb).expect("Cannot create CString");
         let span = unsafe { meos_sys::spanset_from_hexwkb(c_string.as_ptr()) };
         Self::from_inner(span)
     }
 
-    fn copy(&self) -> impl SpanSet {
+    fn copy(&self) -> Self {
         let inner = unsafe { meos_sys::spanset_copy(self.inner()) };
         Self::from_inner(inner)
     }
@@ -41,12 +48,12 @@ pub trait SpanSet: Collection {
     fn as_wkb(&self) -> Vec<u8> {
         unsafe {
             let mut size = 0;
-            let wkb = meos_sys::spanset_as_wkb(self.inner(), 4, &mut size as *mut _);
+            let wkb = meos_sys::spanset_as_wkb(self.inner(), 4, ptr::addr_of_mut!(size));
             Vec::from_raw_parts(wkb, size, size)
         }
     }
 
-    // TODO CHECK with Esteban the variant number
+    // TODO Check
     fn as_hexwkb(&self) -> String {
         unsafe {
             let hexwkb_ptr = meos_sys::spanset_as_hexwkb(self.inner(), 1, std::ptr::null_mut());
@@ -90,15 +97,71 @@ pub trait SpanSet: Collection {
     fn width(&self, ignore_gaps: bool) -> Self::Type;
 
     /// Return a new `SpanSet` with the lower and upper bounds shifted by `delta`.
-    fn shift(&self, delta: Self::Type) -> Self;
+    fn shift(&self, delta: Self::ScaleShiftType) -> Self;
 
     /// Return a new `SpanSet` with the lower and upper bounds scaled so that the width is `width`.
-    fn scale(&self, width: Self::Type) -> Self;
+    fn scale(&self, width: Self::ScaleShiftType) -> Self;
 
     /// Return a new `SpanSet` with the lower and upper bounds shifted by `delta` and scaled so that the width is `width`.
-    fn shift_scale(&self, delta: Option<Self::Type>, width: Option<Self::Type>) -> Self;
+    fn shift_scale(
+        &self,
+        delta: Option<Self::ScaleShiftType>,
+        width: Option<Self::ScaleShiftType>,
+    ) -> Self;
+
+    fn intersection(&self, other: &Self) -> Option<Self> {
+        let result = unsafe { meos_sys::intersection_spanset_spanset(self.inner(), other.inner()) };
+        if !result.is_null() {
+            Some(Self::from_inner(result))
+        } else {
+            None
+        }
+    }
+
+    fn union(&self, other: &Self) -> Option<Self> {
+        let result = unsafe { meos_sys::union_spanset_spanset(self.inner(), other.inner()) };
+        if !result.is_null() {
+            Some(Self::from_inner(result))
+        } else {
+            None
+        }
+    }
 
     fn hash(&self) -> u32 {
         unsafe { meos_sys::spanset_hash(self.inner()) }
     }
 }
+
+macro_rules! impl_iterator {
+    ($type:ty) => {
+        impl IntoIterator for $type {
+            type Item = <$type as SpanSet>::SpanType;
+
+            type IntoIter = std::vec::IntoIter<Self::Item>;
+
+            fn into_iter(self) -> Self::IntoIter {
+                self.spans().into_iter()
+            }
+        }
+
+        impl FromIterator<<$type as SpanSet>::SpanType> for $type {
+            fn from_iter<T: IntoIterator<Item = <$type as SpanSet>::SpanType>>(iter: T) -> Self {
+                iter.into_iter().collect()
+            }
+        }
+
+        impl<'a> FromIterator<&'a <$type as SpanSet>::SpanType> for $type {
+            fn from_iter<T: IntoIterator<Item = &'a <$type as SpanSet>::SpanType>>(
+                iter: T,
+            ) -> Self {
+                let mut iter = iter.into_iter();
+                let first = iter.next().unwrap();
+                iter.fold(first.to_spanset(), |acc, item| {
+                    (acc | item.to_spanset()).unwrap()
+                })
+            }
+        }
+    };
+}
+
+pub(crate) use impl_iterator;

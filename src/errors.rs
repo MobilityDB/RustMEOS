@@ -1,2 +1,2 @@
 #[derive(Debug, PartialEq, Eq)]
-pub struct ParseSpanError;
+pub struct ParseError;

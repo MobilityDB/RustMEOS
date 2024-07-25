@@ -6,10 +6,12 @@ use std::ops::{BitAnd, BitOr};
 use std::str::FromStr;
 
 use collection::{impl_collection, Collection};
+use span_set::impl_iterator;
 
+use crate::collections::base::span::Span;
 use crate::collections::base::span_set::SpanSet;
 use crate::collections::base::*;
-use crate::errors::ParseSpanError;
+use crate::errors::ParseError;
 
 use super::float_span::FloatSpan;
 
@@ -35,6 +37,7 @@ impl Collection for FloatSpanSet {
 
 impl span_set::SpanSet for FloatSpanSet {
     type SpanType = FloatSpan;
+    type ScaleShiftType = <Self as Collection>::Type;
     fn inner(&self) -> *const meos_sys::SpanSet {
         self._inner
     }
@@ -132,31 +135,13 @@ impl span_set::SpanSet for FloatSpanSet {
     }
 }
 
-// impl IntoIterator for FloatSpanSet {
-//     type Item = FloatSpan;
+impl Clone for FloatSpanSet {
+    fn clone(&self) -> FloatSpanSet {
+        self.copy()
+    }
+}
 
-//     type IntoIter = std::vec::IntoIter<Self::Item>;
-
-//     fn into_iter(self) -> Self::IntoIter {
-//         todo!()
-//     }
-// }
-
-// impl FromIterator<FloatSpan> for FloatSpanSet {
-//     fn from_iter<T: IntoIterator<Item = FloatSpan>>(iter: T) -> Self {
-//         let mut iter = iter.into_iter();
-//         let first = iter.next().unwrap();
-//         iter.fold(first.to_spanset(), |acc, item| {
-//             (acc | item.to_spanset()).unwrap()
-//         })
-//     }
-// }
-
-// impl<'a> FromIterator<&'a FloatSpan> for FloatSpanSet {
-//     fn from_iter<T: IntoIterator<Item = &'a FloatSpan>>(iter: T) -> Self {
-//         iter.into_iter().collect()
-//     }
-// }
+impl_iterator!(FloatSpanSet);
 
 impl Hash for FloatSpanSet {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
@@ -168,14 +153,12 @@ impl Hash for FloatSpanSet {
 }
 
 impl std::str::FromStr for FloatSpanSet {
-    type Err = ParseSpanError;
+    type Err = ParseError;
     fn from_str(string: &str) -> Result<Self, Self::Err> {
-        CString::new(string)
-            .map_err(|_| ParseSpanError)
-            .map(|string| {
-                let inner = unsafe { meos_sys::floatspanset_in(string.as_ptr()) };
-                Self::from_inner(inner)
-            })
+        CString::new(string).map_err(|_| ParseError).map(|string| {
+            let inner = unsafe { meos_sys::floatspanset_in(string.as_ptr()) };
+            Self::from_inner(inner)
+        })
     }
 }
 
@@ -229,13 +212,7 @@ impl BitAnd<FloatSpanSet> for FloatSpanSet {
     /// assert_eq!((span_set1 & span_set2).unwrap(), expected_result);
     /// ```
     fn bitand(self, other: FloatSpanSet) -> Self::Output {
-        // Replace with actual function call or logic
-        let result = unsafe { meos_sys::intersection_spanset_spanset(other.inner(), self._inner) };
-        if !result.is_null() {
-            Some(FloatSpanSet::from_inner(result))
-        } else {
-            None
-        }
+        self.intersection(&other)
     }
 }
 
@@ -266,12 +243,6 @@ impl BitOr for FloatSpanSet {
     /// assert_eq!((span_set1 | span_set2).unwrap(), expected_result)
     /// ```
     fn bitor(self, other: Self) -> Self::Output {
-        // Replace with actual function call or logic
-        let result = unsafe { meos_sys::union_spanset_spanset(self._inner, other._inner) };
-        if !result.is_null() {
-            Some(FloatSpanSet::from_inner(result))
-        } else {
-            None
-        }
+        self.union(&other)
     }
 }

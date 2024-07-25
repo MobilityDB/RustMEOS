@@ -3,6 +3,7 @@ use std::ffi::{CStr, CString};
 use super::{collection::Collection, span_set::SpanSet};
 
 pub trait Span: Collection {
+    type ScaleShiftType;
     fn inner(&self) -> *const meos_sys::Span;
 
     /// Creates a new `Span` from a WKB representation.
@@ -30,17 +31,12 @@ pub trait Span: Collection {
         Self::from_inner(span)
     }
 
-    fn copy(&self) -> Self
-    where
-        Self: Sized,
-    {
+    fn copy(&self) -> Self {
         let inner = unsafe { meos_sys::span_copy(self.inner()) };
         Self::from_inner(inner)
     }
 
-    fn from_inner(inner: *mut meos_sys::Span) -> Self
-    where
-        Self: Sized;
+    fn from_inner(inner: *mut meos_sys::Span) -> Self;
 
     // TODO CHECK with Esteban
     fn as_wkb(&self) -> Vec<u8> {
@@ -126,15 +122,37 @@ pub trait Span: Collection {
     }
 
     /// Return a new `Span` with the lower and upper bounds shifted by `delta`.
-    fn shift(&self, delta: Self::Type) -> Self;
+    fn shift(&self, delta: Self::ScaleShiftType) -> Self;
 
     /// Return a new `Span` with the lower and upper bounds scaled so that the width is `width`.
-    fn scale(&self, width: Self::Type) -> Self;
+    fn scale(&self, width: Self::ScaleShiftType) -> Self;
+
+    /// Return a new `Span` with the lower and upper bounds shifted by `delta` and scaled so that the width is `width`.
+    fn shift_scale(
+        &self,
+        delta: Option<Self::ScaleShiftType>,
+        width: Option<Self::ScaleShiftType>,
+    ) -> Self;
 
     fn to_spanset<T: SpanSet<Type = Self::Type>>(&self) -> T {
         unsafe { T::from_inner(meos_sys::span_to_spanset(self.inner())) }
     }
 
-    /// Return a new `Span` with the lower and upper bounds shifted by `delta` and scaled so that the width is `width`.
-    fn shift_scale(&self, delta: Option<Self::Type>, width: Option<Self::Type>) -> Self;
+    fn intersection(&self, other: &Self) -> Option<Self> {
+        let result = unsafe { meos_sys::intersection_span_span(self.inner(), other.inner()) };
+        if !result.is_null() {
+            Some(Self::from_inner(result))
+        } else {
+            None
+        }
+    }
+
+    fn union<T: SpanSet<Type = Self::Type>>(&self, other: &Self) -> Option<T> {
+        let result = unsafe { meos_sys::union_span_span(self.inner(), other.inner()) };
+        if !result.is_null() {
+            Some(T::from_inner(result))
+        } else {
+            None
+        }
+    }
 }

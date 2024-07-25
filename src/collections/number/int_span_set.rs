@@ -7,10 +7,11 @@ use std::str::FromStr;
 
 use collection::{impl_collection, Collection};
 use span::Span;
+use span_set::impl_iterator;
 
 use crate::collections::base::span_set::SpanSet;
 use crate::collections::base::*;
-use crate::errors::ParseSpanError;
+use crate::errors::ParseError;
 
 use super::int_span::IntSpan;
 
@@ -35,6 +36,7 @@ impl Collection for IntSpanSet {
 
 impl span_set::SpanSet for IntSpanSet {
     type SpanType = IntSpan;
+    type ScaleShiftType = <Self as Collection>::Type;
     fn inner(&self) -> *const meos_sys::SpanSet {
         self._inner
     }
@@ -132,15 +134,13 @@ impl span_set::SpanSet for IntSpanSet {
     }
 }
 
-impl FromIterator<IntSpan> for IntSpanSet {
-    fn from_iter<T: IntoIterator<Item = IntSpan>>(iter: T) -> Self {
-        let mut iter = iter.into_iter();
-        let first = iter.next().unwrap();
-        iter.fold(first.to_spanset(), |acc, item| {
-            (acc | item.to_spanset()).unwrap()
-        })
+impl Clone for IntSpanSet {
+    fn clone(&self) -> IntSpanSet {
+        self.copy()
     }
 }
+
+impl_iterator!(IntSpanSet);
 
 impl Hash for IntSpanSet {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
@@ -152,14 +152,12 @@ impl Hash for IntSpanSet {
 }
 
 impl std::str::FromStr for IntSpanSet {
-    type Err = ParseSpanError;
+    type Err = ParseError;
     fn from_str(string: &str) -> Result<Self, Self::Err> {
-        CString::new(string)
-            .map_err(|_| ParseSpanError)
-            .map(|string| {
-                let inner = unsafe { meos_sys::intspanset_in(string.as_ptr()) };
-                Self::from_inner(inner)
-            })
+        CString::new(string).map_err(|_| ParseError).map(|string| {
+            let inner = unsafe { meos_sys::intspanset_in(string.as_ptr()) };
+            Self::from_inner(inner)
+        })
     }
 }
 
@@ -213,13 +211,7 @@ impl BitAnd<IntSpanSet> for IntSpanSet {
     /// assert_eq!((span_set1 & span_set2).unwrap(), expected_result);
     /// ```
     fn bitand(self, other: IntSpanSet) -> Self::Output {
-        // Replace with actual function call or logic
-        let result = unsafe { meos_sys::intersection_spanset_spanset(other.inner(), self._inner) };
-        if !result.is_null() {
-            Some(IntSpanSet::from_inner(result))
-        } else {
-            None
-        }
+        self.intersection(&other)
     }
 }
 
@@ -250,12 +242,6 @@ impl BitOr for IntSpanSet {
     /// assert_eq!((span_set1 | span_set2).unwrap(), expected_result)
     /// ```
     fn bitor(self, other: Self) -> Self::Output {
-        // Replace with actual function call or logic
-        let result = unsafe { meos_sys::union_spanset_spanset(self._inner, other._inner) };
-        if !result.is_null() {
-            Some(IntSpanSet::from_inner(result))
-        } else {
-            None
-        }
+        self.union(&other)
     }
 }
