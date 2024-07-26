@@ -28,7 +28,7 @@ impl Drop for IntSpanSet {
 }
 
 impl Collection for IntSpanSet {
-    impl_collection!(spanset, int, i32);
+    impl_collection!(spanset, i32);
     fn contains(&self, content: &i32) -> bool {
         unsafe { meos_sys::contains_spanset_int(self.inner(), *content) }
     }

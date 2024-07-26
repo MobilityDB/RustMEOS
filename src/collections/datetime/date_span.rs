@@ -29,7 +29,7 @@ impl Drop for DateSpan {
 }
 
 impl Collection for DateSpan {
-    impl_collection!(span, date, NaiveDate);
+    impl_collection!(span, NaiveDate);
 
     fn contains(&self, content: &NaiveDate) -> bool {
         unsafe { meos_sys::contains_span_date(self.inner(), content.num_days_from_ce()) }

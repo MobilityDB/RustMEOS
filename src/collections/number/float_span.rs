@@ -25,7 +25,7 @@ impl Drop for FloatSpan {
 }
 
 impl Collection for FloatSpan {
-    impl_collection!(span, float, f64);
+    impl_collection!(span, f64);
     fn contains(&self, content: &f64) -> bool {
         unsafe { meos_sys::contains_span_float(self.inner(), *content) }
     }

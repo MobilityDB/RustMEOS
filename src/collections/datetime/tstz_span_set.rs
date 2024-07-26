@@ -16,9 +16,9 @@ use crate::collections::base::span_set::SpanSet;
 use crate::collections::base::*;
 use crate::errors::ParseError;
 
-use super::create_interval;
 use super::tstz_span::TsTzSpan;
 use super::MICROSECONDS_UNTIL_2000;
+use crate::utils::create_interval;
 
 pub struct TsTzSpanSet {
     _inner: *mut meos_sys::SpanSet,
@@ -33,7 +33,7 @@ impl Drop for TsTzSpanSet {
 }
 
 impl Collection for TsTzSpanSet {
-    impl_collection!(spanset, date, DateTime<Utc>);
+    impl_collection!(spanset, DateTime<Utc>);
     fn contains(&self, content: &DateTime<Utc>) -> bool {
         unsafe { meos_sys::contains_spanset_date(self.inner(), content.num_days_from_ce()) }
     }

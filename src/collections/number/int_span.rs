@@ -25,7 +25,7 @@ impl Drop for IntSpan {
 }
 
 impl Collection for IntSpan {
-    impl_collection!(span, int, i32);
+    impl_collection!(span, i32);
     fn contains(&self, content: &i32) -> bool {
         unsafe { meos_sys::contains_span_int(self.inner(), *content) }
     }

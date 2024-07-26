@@ -1,12 +1,13 @@
 use std::str::FromStr;
 
+use chrono::TimeDelta;
 use meos::{
     collections::{
         base::span_set::SpanSet,
-        datetime::date_span_set::DateSpanSet,
+        datetime::{date_span_set::DateSpanSet, tstz_span_set::TsTzSpanSet},
         number::{float_span::FloatSpan, float_span_set::FloatSpanSet, int_span_set::IntSpanSet},
     },
-    init,
+    init, WKBVariant,
 };
 
 fn main() {
@@ -33,6 +34,10 @@ fn main() {
     let a = DateSpanSet::from_str("{[2019-09-08, 2019-09-10], [2019-09-11, 2019-09-12]}").unwrap();
     println!("{a:?}");
     let span_set: IntSpanSet = [(2019..2023).into(), (2029..2030).into()].iter().collect();
-    println!("{span_set:?}");
-    println!("Cómo?");
+    println!("b{span_set:?}");
+    let span_set = TsTzSpanSet::from_str("{[2019-09-08 00:00:00+00, 2019-09-10 00:00:00+00], [2019-09-11 00:00:00+00, 2019-09-12 00:00:00+00]}").unwrap();
+    let shifted_scaled_span_set =
+        span_set.shift_scale(Some(TimeDelta::days(5)), Some(TimeDelta::days(10)));
+    println!("a{shifted_scaled_span_set:?}");
+    println!("{:?}", WKBVariant::Extended | WKBVariant::NDR)
 }

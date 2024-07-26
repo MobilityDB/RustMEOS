@@ -1,5 +1,7 @@
 use std::ffi::{CStr, CString};
 
+use crate::WKBVariant;
+
 use super::{collection::Collection, span_set::SpanSet};
 
 pub trait Span: Collection {
@@ -26,32 +28,26 @@ pub trait Span: Collection {
     ///
     /// ## Returns
     /// * A new `Span` instance.
-    fn from_hexwkb(hexwkb: &str) -> Self {
+    fn from_hexwkb(hexwkb: &[u8]) -> Self {
         let c_string = CString::new(hexwkb).expect("Cannot create CString");
         let span = unsafe { meos_sys::span_from_hexwkb(c_string.as_ptr()) };
         Self::from_inner(span)
     }
 
-    fn copy(&self) -> Self {
-        let inner = unsafe { meos_sys::span_copy(self.inner()) };
-        Self::from_inner(inner)
-    }
-
     fn from_inner(inner: *mut meos_sys::Span) -> Self;
 
-    // TODO CHECK with Esteban
-    fn as_wkb(&self) -> Vec<u8> {
+    fn as_wkb(&self, variant: WKBVariant) -> Vec<u8> {
         unsafe {
             let mut size = 0;
-            let wkb = meos_sys::span_as_wkb(self.inner(), 4, &mut size as *mut _);
+            let wkb = meos_sys::span_as_wkb(self.inner(), variant.into(), &mut size as *mut _);
             Vec::from_raw_parts(wkb, size, size)
         }
     }
 
-    // TODO CHECK with Esteban the variant number
-    fn as_hexwkb(&self) -> String {
+    fn as_hexwkb(&self, variant: WKBVariant) -> String {
         unsafe {
-            let hexwkb_ptr = meos_sys::span_as_hexwkb(self.inner(), 1, std::ptr::null_mut());
+            let hexwkb_ptr =
+                meos_sys::span_as_hexwkb(self.inner(), variant.into(), std::ptr::null_mut());
             CStr::from_ptr(hexwkb_ptr).to_str().unwrap().to_owned()
         }
     }
@@ -102,27 +98,6 @@ pub trait Span: Collection {
     /// ```
     fn is_upper_inclusive(&self) -> bool {
         unsafe { meos_sys::span_upper_inc(self.inner()) }
-    }
-
-    /// Checks if this span is adjacent to another span.
-    ///
-    /// # Arguments
-    /// * `other` - A reference to another `Span`.
-    ///
-    /// ## Returns
-    /// * `true` if the spans are adjacent, `false` otherwise.
-    ///
-    /// ## Example
-    /// ```
-    /// # use meos::collections::number::float_span::FloatSpan;
-    /// # use meos::collections::base::span::Span;
-    ///
-    /// let span1: FloatSpan = (12.9..67.8).into();
-    /// let span2: FloatSpan = (67.8..98.0).into();
-    /// assert!(span1.is_adjacent(&span2));
-    /// ```
-    fn is_adjacent(&self, other: &Self) -> bool {
-        unsafe { meos_sys::adjacent_span_span(self.inner(), other.inner()) }
     }
 
     /// Return a new `Span` with the lower and upper bounds shifted by `delta`.

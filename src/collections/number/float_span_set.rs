@@ -28,7 +28,7 @@ impl Drop for FloatSpanSet {
 }
 
 impl Collection for FloatSpanSet {
-    impl_collection!(spanset, float, f64);
+    impl_collection!(spanset, f64);
 
     fn contains(&self, content: &f64) -> bool {
         unsafe { meos_sys::contains_spanset_float(self.inner(), *content) }

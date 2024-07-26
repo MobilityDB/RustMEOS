@@ -1,6 +1,6 @@
 pub trait Box {
     fn from_wkb(wkb: &[u8]) -> Self;
-    fn from_hexwkb(hexwkb: &str) -> Self;
+    fn from_hexwkb(hexwkb: &[u8]) -> Self;
     fn copy(&self) -> Self;
     fn as_wkb(&self) -> Vec<u8>;
     fn as_hexwkb(&self) -> String;

@@ -3,7 +3,7 @@ use std::{
     ptr,
 };
 
-use crate::init;
+use crate::WKBVariant;
 
 use super::{collection::Collection, span::Span};
 
@@ -32,8 +32,7 @@ pub trait SpanSet: Collection + FromIterator<Self::SpanType> {
     ///
     /// ## Returns
     /// * A new `Span` instance.
-    fn from_hexwkb(hexwkb: &str) -> Self {
-        init();
+    fn from_hexwkb(hexwkb: &[u8]) -> Self {
         let c_string = CString::new(hexwkb).expect("Cannot create CString");
         let span = unsafe { meos_sys::spanset_from_hexwkb(c_string.as_ptr()) };
         Self::from_inner(span)
@@ -46,18 +45,20 @@ pub trait SpanSet: Collection + FromIterator<Self::SpanType> {
 
     fn from_inner(inner: *mut meos_sys::SpanSet) -> Self;
 
-    fn as_wkb(&self) -> Vec<u8> {
+    fn as_wkb(&self, variant: WKBVariant) -> Vec<u8> {
         unsafe {
             let mut size = 0;
-            let wkb = meos_sys::spanset_as_wkb(self.inner(), 4, ptr::addr_of_mut!(size));
+            let wkb =
+                meos_sys::spanset_as_wkb(self.inner(), variant.into(), ptr::addr_of_mut!(size));
             Vec::from_raw_parts(wkb, size, size)
         }
     }
 
     // TODO Check
-    fn as_hexwkb(&self) -> String {
+    fn as_hexwkb(&self, variant: WKBVariant) -> String {
         unsafe {
-            let hexwkb_ptr = meos_sys::spanset_as_hexwkb(self.inner(), 1, std::ptr::null_mut());
+            let hexwkb_ptr =
+                meos_sys::spanset_as_hexwkb(self.inner(), variant.into(), std::ptr::null_mut());
             CStr::from_ptr(hexwkb_ptr as *mut c_char)
                 .to_str()
                 .unwrap()

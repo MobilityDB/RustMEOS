@@ -1,6 +1,6 @@
-use std::{fmt::Debug, hash::Hash, str::FromStr};
+use std::{fmt::Debug, str::FromStr};
 
-pub trait Collection: PartialEq + Debug + FromStr + Hash + Clone {
+pub trait Collection: PartialEq + Debug + FromStr + Clone {
     type Type: Clone;
     // Topological Operations
 
@@ -13,10 +13,6 @@ pub trait Collection: PartialEq + Debug + FromStr + Hash + Clone {
     /// ## Returns
     ///
     /// * `true` if contained, `false` otherwise.
-    ///
-    /// ## Safety
-    ///
-    /// Calls the underlying `meos_sys::contained_span_span` function.
     fn is_contained_in(&self, container: &Self) -> bool;
 
     /// Determines if the collection contains the specified item.
@@ -39,10 +35,6 @@ pub trait Collection: PartialEq + Debug + FromStr + Hash + Clone {
     /// ## Returns
     ///
     /// * `true` if overlaps, `false` otherwise.
-    ///
-    /// ## Safety
-    ///
-    /// Calls the underlying `meos_sys::overlaps_span_span` function.
     fn overlaps(&self, other: &Self) -> bool;
 
     // Position Operations
@@ -56,10 +48,6 @@ pub trait Collection: PartialEq + Debug + FromStr + Hash + Clone {
     /// ## Returns
     ///
     /// * `true` if before, `false` otherwise.
-    ///
-    /// ## Safety
-    ///
-    /// Calls the underlying `meos_sys::left_span_span` function.
     fn is_left(&self, other: &Self) -> bool;
 
     /// Returns whether `self` is before `other` allowing overlap. That is, `self` ends before `other` ends (or at the same time).
@@ -71,10 +59,6 @@ pub trait Collection: PartialEq + Debug + FromStr + Hash + Clone {
     /// ## Returns
     ///
     /// * `true` if before, `false` otherwise.
-    ///
-    /// ## Safety
-    ///
-    /// Calls the underlying `meos_sys::overleft_span_span` function.
     fn is_over_or_left(&self, other: &Self) -> bool;
 
     /// Returns whether `self` is after `other` allowing overlap. That is, `self` starts after `other` starts (or at the same time).
@@ -86,10 +70,6 @@ pub trait Collection: PartialEq + Debug + FromStr + Hash + Clone {
     /// ## Returns
     ///
     /// * `true` if overlapping or after, `false` otherwise.
-    ///
-    /// ## Safety
-    ///
-    /// Calls the underlying `meos_sys::overright_span_span` function.
     fn is_over_or_right(&self, other: &Self) -> bool;
 
     /// Returns whether `self` is strictly after `other`. That is, `self` starts after `other` ends.
@@ -101,11 +81,20 @@ pub trait Collection: PartialEq + Debug + FromStr + Hash + Clone {
     /// ## Returns
     ///
     /// * `true` if after, `false` otherwise.
-    ///
-    /// ## Safety
-    ///
-    /// Calls the underlying `meos_sys::right_span_span` function.
     fn is_right(&self, other: &Self) -> bool;
+
+    /// Returns whether `self` is adjacent to `other`. That is, `self` starts just after `other` ends.
+    ///
+    /// ## Arguments
+    ///
+    /// * `other` - The object to compare with.
+    ///
+    /// ## Returns
+    ///
+    /// * `true` if adjacent, `false` otherwise.
+    fn is_adjacent(&self, other: &Self) -> bool;
+
+    
 }
 
 // Rust doesn't support yet generating multiple blanket implementations for the same type: see https://stackoverflow.com/questions/73782573/why-do-blanket-implementations-for-two-different-traits-conflict.
@@ -115,9 +104,8 @@ pub trait Collection: PartialEq + Debug + FromStr + Hash + Clone {
 // Parameters:
 //  $type: The type of the container: spanset, span, or set
 //  $subtype: The type of what is contained: float, int, geo, etc.
-//  $subtype_type: The actual type in Rust of the subtype: f64, i32, etc.
 macro_rules! impl_collection {
-    ($type:ident, $subtype:ident, $subtype_type:ty) => {
+    ($type:ident, $subtype_type:ty) => {
         type Type = $subtype_type;
         paste::paste! {
             fn is_contained_in(&self, container: &Self) -> bool {
@@ -142,6 +130,10 @@ macro_rules! impl_collection {
 
             fn is_right(&self, other: &Self) -> bool {
                 unsafe { meos_sys::[<right _ $type _ $type>](self.inner(), other.inner()) }
+            }
+
+            fn is_adjacent(&self, other: &Self) -> bool {
+                unsafe { meos_sys::[<adjacent _ $type _ $type>](self.inner(), other.inner()) }
             }
         }
     };

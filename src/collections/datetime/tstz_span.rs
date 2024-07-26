@@ -11,9 +11,9 @@ use chrono::{DateTime, Datelike, TimeDelta, TimeZone, Utc};
 use collection::{impl_collection, Collection};
 use span::Span;
 
-use crate::{collections::base::*, errors::ParseError};
+use crate::{collections::base::*, errors::ParseError, utils::create_interval};
 
-use super::{create_interval, MICROSECONDS_UNTIL_2000};
+use super::MICROSECONDS_UNTIL_2000;
 
 pub struct TsTzSpan {
     _inner: *mut meos_sys::Span,
@@ -28,7 +28,7 @@ impl Drop for TsTzSpan {
 }
 
 impl Collection for TsTzSpan {
-    impl_collection!(span, date, DateTime<Utc>);
+    impl_collection!(span, DateTime<Utc>);
 
     fn contains(&self, content: &DateTime<Utc>) -> bool {
         unsafe { meos_sys::contains_span_date(self.inner(), content.num_days_from_ce()) }
