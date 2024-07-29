@@ -36,19 +36,19 @@ pub trait Span: Collection {
 
     fn from_inner(inner: *mut meos_sys::Span) -> Self;
 
-    fn as_wkb(&self, variant: WKBVariant) -> Vec<u8> {
+    fn as_wkb(&self, variant: WKBVariant) -> &[u8] {
         unsafe {
             let mut size = 0;
             let wkb = meos_sys::span_as_wkb(self.inner(), variant.into(), &mut size as *mut _);
-            Vec::from_raw_parts(wkb, size, size)
+            std::slice::from_raw_parts(wkb, size)
         }
     }
 
-    fn as_hexwkb(&self, variant: WKBVariant) -> String {
+    fn as_hexwkb(&self, variant: WKBVariant) -> &[u8] {
         unsafe {
-            let hexwkb_ptr =
-                meos_sys::span_as_hexwkb(self.inner(), variant.into(), std::ptr::null_mut());
-            CStr::from_ptr(hexwkb_ptr).to_str().unwrap().to_owned()
+            let mut size: usize = 0;
+            let hexwkb_ptr = meos_sys::span_as_hexwkb(self.inner(), variant.into(), &mut size);
+            CStr::from_ptr(hexwkb_ptr).to_bytes()
         }
     }
 

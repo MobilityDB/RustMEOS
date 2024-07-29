@@ -4,13 +4,14 @@ use std::{
     fmt::Debug,
     hash::Hash,
     ops::{BitAnd, Range, RangeInclusive},
-    str::FromStr,
 };
 
 use collection::{impl_collection, Collection};
 use span::Span;
 
 use crate::{collections::base::*, errors::ParseError};
+
+use super::number_span::NumberSpan;
 
 pub struct IntSpan {
     _inner: *mut meos_sys::Span,
@@ -174,7 +175,7 @@ impl span::Span for IntSpan {
     /// assert_eq!(distance, 4);
     /// ```
     fn distance_to_value(&self, value: &i32) -> i32 {
-        unsafe { meos_sys::distance_span_int(self.inner(), *value).into() }
+        unsafe { meos_sys::distance_span_int(self.inner(), *value) }
     }
 
     /// Calculates the distance between this `IntSpan` and another `IntSpan`.
@@ -197,9 +198,11 @@ impl span::Span for IntSpan {
     /// assert_eq!(distance, 2);
     /// ```
     fn distance_to_span(&self, other: &Self) -> i32 {
-        unsafe { meos_sys::distance_intspan_intspan(self.inner(), other.inner()).into() }
+        unsafe { meos_sys::distance_intspan_intspan(self.inner(), other.inner()) }
     }
 }
+
+impl NumberSpan for IntSpan {}
 
 impl Clone for IntSpan {
     fn clone(&self) -> Self {
@@ -244,34 +247,6 @@ impl std::str::FromStr for IntSpan {
             let inner = unsafe { meos_sys::intspan_in(string.as_ptr()) };
             Self::from_inner(inner)
         })
-    }
-}
-
-impl From<String> for IntSpan {
-    /// Converts a `String` into a `IntSpan`.
-    ///
-    /// ## Arguments
-    /// * `value` - A `String` containing the representation of a `IntSpan`.
-    ///
-    /// ## Returns
-    /// * A `IntSpan` instance.
-    ///
-    /// ## Panics
-    /// * Panics if the string cannot be parsed into a `IntSpan`.
-    ///
-    /// ## Example
-    /// ```
-    /// # use meos::collections::number::int_span::IntSpan;
-    /// # use std::string::String;
-    /// # use meos::collections::base::span::Span;
-    ///
-    /// let span_str = String::from("(12, 67)");
-    /// let span: IntSpan = span_str.into();
-    /// assert_eq!(span.lower(), 13);
-    /// assert_eq!(span.upper(), 67);
-    /// ```
-    fn from(value: String) -> Self {
-        IntSpan::from_str(&value).expect("Failed to parse the span")
     }
 }
 

@@ -4,7 +4,6 @@ use std::{
     fmt::Debug,
     hash::Hash,
     ops::{BitAnd, Range, RangeInclusive},
-    str::FromStr,
 };
 
 use chrono::{Datelike, NaiveDate, TimeDelta};
@@ -14,6 +13,7 @@ use span::Span;
 use crate::{
     collections::{base::*, datetime::DAYS_UNTIL_2000},
     errors::ParseError,
+    utils::from_interval,
 };
 
 pub struct DateSpan {
@@ -261,6 +261,12 @@ impl span::Span for DateSpan {
     }
 }
 
+impl DateSpan {
+    pub fn duration(&self) -> TimeDelta {
+        from_interval(unsafe { meos_sys::datespan_duration(self._inner).read() })
+    }
+}
+
 impl Clone for DateSpan {
     fn clone(&self) -> Self {
         unsafe { Self::from_inner(meos_sys::span_copy(self._inner)) }
@@ -308,41 +314,6 @@ impl std::str::FromStr for DateSpan {
             let inner = unsafe { meos_sys::datespan_in(string.as_ptr()) };
             Self::from_inner(inner)
         })
-    }
-}
-
-impl From<String> for DateSpan {
-    /// Converts a `String` into a `DateSpan`.
-    ///
-    /// ## Arguments
-    /// * `value` - A `String` containing the representation of a `DateSpan`.
-    ///
-    /// ## Returns
-    /// * A `DateSpan` instance.
-    ///
-    /// ## Panics
-    /// * Panics if the string cannot be parsed into a `DateSpan`.
-    ///
-    /// ## Example
-    /// ```
-    /// # use meos::collections::datetime::date_span::DateSpan;
-    /// # use meos::collections::base::span::Span;
-    /// # use std::string::String;
-    /// # use meos::init;
-    ///
-    /// use chrono::NaiveDate;
-    ///
-    /// # init();
-    ///
-    /// let from_ymd_opt = |y, m, d| NaiveDate::from_ymd_opt(y, m, d).unwrap();
-    ///
-    /// let span_str = String::from("(2019-09-08, 2019-09-10)");
-    /// let span: DateSpan = span_str.into();
-    /// assert_eq!(span.lower(), from_ymd_opt(2019, 9, 9));
-    /// assert_eq!(span.upper(), from_ymd_opt(2019, 9, 10));
-    /// ```
-    fn from(value: String) -> Self {
-        DateSpan::from_str(&value).expect("Failed to parse the span")
     }
 }
 

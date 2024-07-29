@@ -4,13 +4,14 @@ use std::{
     fmt::Debug,
     hash::Hash,
     ops::{BitAnd, Range, RangeInclusive},
-    str::FromStr,
 };
 
 use collection::{impl_collection, Collection};
 use span::Span;
 
 use crate::{collections::base::*, errors::ParseError};
+
+use super::number_span::NumberSpan;
 
 pub struct FloatSpan {
     _inner: *mut meos_sys::Span,
@@ -156,13 +157,15 @@ impl span::Span for FloatSpan {
     }
 
     fn distance_to_value(&self, other: &Self::Type) -> f64 {
-        unsafe { meos_sys::distance_span_float(self.inner(), *other).into() }
+        unsafe { meos_sys::distance_span_float(self.inner(), *other) }
     }
 
     fn distance_to_span(&self, other: &Self) -> f64 {
-        unsafe { meos_sys::distance_floatspan_floatspan(self.inner(), other.inner()).into() }
+        unsafe { meos_sys::distance_floatspan_floatspan(self.inner(), other.inner()) }
     }
 }
+
+impl NumberSpan for FloatSpan {}
 
 impl Clone for FloatSpan {
     fn clone(&self) -> Self {
@@ -207,34 +210,6 @@ impl std::str::FromStr for FloatSpan {
             let inner = unsafe { meos_sys::floatspan_in(string.as_ptr()) };
             Self::from_inner(inner)
         })
-    }
-}
-
-impl From<String> for FloatSpan {
-    /// Converts a `String` into a `FloatSpan`.
-    ///
-    /// ## Arguments
-    /// * `value` - A `String` containing the representation of a `FloatSpan`.
-    ///
-    /// ## Returns
-    /// * A `FloatSpan` instance.
-    ///
-    /// ## Panics
-    /// * Panics if the string cannot be parsed into a `FloatSpan`.
-    ///
-    /// ## Example
-    /// ```
-    /// # use meos::collections::number::float_span::FloatSpan;
-    /// # use std::string::String;
-    /// # use meos::collections::base::span::Span;
-    ///
-    /// let span_str = String::from("(12.9, 67.8)");
-    /// let span: FloatSpan = span_str.into();
-    /// assert_eq!(span.lower(), 12.9);
-    /// assert_eq!(span.upper(), 67.8);
-    /// ```
-    fn from(value: String) -> Self {
-        FloatSpan::from_str(&value).expect("Failed to parse the span")
     }
 }
 

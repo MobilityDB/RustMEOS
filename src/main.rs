@@ -2,6 +2,7 @@ use std::str::FromStr;
 
 use chrono::TimeDelta;
 use meos::{
+    boxes::tbox::TBox,
     collections::{
         base::span_set::SpanSet,
         datetime::{date_span_set::DateSpanSet, tstz_span_set::TsTzSpanSet},
@@ -28,7 +29,7 @@ fn main() {
     let span: FloatSpan = (67.0..5434.9).into();
     let other: FloatSpan = (6000.8..=7000.9).into();
     let other_other: FloatSpan = (9999.8..=234324.9).into();
-    let span_set: FloatSpanSet = vec![span, other, other_other].iter().collect();
+    let span_set: FloatSpanSet = [span, other, other_other].iter().collect();
     println!("{:?}", span_set.into_iter().collect::<Vec<FloatSpan>>());
 
     let a = DateSpanSet::from_str("{[2019-09-08, 2019-09-10], [2019-09-11, 2019-09-12]}").unwrap();
@@ -39,5 +40,7 @@ fn main() {
     let shifted_scaled_span_set =
         span_set.shift_scale(Some(TimeDelta::days(5)), Some(TimeDelta::days(10)));
     println!("a{shifted_scaled_span_set:?}");
+    let tbox = TBox::from_str("TBOXFLOAT XT([0, 10),[2020-06-01, 2020-06-05])").unwrap();
+    println!("{tbox:?}");
     println!("{:?}", WKBVariant::Extended | WKBVariant::NDR)
 }

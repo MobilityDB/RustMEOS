@@ -3,10 +3,9 @@ use std::{
     ffi::{c_void, CStr, CString},
     fmt::Debug,
     ptr,
-    str::FromStr,
 };
 
-use chrono::{DateTime, TimeDelta, Utc};
+use chrono::{DateTime, TimeDelta, TimeZone, Utc};
 use geos::{Geom, Geometry};
 
 use crate::{
@@ -15,31 +14,25 @@ use crate::{
             collection::{impl_collection, Collection},
             span::Span,
         },
-        datetime::tstz_span::TsTzSpan,
+        datetime::{tstz_span::TsTzSpan, MICROSECONDS_UNTIL_2000},
     },
     errors::ParseError,
     utils::create_interval,
     WKBVariant,
 };
 
+use super::r#box::Box as MeosBox;
+
 pub struct STBox {
     _inner: *mut meos_sys::STBox,
 }
 
-impl STBox {
-    fn inner(&self) -> *mut meos_sys::STBox {
-        self._inner
-    }
-
-    fn from_inner(inner: *mut meos_sys::STBox) -> Self {
-        Self { _inner: inner }
-    }
-
-    pub fn from_wkb(wkb: &[u8]) -> Self {
+impl MeosBox for STBox {
+    fn from_wkb(wkb: &[u8]) -> Self {
         unsafe { Self::from_inner(meos_sys::stbox_from_wkb(wkb.as_ptr(), wkb.len())) }
     }
 
-    pub fn from_hexwkb(hexwkb: &[u8]) -> Self {
+    fn from_hexwkb(hexwkb: &[u8]) -> Self {
         let c_hexwkb = CString::new(hexwkb).unwrap();
         unsafe {
             let inner = meos_sys::stbox_from_hexwkb(c_hexwkb.as_ptr());
@@ -47,59 +40,65 @@ impl STBox {
         }
     }
 
-    pub fn from_geos(value: Geometry) -> Self {
-        let v: Vec<u8> = value.to_wkb().unwrap().into();
-        Self::from_wkb(&v)
+    fn from_temporal_span(span: TsTzSpan) -> Self {
+        unsafe { Self::from_inner(meos_sys::tstzspan_to_stbox(span.inner())) }
     }
 
-    pub fn from_time(time: DateTime<Utc>) -> Self {
+    /// Creates an `STBox` from a `DateTime` value.
+    ///
+    /// ## Arguments
+    /// * `time` - A `DateTime<Tz>` instance representing a timestamp.
+    ///
+    /// ## Returns
+    /// An `STBox` instance.
+    ///
+    /// ## Example
+    /// ```
+    /// # use meos::boxes::stbox::STBox;
+    /// use meos::boxes::r#box::Box;
+    /// use chrono::{Utc, TimeZone};
+    /// let datetime = Utc.with_ymd_and_hms(2020, 5, 15, 12, 0, 0).unwrap();
+    /// let stbox = STBox::from_time(datetime);
+    /// assert_eq!(stbox.tmin().unwrap(), datetime);
+    /// ```
+    fn from_time<Tz: TimeZone>(time: DateTime<Tz>) -> Self {
         // Convert DateTime<Utc> to the expected timestamp format for MEOS
-        let timestamptz = time.timestamp();
+        let timestamptz = time.timestamp_micros() - MICROSECONDS_UNTIL_2000;
         unsafe { Self::from_inner(meos_sys::timestamptz_to_stbox(timestamptz)) }
     }
 
-    // pub fn from_tnumber(temporal: TNumber) -> Self {
-    //     unsafe {
-    //         let inner = tnumber_to_meos_sys::stbox(temporal.inner);
-    //         Self::from_inner(inner)
-    //     }
-    // }
-
-    pub fn geos_geometry(&self) -> Geometry {
-        Geometry::new_from_wkb(&self.as_wkb(WKBVariant::none())).unwrap()
-    }
-
-    pub fn to_tstzspan(&self) -> TsTzSpan {
+    fn tstzspan(&self) -> TsTzSpan {
         unsafe { TsTzSpan::from_inner(meos_sys::stbox_to_tstzspan(self._inner)) }
     }
 
-    pub fn as_wkb(&self, variant: WKBVariant) -> Vec<u8> {
+    fn as_wkb(&self, variant: WKBVariant) -> &[u8] {
         unsafe {
             let mut size: usize = 0;
             let ptr = meos_sys::stbox_as_wkb(self._inner, variant.into(), &mut size);
-            Vec::from_raw_parts(ptr as *mut u8, size, size)
+            std::slice::from_raw_parts(ptr, size)
         }
     }
 
-    pub fn as_hexwkb(&self, variant: WKBVariant) -> String {
+    fn as_hexwkb(&self, variant: WKBVariant) -> &[u8] {
         unsafe {
-            let hexwkb_ptr =
-                meos_sys::stbox_as_hexwkb(self.inner(), variant.into(), std::ptr::null_mut());
-            CStr::from_ptr(hexwkb_ptr).to_str().unwrap().to_owned()
+            let mut size: usize = 0;
+            let hexwkb_ptr = meos_sys::stbox_as_hexwkb(self.inner(), variant.into(), &mut size);
+
+            CStr::from_ptr(hexwkb_ptr).to_bytes()
         }
     }
 
     // ------------------------- Accessors -------------------------------------
 
-    pub fn has_x(&self) -> bool {
+    fn has_x(&self) -> bool {
         unsafe { meos_sys::stbox_hasx(self.inner()) }
     }
 
-    pub fn has_t(&self) -> bool {
+    fn has_t(&self) -> bool {
         unsafe { meos_sys::stbox_hast(self.inner()) }
     }
 
-    pub fn xmin(&self) -> Option<f64> {
+    fn xmin(&self) -> Option<f64> {
         unsafe {
             let mut value = 0.0;
             let ptr: *mut f64 = ptr::addr_of_mut!(value);
@@ -111,7 +110,7 @@ impl STBox {
         }
     }
 
-    pub fn xmax(&self) -> Option<f64> {
+    fn xmax(&self) -> Option<f64> {
         unsafe {
             let mut value = 0.0;
             let ptr: *mut f64 = ptr::addr_of_mut!(value);
@@ -123,19 +122,19 @@ impl STBox {
         }
     }
 
-    pub fn tmin(&self) -> Option<DateTime<Utc>> {
+    fn tmin(&self) -> Option<DateTime<Utc>> {
         unsafe {
             let mut value: i64 = 0;
             let ptr: *mut i64 = ptr::addr_of_mut!(value);
             if meos_sys::stbox_tmin(self.inner(), ptr) {
-                DateTime::from_timestamp_micros(value)
+                DateTime::from_timestamp_micros(value + MICROSECONDS_UNTIL_2000)
             } else {
                 None
             }
         }
     }
 
-    pub fn tmax(&self) -> Option<DateTime<Utc>> {
+    fn tmax(&self) -> Option<DateTime<Utc>> {
         unsafe {
             let mut value: i64 = 0;
             let ptr: *mut i64 = ptr::addr_of_mut!(value);
@@ -147,7 +146,7 @@ impl STBox {
         }
     }
 
-    pub fn tmin_is_inclusive(&self) -> Option<bool> {
+    fn is_tmin_inclusive(&self) -> Option<bool> {
         unsafe {
             let mut is_inclusive = false;
             let ptr: *mut bool = ptr::addr_of_mut!(is_inclusive);
@@ -159,7 +158,7 @@ impl STBox {
         }
     }
 
-    pub fn tmax_is_inclusive(&self) -> Option<bool> {
+    fn is_tmax_inclusive(&self) -> Option<bool> {
         unsafe {
             let mut is_inclusive = false;
             let ptr: *mut bool = ptr::addr_of_mut!(is_inclusive);
@@ -173,11 +172,7 @@ impl STBox {
 
     // ------------------------- Transformation --------------------------------
 
-    pub fn expand_space(&self, value: f64) -> STBox {
-        unsafe { Self::from_inner(meos_sys::stbox_expand_space(self.inner(), value)) }
-    }
-
-    pub fn expand_time(&self, duration: TimeDelta) -> STBox {
+    fn expand_time(&self, duration: TimeDelta) -> STBox {
         let interval = create_interval(duration);
         unsafe {
             Self::from_inner(meos_sys::stbox_expand_time(
@@ -187,7 +182,7 @@ impl STBox {
         }
     }
 
-    pub fn shift_scale_time(&self, delta: Option<TimeDelta>, width: Option<TimeDelta>) -> STBox {
+    fn shift_scale_time(&self, delta: Option<TimeDelta>, width: Option<TimeDelta>) -> STBox {
         let d = {
             if let Some(d) = delta {
                 &*Box::new(create_interval(d)) as *const meos_sys::Interval
@@ -208,19 +203,23 @@ impl STBox {
         STBox::from_inner(modified)
     }
 
-    pub fn round(&self, max_decimals: i32) -> STBox {
+    fn round(&self, max_decimals: i32) -> STBox {
         let result = unsafe { meos_sys::stbox_round(self.inner(), max_decimals) };
         STBox::from_inner(result)
     }
 
     // ------------------------- Set Operations --------------------------------
 
-    pub fn union(&self, other: &STBox, strict: bool) -> STBox {
+    fn union(&self, other: &STBox, strict: bool) -> Option<STBox> {
         let result = unsafe { meos_sys::union_stbox_stbox(self.inner(), other.inner(), strict) };
-        STBox::from_inner(result)
+        if result.is_null() {
+            None
+        } else {
+            Some(STBox::from_inner(result))
+        }
     }
 
-    pub fn intersection(&self, other: &STBox) -> Option<STBox> {
+    fn intersection(&self, other: &STBox) -> Option<STBox> {
         let result = unsafe { meos_sys::intersection_stbox_stbox(self.inner(), other.inner()) };
         if result.is_null() {
             None
@@ -231,8 +230,40 @@ impl STBox {
 
     // ------------------------- Distance Operations --------------------------------
 
-    pub fn nearest_approach_distance(&self, other: &STBox) -> f64 {
+    fn nearest_approach_distance(&self, other: &STBox) -> f64 {
         unsafe { meos_sys::nad_stbox_stbox(self.inner(), other.inner()) }
+    }
+}
+
+impl STBox {
+    fn inner(&self) -> *mut meos_sys::STBox {
+        self._inner
+    }
+
+    fn from_inner(inner: *mut meos_sys::STBox) -> Self {
+        Self { _inner: inner }
+    }
+
+    pub fn from_geos(value: Geometry) -> Self {
+        let v: Vec<u8> = value.to_wkb().unwrap().into();
+        Self::from_wkb(&v)
+    }
+
+    // pub fn from_tnumber(temporal: TNumber) -> Self {
+    //     unsafe {
+    //         let inner = tnumber_to_meos_sys::stbox(temporal.inner);
+    //         Self::from_inner(inner)
+    //     }
+    // }
+
+    pub fn geos_geometry(&self) -> Geometry {
+        Geometry::new_from_wkb(self.as_wkb(WKBVariant::none())).unwrap()
+    }
+
+    // ------------------------- Transformation --------------------------------
+
+    pub fn expand_space(&self, value: f64) -> STBox {
+        unsafe { Self::from_inner(meos_sys::stbox_expand_space(self.inner(), value)) }
     }
 }
 
@@ -304,17 +335,15 @@ impl std::str::FromStr for STBox {
     /// ```
     /// # use meos::boxes::stbox::STBox;
     /// # use meos::collections::base::span::Span;
-    /// # use meos::collections::number::int_span::IntSpan;
     /// # use meos::collections::datetime::tstz_span::TsTzSpan;
+    /// use meos::boxes::r#box::Box;
     /// use std::str::FromStr;
     /// # use meos::init;
     /// # init();
     ///
     /// let stbox: STBox = "STBOX ZT(((1.0,2.0,3.0),(4.0,5.0,6.0)),[2001-01-01, 2001-01-02])".parse().expect("Failed to parse span");
-    /// let value_span: IntSpan = (&stbox).into();
-    /// let temporal_span: TsTzSpan = (&stbox).into();
-    /// assert_eq!(value_span, (0..10).into());
-    /// assert_eq!(temporal_span, TsTzSpan::from_str("[2020-06-01, 2020-06-05]").unwrap());
+    /// let temporal_span: TsTzSpan = stbox.tstzspan();
+    /// assert_eq!(temporal_span, TsTzSpan::from_str("[2001-01-01, 2001-01-02]").unwrap());
     /// ```
     fn from_str(string: &str) -> Result<Self, Self::Err> {
         CString::new(string).map_err(|_| ParseError).map(|string| {
@@ -324,41 +353,6 @@ impl std::str::FromStr for STBox {
     }
 
     // ------------------------- Position Operations ---------------------------
-}
-
-impl From<String> for STBox {
-    /// Converts a `String` into a `STBox`.
-    ///
-    /// ## Arguments
-    /// * `value` - A `String` containing the representation of a `STBox`.
-    ///
-    /// ## Returns
-    /// * A `STBox` instance.
-    ///
-    /// ## Panics
-    /// * Panics if the string cannot be parsed into a `STBox`.
-    ///
-    /// ## Example
-    /// ```
-    /// # use meos::boxes::stbox::STBox;
-    /// # use meos::collections::base::span::Span;
-    /// # use meos::collections::datetime::tstz_span::TsTzSpan;
-    /// # use meos::collections::number::int_span::IntSpan;
-    /// # use std::string::String;
-    /// # use meos::init;
-    /// use std::str::FromStr;
-    ///
-    /// # init();
-    ///
-    /// let stbox: STBox = String::from("TBOXINT XT([0, 10),[2020-06-01, 2020-06-05])").into();
-    /// let value_span: IntSpan = (&stbox).into();
-    /// let temporal_span: TsTzSpan = (&stbox).into();
-    /// assert_eq!(value_span, (0..10).into());
-    /// assert_eq!(temporal_span, TsTzSpan::from_str("[2020-06-01, 2020-06-05]").unwrap());
-    /// ```
-    fn from(value: String) -> Self {
-        STBox::from_str(&value).expect("Failed to parse the stbox")
-    }
 }
 
 impl From<&STBox> for TsTzSpan {

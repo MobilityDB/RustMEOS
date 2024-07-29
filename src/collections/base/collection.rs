@@ -93,8 +93,6 @@ pub trait Collection: PartialEq + Debug + FromStr + Clone {
     ///
     /// * `true` if adjacent, `false` otherwise.
     fn is_adjacent(&self, other: &Self) -> bool;
-
-    
 }
 
 // Rust doesn't support yet generating multiple blanket implementations for the same type: see https://stackoverflow.com/questions/73782573/why-do-blanket-implementations-for-two-different-traits-conflict.

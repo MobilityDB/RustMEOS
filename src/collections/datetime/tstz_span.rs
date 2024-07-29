@@ -4,14 +4,18 @@ use std::{
     fmt::Debug,
     hash::Hash,
     ops::{BitAnd, Range, RangeInclusive},
-    str::FromStr,
 };
 
 use chrono::{DateTime, Datelike, TimeDelta, TimeZone, Utc};
 use collection::{impl_collection, Collection};
 use span::Span;
 
-use crate::{collections::base::*, errors::ParseError, utils::create_interval};
+use crate::{
+    collections::base::*,
+    errors::ParseError,
+    utils::{create_interval, from_interval},
+    BoundingBox,
+};
 
 use super::MICROSECONDS_UNTIL_2000;
 
@@ -270,6 +274,14 @@ impl span::Span for TsTzSpan {
     }
 }
 
+impl TsTzSpan {
+    pub fn duration(&self) -> TimeDelta {
+        from_interval(unsafe { meos_sys::tstzspan_duration(self._inner).read() })
+    }
+}
+
+impl BoundingBox for TsTzSpan {}
+
 impl Clone for TsTzSpan {
     fn clone(&self) -> Self {
         unsafe { Self::from_inner(meos_sys::span_copy(self._inner)) }
@@ -319,39 +331,6 @@ impl std::str::FromStr for TsTzSpan {
             let inner = unsafe { meos_sys::tstzspan_in(string.as_ptr()) };
             Self::from_inner(inner)
         })
-    }
-}
-
-impl From<String> for TsTzSpan {
-    /// Converts a `String` into a `TsTzSpan`.
-    ///
-    /// ## Arguments
-    /// * `value` - A `String` containing the representation of a `TsTzSpan`.
-    ///
-    /// ## Returns
-    /// * A `TsTzSpan` instance.
-    ///
-    /// ## Panics
-    /// * Panics if the string cannot be parsed into a `TsTzSpan`.
-    ///
-    /// ## Example
-    /// ```
-    /// # use meos::collections::datetime::tstz_span::TsTzSpan;
-    /// # use meos::collections::base::span::Span;
-    /// # use std::string::String;
-    /// # use meos::init;
-    /// use chrono::NaiveDate;
-    /// # init();
-    /// let from_ymd_opt = |y, m, d| NaiveDate::from_ymd_opt(y, m, d)
-    ///                                 .unwrap().and_hms_opt(0, 0, 0)
-    ///                                 .unwrap().and_utc();
-    ///
-    /// let span: TsTzSpan = "(2019-09-08, 2019-09-10)".parse().expect("Failed to parse span");
-    /// assert_eq!(span.lower(), from_ymd_opt(2019, 9, 8));
-    /// assert_eq!(span.upper(), from_ymd_opt(2019, 9, 10));
-    /// ```
-    fn from(value: String) -> Self {
-        TsTzSpan::from_str(&value).expect("Failed to parse the span")
     }
 }
 

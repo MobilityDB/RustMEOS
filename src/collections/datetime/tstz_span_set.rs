@@ -10,7 +10,6 @@ use span_set::impl_iterator;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::{BitAnd, BitOr};
-use std::str::FromStr;
 
 use crate::collections::base::span_set::SpanSet;
 use crate::collections::base::*;
@@ -274,12 +273,6 @@ impl std::str::FromStr for TsTzSpanSet {
             let inner = unsafe { meos_sys::tstzspanset_in(string.as_ptr()) };
             Self::from_inner(inner)
         })
-    }
-}
-
-impl From<String> for TsTzSpanSet {
-    fn from(value: String) -> Self {
-        TsTzSpanSet::from_str(&value).expect("Failed to parse the span set")
     }
 }
 

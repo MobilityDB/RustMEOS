@@ -3,7 +3,6 @@ use std::ffi::{c_void, CStr, CString};
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::{BitAnd, BitOr};
-use std::str::FromStr;
 
 use collection::{impl_collection, Collection};
 use span::Span;
@@ -14,6 +13,7 @@ use crate::collections::base::*;
 use crate::errors::ParseError;
 
 use super::int_span::IntSpan;
+use super::number_span_set::NumberSpanSet;
 
 pub struct IntSpanSet {
     _inner: *mut meos_sys::SpanSet,
@@ -150,7 +150,7 @@ impl span_set::SpanSet for IntSpanSet {
     /// assert_eq!(distance, 3);
     /// ```
     fn distance_to_value(&self, value: &Self::Type) -> i32 {
-        unsafe { meos_sys::distance_spanset_int(self.inner(), *value).into() }
+        unsafe { meos_sys::distance_spanset_int(self.inner(), *value) }
     }
 
     /// Calculates the distance between this `IntSpanSet` and another `IntSpanSet`.
@@ -174,7 +174,7 @@ impl span_set::SpanSet for IntSpanSet {
     /// assert_eq!(distance, 20);
     /// ```
     fn distance_to_span_set(&self, other: &Self) -> i32 {
-        unsafe { meos_sys::distance_intspanset_intspanset(self.inner(), other.inner()).into() }
+        unsafe { meos_sys::distance_intspanset_intspanset(self.inner(), other.inner()) }
     }
 
     /// Calculates the distance between this `IntSpanSet` and a `IntSpan`.
@@ -202,6 +202,8 @@ impl span_set::SpanSet for IntSpanSet {
     }
 }
 
+impl NumberSpanSet for IntSpanSet {}
+
 impl Clone for IntSpanSet {
     fn clone(&self) -> IntSpanSet {
         self.copy()
@@ -226,12 +228,6 @@ impl std::str::FromStr for IntSpanSet {
             let inner = unsafe { meos_sys::intspanset_in(string.as_ptr()) };
             Self::from_inner(inner)
         })
-    }
-}
-
-impl From<String> for IntSpanSet {
-    fn from(value: String) -> Self {
-        IntSpanSet::from_str(&value).expect("Failed to parse the span set")
     }
 }
 

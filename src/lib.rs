@@ -2,10 +2,14 @@
 use std::{ffi::CString, sync::Once};
 
 use bitmask_enum::bitmask;
+use boxes::r#box::Box as MeosBox;
+use collections::base::collection::Collection;
 pub use meos_sys;
+
 pub mod boxes;
 pub mod collections;
 pub mod errors;
+pub mod temporal;
 pub(crate) mod utils;
 
 static START: Once = Once::new();
@@ -15,6 +19,10 @@ extern "C" fn finalize() {
         meos_sys::meos_finalize();
     }
 }
+
+pub trait BoundingBox: Collection {}
+
+impl<T> BoundingBox for T where T: MeosBox {}
 
 pub fn init() {
     START.call_once(|| unsafe {

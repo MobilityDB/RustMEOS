@@ -3,7 +3,6 @@ use std::ffi::{c_void, CStr, CString};
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::{BitAnd, BitOr};
-use std::str::FromStr;
 
 use collection::{impl_collection, Collection};
 use span_set::impl_iterator;
@@ -14,6 +13,7 @@ use crate::collections::base::*;
 use crate::errors::ParseError;
 
 use super::float_span::FloatSpan;
+use super::number_span_set::NumberSpanSet;
 
 pub struct FloatSpanSet {
     _inner: *mut meos_sys::SpanSet,
@@ -151,7 +151,7 @@ impl span_set::SpanSet for FloatSpanSet {
     /// assert_eq!(distance, 2.0);
     /// ```
     fn distance_to_value(&self, other: &Self::Type) -> f64 {
-        unsafe { meos_sys::distance_spanset_float(self.inner(), *other).into() }
+        unsafe { meos_sys::distance_spanset_float(self.inner(), *other) }
     }
 
     /// Calculates the distance between this `FloatSpanSet` and another `FloatSpanSet`.
@@ -174,7 +174,7 @@ impl span_set::SpanSet for FloatSpanSet {
     ///
     /// assert_eq!(distance, 18.5);
     fn distance_to_span_set(&self, other: &Self) -> f64 {
-        unsafe { meos_sys::distance_floatspanset_floatspanset(self.inner(), other.inner()).into() }
+        unsafe { meos_sys::distance_floatspanset_floatspanset(self.inner(), other.inner()) }
     }
 
     /// Calculates the distance between this `FloatSpanSet` and a `FloatSpan`.
@@ -199,9 +199,11 @@ impl span_set::SpanSet for FloatSpanSet {
     /// assert_eq!(distance, 5.5);
     /// ```
     fn distance_to_span(&self, span: &Self::SpanType) -> Self::SubsetType {
-        unsafe { meos_sys::distance_floatspanset_floatspan(self.inner(), span.inner()).into() }
+        unsafe { meos_sys::distance_floatspanset_floatspan(self.inner(), span.inner()) }
     }
 }
+
+impl NumberSpanSet for FloatSpanSet {}
 
 impl Clone for FloatSpanSet {
     fn clone(&self) -> FloatSpanSet {
@@ -227,12 +229,6 @@ impl std::str::FromStr for FloatSpanSet {
             let inner = unsafe { meos_sys::floatspanset_in(string.as_ptr()) };
             Self::from_inner(inner)
         })
-    }
-}
-
-impl From<String> for FloatSpanSet {
-    fn from(value: String) -> Self {
-        FloatSpanSet::from_str(&value).expect("Failed to parse the span set")
     }
 }
 

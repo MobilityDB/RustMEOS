@@ -9,7 +9,6 @@ use span_set::impl_iterator;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::{BitAnd, BitOr};
-use std::str::FromStr;
 
 use crate::collections::base::span_set::SpanSet;
 use crate::collections::base::*;
@@ -271,12 +270,6 @@ impl std::str::FromStr for DateSpanSet {
             let inner = unsafe { meos_sys::datespanset_in(string.as_ptr()) };
             Self::from_inner(inner)
         })
-    }
-}
-
-impl From<String> for DateSpanSet {
-    fn from(value: String) -> Self {
-        DateSpanSet::from_str(&value).expect("Failed to parse the span set")
     }
 }
 
