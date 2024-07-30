@@ -18,7 +18,7 @@ use super::date_span::DateSpan;
 use super::DAYS_UNTIL_2000;
 
 pub struct DateSpanSet {
-    _inner: *mut meos_sys::SpanSet,
+    _inner: *const meos_sys::SpanSet,
 }
 
 impl Drop for DateSpanSet {
@@ -43,7 +43,7 @@ impl span_set::SpanSet for DateSpanSet {
         self._inner
     }
 
-    fn from_inner(inner: *mut meos_sys::SpanSet) -> Self
+    fn from_inner(inner: *const meos_sys::SpanSet) -> Self
     where
         Self: Sized,
     {

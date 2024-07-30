@@ -14,7 +14,7 @@ use crate::{collections::base::*, errors::ParseError};
 use super::number_span::NumberSpan;
 
 pub struct FloatSpan {
-    _inner: *mut meos_sys::Span,
+    _inner: *const meos_sys::Span,
 }
 
 impl Drop for FloatSpan {
@@ -45,7 +45,7 @@ impl span::Span for FloatSpan {
     ///
     /// ## Returns
     /// * A new `FloatSpan` instance.
-    fn from_inner(inner: *mut meos_sys::Span) -> Self {
+    fn from_inner(inner: *const meos_sys::Span) -> Self {
         Self { _inner: inner }
     }
 

@@ -6,6 +6,7 @@ use std::{
 };
 
 use chrono::{DateTime, TimeDelta, TimeZone, Utc};
+#[cfg(feature = "geos")]
 use geos::{Geom, Geometry};
 
 use crate::{
@@ -24,7 +25,7 @@ use crate::{
 use super::r#box::Box as MeosBox;
 
 pub struct STBox {
-    _inner: *mut meos_sys::STBox,
+    _inner: *const meos_sys::STBox,
 }
 
 impl MeosBox for STBox {
@@ -236,14 +237,15 @@ impl MeosBox for STBox {
 }
 
 impl STBox {
-    fn inner(&self) -> *mut meos_sys::STBox {
+    fn inner(&self) -> *const meos_sys::STBox {
         self._inner
     }
 
-    fn from_inner(inner: *mut meos_sys::STBox) -> Self {
+    fn from_inner(inner: *const meos_sys::STBox) -> Self {
         Self { _inner: inner }
     }
 
+    #[cfg(feature = "geos")]
     pub fn from_geos(value: Geometry) -> Self {
         let v: Vec<u8> = value.to_wkb().unwrap().into();
         Self::from_wkb(&v)
@@ -256,6 +258,7 @@ impl STBox {
     //     }
     // }
 
+    #[cfg(feature = "geos")]
     pub fn geos_geometry(&self) -> Geometry {
         Geometry::new_from_wkb(self.as_wkb(WKBVariant::none())).unwrap()
     }

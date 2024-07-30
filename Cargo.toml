@@ -17,4 +17,7 @@ meos-sys = { path = "sys", version = "0.1.0" }
 chrono = "0.4.38"
 libc = "0.2.155"
 bitmask-enum = "2.2.4"
-geos = "9.0.0"
+geos = { version = "9.0.0", optional = true }
+
+[features]
+default = ["geos"]

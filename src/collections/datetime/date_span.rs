@@ -17,7 +17,7 @@ use crate::{
 };
 
 pub struct DateSpan {
-    _inner: *mut meos_sys::Span,
+    _inner: *const meos_sys::Span,
 }
 
 impl Drop for DateSpan {
@@ -49,7 +49,7 @@ impl span::Span for DateSpan {
     ///
     /// ## Returns
     /// * A new `DateSpan` instance.
-    fn from_inner(inner: *mut meos_sys::Span) -> Self {
+    fn from_inner(inner: *const meos_sys::Span) -> Self {
         Self { _inner: inner }
     }
 

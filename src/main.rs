@@ -1,8 +1,9 @@
 use std::str::FromStr;
 
 use chrono::TimeDelta;
+use geos::{Geom, Geometry};
 use meos::{
-    boxes::tbox::TBox,
+    boxes::{r#box::Box, stbox::STBox, tbox::TBox},
     collections::{
         base::span_set::SpanSet,
         datetime::{date_span_set::DateSpanSet, tstz_span_set::TsTzSpanSet},
@@ -42,5 +43,12 @@ fn main() {
     println!("a{shifted_scaled_span_set:?}");
     let tbox = TBox::from_str("TBOXFLOAT XT([0, 10),[2020-06-01, 2020-06-05])").unwrap();
     println!("{tbox:?}");
+
+    let stbox = STBox::from_str("STBOX Z((1.0, 2.0, 3.0), (4.0, 5.0, 6.0))").unwrap();
+    let wkb = stbox.as_wkb(WKBVariant::NDR);
+    println!("{stbox:?} {wkb:?}");
+    let geometry = stbox.geos_geometry().to_wkt().unwrap();
+
+    println!("{geometry}");
     println!("{:?}", WKBVariant::Extended | WKBVariant::NDR)
 }

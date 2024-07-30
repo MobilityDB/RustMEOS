@@ -1,10 +1,27 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, ffi::CString, hash::Hash, ptr};
 
-use crate::BoundingBox;
+use crate::{
+    collections::{
+        base::{collection::Collection, span::Span, span_set::SpanSet},
+        datetime::{tstz_span::TsTzSpan, tstz_span_set::TsTzSpanSet, MICROSECONDS_UNTIL_2000},
+    },
+    utils::create_interval,
+    BoundingBox, WKBVariant,
+};
+use chrono::{DateTime, TimeDelta, TimeZone, Utc};
 
-use super::interpolation::TInterpolation;
+use super::{
+    interpolation::TInterpolation, tinstant::TInstant, tsequence::TSequence,
+    tsequence_set::TSequenceSet, JSONCVariant,
+};
 
-pub trait Temporal: Collection {
+pub trait Temporal: Collection + Hash {
+    type TBase;
+    type TI: TInstant;
+    type TS: TSequence;
+    type TSS: TSequenceSet;
+    fn from_inner(inner: *const meos_sys::Temporal) -> Self;
+
     /// Creates a temporal object from a base value and a time object.
     ///
     /// # Arguments
@@ -13,7 +30,27 @@ pub trait Temporal: Collection {
     ///
     /// # Returns
     /// A new temporal object.
-    fn from_base_time(value: TBase, base: Time) -> Self;
+    fn from_base_time<Tz: TimeZone>(value: Self::TBase, base: DateTime<Tz>) -> Self;
+
+    /// Creates a temporal object from a base value and a TsTz span.
+    ///
+    /// # Arguments
+    /// * `value` - Base value.
+    /// * `base` - Time object to use as the temporal dimension.
+    ///
+    /// # Returns
+    /// A new temporal object.
+    fn from_base_tstz_span<Tz: TimeZone>(value: Self::TBase, base: TsTzSpan) -> Self;
+
+    /// Creates a temporal object from a base value and a TsTz span set.
+    ///
+    /// # Arguments
+    /// * `value` - Base value.
+    /// * `base` - Time object to use as the temporal dimension.
+    ///
+    /// # Returns
+    /// A new temporal object.
+    fn from_base_tstz_span_set<Tz: TimeZone>(value: Self::TBase, base: TsTzSpanSet) -> Self;
 
     /// Creates a temporal object from an MF-JSON string.
     ///
@@ -40,7 +77,7 @@ pub trait Temporal: Collection {
     ///
     /// # Returns
     /// A temporal object.
-    fn from_hexwkb(hexwkb: &str) -> Self;
+    fn from_hexwkb(hexwkb: &[u8]) -> Self;
 
     /// Creates a temporal object by merging multiple temporal objects.
     ///
@@ -50,6 +87,8 @@ pub trait Temporal: Collection {
     /// # Returns
     /// A merged temporal object.
     fn from_merge(temporals: &[Self]) -> Self;
+
+    fn inner(&self) -> *mut meos_sys::Temporal;
 
     /// Returns the temporal object as a Well-Known Text (WKT) string.
     ///
@@ -67,19 +106,25 @@ pub trait Temporal: Collection {
     ///
     /// # Returns
     /// The temporal object as an MF-JSON string.
-    fn as_mfjson(&self, with_bbox: bool, flags: i32, precision: i32, srs: Option<&str>) -> String;
+    fn as_mfjson(
+        &self,
+        with_bbox: bool,
+        variant: JSONCVariant,
+        precision: i32,
+        srs: Option<&str>,
+    ) -> String;
 
     /// Returns the temporal object as Well-Known Binary (WKB) bytes.
     ///
     /// # Returns
     /// The temporal object as WKB bytes.
-    fn as_wkb(&self) -> Vec<u8>;
+    fn as_wkb(&self, variant: WKBVariant) -> Vec<u8>;
 
     /// Returns the temporal object as a hex-encoded WKB string.
     ///
     /// # Returns
     /// The temporal object as a hex-encoded WKB string.
-    fn as_hexwkb(&self) -> String;
+    fn as_hexwkb(&self, variant: WKBVariant) -> String;
 
     /// Returns the bounding box of the temporal object.
     ///
@@ -97,37 +142,37 @@ pub trait Temporal: Collection {
     ///
     /// # Returns
     /// A set of unique values.
-    fn value_set(&self) -> HashSet<TBase>;
+    fn value_set(&self) -> HashSet<Self::TBase>;
 
     /// Returns the list of values taken by the temporal object.
     ///
     /// # Returns
     /// A list of values.
-    fn values(&self) -> Vec<TBase>;
+    fn values(&self) -> Vec<Self::TBase>;
 
     /// Returns the starting value of the temporal object.
     ///
     /// # Returns
     /// The starting value.
-    fn start_value(&self) -> TBase;
+    fn start_value(&self) -> Self::TBase;
 
     /// Returns the ending value of the temporal object.
     ///
     /// # Returns
     /// The ending value.
-    fn end_value(&self) -> TBase;
+    fn end_value(&self) -> Self::TBase;
 
     /// Returns the minimum value of the temporal object.
     ///
     /// # Returns
     /// The minimum value.
-    fn min_value(&self) -> TBase;
+    fn min_value(&self) -> Self::TBase;
 
     /// Returns the maximum value of the temporal object.
     ///
     /// # Returns
     /// The maximum value.
-    fn max_value(&self) -> TBase;
+    fn max_value(&self) -> Self::TBase;
 
     /// Returns the value of the temporal object at a specific timestamp.
     ///
@@ -136,13 +181,21 @@ pub trait Temporal: Collection {
     ///
     /// # Returns
     /// The value at the given timestamp.
-    fn value_at_timestamp(&self, timestamp: DateTime<Utc>) -> TBase;
+    fn value_at_timestamp<Tz: TimeZone>(&self, timestamp: DateTime<Tz>) -> Self::TBase;
 
     /// Returns the time span on which the temporal object is defined.
     ///
     /// # Returns
     /// The time span.
     fn time(&self) -> TsTzSpanSet;
+
+    /// Returns the time span on which the temporal object is defined.
+    ///
+    /// # Returns
+    /// The time span.
+    fn timespan(&self) -> TsTzSpan {
+        unsafe { TsTzSpan::from_inner(meos_sys::temporal_to_tstzspan(self.inner())) }
+    }
 
     /// Returns the duration of the temporal object.
     ///
@@ -151,7 +204,7 @@ pub trait Temporal: Collection {
     ///
     /// # Returns
     /// The duration of the temporal object.
-    fn duration(&self, ignore_gaps: bool) -> Duration;
+    fn duration(&self, ignore_gaps: bool) -> TimeDelta;
 
     /// Returns the number of instants in the temporal object.
     ///
@@ -163,25 +216,25 @@ pub trait Temporal: Collection {
     ///
     /// # Returns
     /// The first instant.
-    fn start_instant(&self) -> TI;
+    fn start_instant(&self) -> Self::TI;
 
     /// Returns the last instant in the temporal object.
     ///
     /// # Returns
     /// The last instant.
-    fn end_instant(&self) -> TI;
+    fn end_instant(&self) -> Self::TI;
 
     /// Returns the instant with the minimum value in the temporal object.
     ///
     /// # Returns
     /// The instant with the minimum value.
-    fn min_instant(&self) -> TI;
+    fn min_instant(&self) -> Self::TI;
 
     /// Returns the instant with the maximum value in the temporal object.
     ///
     /// # Returns
     /// The instant with the maximum value.
-    fn max_instant(&self) -> TI;
+    fn max_instant(&self) -> Self::TI;
 
     /// Returns the n-th instant in the temporal object.
     ///
@@ -190,13 +243,13 @@ pub trait Temporal: Collection {
     ///
     /// # Returns
     /// The n-th instant.
-    fn instant_n(&self, n: usize) -> TI;
+    fn instant_n(&self, n: usize) -> Self::TI;
 
     /// Returns the list of instants in the temporal object.
     ///
     /// # Returns
     /// A list of instants.
-    fn instants(&self) -> Vec<TI>;
+    fn instants(&self) -> Vec<Self::TI>;
 
     /// Returns the number of timestamps in the temporal object.
     ///
@@ -208,13 +261,13 @@ pub trait Temporal: Collection {
     ///
     /// # Returns
     /// The first timestamp.
-    fn start_timestamp(&self) -> DateTime<Utc>;
+    fn start_timestamp<Tz: TimeZone>(&self) -> DateTime<Tz>;
 
     /// Returns the last timestamp in the temporal object.
     ///
     /// # Returns
     /// The last timestamp.
-    fn end_timestamp(&self) -> DateTime<Utc>;
+    fn end_timestamp<Tz: TimeZone>(&self) -> DateTime<Tz>;
 
     /// Returns the n-th timestamp in the temporal object.
     ///
@@ -223,17 +276,621 @@ pub trait Temporal: Collection {
     ///
     /// # Returns
     /// The n-th timestamp.
-    fn timestamp_n(&self, n: usize) -> DateTime<Utc>;
+    fn timestamp_n<Tz: TimeZone>(&self, n: usize) -> DateTime<Tz>;
 
     /// Returns the list of timestamps in the temporal object.
     ///
     /// # Returns
     /// A list of timestamps.
-    fn timestamps(&self) -> Vec<DateTime<Utc>>;
+    fn timestamps<Tz: TimeZone>(&self) -> Vec<DateTime<Tz>>;
 
     /// Returns the list of segments in the temporal object.
     ///
     /// # Returns
     /// A list of segments.
-    fn segments(&self) -> Vec<TS>;
+    fn segments(&self) -> Vec<Self::TS>;
+
+    // ------------------------- Transformations -------------------------------
+
+    /// Returns a new `Temporal` object with the given interpolation.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_set_interpolation`
+    fn set_interpolation(&self, interpolation: TInterpolation) -> Self;
+
+    /// Returns a new `Temporal` with the temporal dimension shifted by `delta`.
+    ///
+    /// # Arguments
+    /// * `delta` - TimeDelta to shift the temporal dimension.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_shift_time`
+    fn shift_time(&self, delta: TimeDelta) -> Self;
+
+    /// Returns a new `Temporal` scaled so the temporal dimension has duration `duration`.
+    ///
+    /// # Arguments
+    /// * `duration` - TimeDelta representing the new temporal duration.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_scale_time`
+    fn scale_time(&self, duration: TimeDelta) -> Self;
+
+    /// Returns a new `Temporal` with the time dimension shifted and scaled.
+    ///
+    /// # Arguments
+    /// * `shift` - TimeDelta to shift the time dimension.
+    /// * `duration` - TimeDelta representing the new temporal duration.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_shift_scale_time`
+    fn shift_scale_time(&self, shift: Option<TimeDelta>, duration: Option<TimeDelta>) -> Self;
+
+    /// Returns a new `Temporal` downsampled with respect to `duration`.
+    ///
+    /// # Arguments
+    /// * `duration` - TimeDelta of the temporal tiles.
+    /// * `start` - Start time of the temporal tiles.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_tsample`
+    fn temporal_sample<Tz: TimeZone>(
+        self,
+        duration: TimeDelta,
+        start: Option<DateTime<Tz>>,
+    ) -> Self;
+
+    /// Returns a new `Temporal` with precision reduced to `duration`.
+    ///
+    /// # Arguments
+    /// * `duration` - TimeDelta of the temporal tiles.
+    /// * `start` - Start time of the temporal tiles.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_tprecision`
+    fn temporal_precision<Tz: TimeZone>(
+        self,
+        duration: TimeDelta,
+        start: Option<DateTime<Tz>>,
+    ) -> Self;
+
+    /// Converts `self` into a `TInstant`.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_to_tinstant`
+    fn to_instant(&self) -> Self::TI {
+        TInstant::from_inner(unsafe { meos_sys::temporal_to_tinstant(self.inner()) })
+    }
+
+    /// Converts `self` into a `TSequence`.
+    ///
+    /// # Arguments
+    /// * `interpolation` - The interpolation type for the sequence.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_to_sequence`
+    fn to_sequence(&self, interpolation: TInterpolation) -> Self::TS {
+        let c_str = CString::new(interpolation.to_string()).unwrap();
+        TSequence::from_inner(unsafe {
+            meos_sys::temporal_to_tsequence(self.inner(), c_str.as_ptr() as *mut _)
+        })
+    }
+
+    /// Converts `self` into a `TSequenceSet`.
+    ///
+    /// # Arguments
+    /// * `interpolation` - The interpolation type for the sequence set.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_to_tsequenceset`
+    fn to_sequence_set(&self, interpolation: TInterpolation) -> Self::TSS {
+        let c_str = CString::new(interpolation.to_string()).unwrap();
+        TSequenceSet::from_inner(unsafe {
+            meos_sys::temporal_to_tsequenceset(self.inner(), c_str.as_ptr() as *mut _)
+        })
+    }
+
+    // ------------------------- Modifications ---------------------------------
+
+    /// Appends `instant` to `self`.
+    ///
+    /// # Arguments
+    /// * `instant` - Instant to append.
+    /// * `max_dist` - Maximum distance for defining a gap.
+    /// * `max_time` - Maximum time for defining a gap.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_append_tinstant`
+    fn append_instant(
+        self,
+        instant: Self::TI,
+        max_dist: Option<f64>,
+        max_time: Option<TimeDelta>,
+    ) -> Self {
+        let mut max_time = create_interval(max_time.unwrap_or_default());
+        Self::from_inner(unsafe {
+            meos_sys::temporal_append_tinstant(
+                self.inner(),
+                TInstant::inner(&instant),
+                max_dist.unwrap_or_default(),
+                ptr::addr_of_mut!(max_time),
+                false,
+            )
+        })
+    }
+
+    /// Appends `sequence` to `self`.
+    ///
+    /// # Arguments
+    /// * `sequence` - Sequence to append.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_append_tsequence`
+    fn append_sequence(&self, sequence: Self::TS) -> Self {
+        Self::from_inner(unsafe {
+            meos_sys::temporal_append_tsequence(self.inner(), TSequence::inner(&sequence), false)
+        })
+    }
+
+    /// Merges `self` with `other`.
+    ///
+    /// # Arguments
+    /// * `other` - Another temporal object
+    ///
+    /// MEOS Functions:
+    ///     `temporal_merge`
+    fn merge_other(&self, other: Self) -> Self {
+        Self::from_inner(unsafe { meos_sys::temporal_merge(self.inner(), other.inner()) })
+    }
+
+    /// Merges a list of temporal types
+    ///
+    /// # Arguments
+    /// * `list` - A list of temporal objects.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_merge_array`
+    fn merge(list: Vec<Self>) -> Self {
+        let mut t_list: Vec<_> = list.iter().map(Self::inner).collect();
+        Self::from_inner(unsafe {
+            meos_sys::temporal_merge_array(t_list.as_mut_ptr(), list.len() as i32)
+        })
+    }
+
+    /// Inserts `other` into `self`.
+    ///
+    /// # Arguments
+    /// * `other` - Temporal object to insert.
+    /// * `connect` - Whether to connect inserted elements with existing ones.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_insert`
+    fn insert(&self, other: Self, connect: bool) -> Self {
+        Self::from_inner(unsafe { meos_sys::temporal_insert(self.inner(), other.inner(), connect) })
+    }
+
+    /// Updates `self` with `other`.
+    ///
+    /// # Arguments
+    /// * `other` - Temporal object to update with.
+    /// * `connect` - Whether to connect updated elements with existing ones.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_update`
+    fn update(&self, other: Self, connect: bool) -> Self {
+        Self::from_inner(unsafe { meos_sys::temporal_update(self.inner(), other.inner(), connect) })
+    }
+
+    /// Deletes elements from `self` at `other`.
+    ///
+    /// # Arguments
+    /// * `other` - Time object specifying the elements to delete.
+    /// * `connect` - Whether to connect the potential gaps generated by the deletions.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_delete`
+    fn delete_at_timestamp<Tz: TimeZone>(&self, other: DateTime<Tz>, connect: bool) -> Self {
+        Self::from_inner(unsafe {
+            meos_sys::temporal_delete_timestamptz(
+                self.inner(),
+                other.timestamp_micros() - MICROSECONDS_UNTIL_2000,
+                connect,
+            )
+        })
+    }
+
+    /// Deletes elements from `self` at `other`.
+    ///
+    /// # Arguments
+    /// * `other` - Time span object specifying the elements to delete.
+    /// * `connect` - Whether to connect the potential gaps generated by the deletions.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_delete`
+    fn delete_at_tstz_span(&self, other: TsTzSpan, connect: bool) -> Self {
+        Self::from_inner(unsafe {
+            meos_sys::temporal_delete_tstzspan(self.inner(), other.inner(), connect)
+        })
+    }
+
+    /// Deletes elements from `self` at `other`.
+    ///
+    /// # Arguments
+    /// * `other` - Time span set object specifying the elements to delete.
+    /// * `connect` - Whether to connect the potential gaps generated by the deletions.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_delete`
+    fn delete_at_tstz_span_set(&self, other: TsTzSpanSet, connect: bool) -> Self {
+        Self::from_inner(unsafe {
+            meos_sys::temporal_delete_tstzspanset(self.inner(), other.inner(), connect)
+        })
+    }
+
+    // ------------------------- Restrictions ----------------------------------
+
+    /// Returns a new temporal object with values restricted to the time `other`.
+    ///
+    /// # Arguments
+    /// * `other` - A timestamp to restrict the values to.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_at_temporal_at_timestamptz`
+    fn at_timestamp<Tz: TimeZone>(&self, other: DateTime<Tz>) -> Self {
+        unsafe {
+            Self::from_inner(meos_sys::temporal_at_timestamptz(
+                self.inner(),
+                other.timestamp_micros() - MICROSECONDS_UNTIL_2000,
+            ))
+        }
+    }
+
+    /// Returns a new temporal object with values restricted to the time `other`.
+    ///
+    /// # Arguments
+    /// * `other` - A time span to restrict the values to.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_at_tstzspan*`
+    fn at_tstz_span(&self, other: TsTzSpan) -> Self {
+        Self::from_inner(unsafe { meos_sys::temporal_at_tstzspan(self.inner(), other.inner()) })
+    }
+
+    /// Returns a new temporal object with values restricted to the time `other`.
+    ///
+    /// # Arguments
+    /// * `other` - A time span set to restrict the values to.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_at_tstzspanset`
+    fn at_tstz_span_set(&self, other: TsTzSpanSet) -> Self {
+        Self::from_inner(unsafe { meos_sys::temporal_at_tstzspanset(self.inner(), other.inner()) })
+    }
+
+    /// Returns a new temporal object containing the times `self` is at its minimum value.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_at_min`
+    fn at_min(&self) -> Self {
+        Self::from_inner(unsafe { meos_sys::temporal_at_min(self.inner()) })
+    }
+
+    /// Returns a new temporal object containing the times `self` is at its maximum value.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_at_max`
+    fn at_max(&self) -> Self {
+        Self::from_inner(unsafe { meos_sys::temporal_at_max(self.inner()) })
+    }
+
+    /// Returns a new temporal object with values at `other` removed.
+    ///
+    /// # Arguments
+    /// * `other` - A timestamp specifying the values to remove.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_minus_*`
+    fn minus_timestamp<Tz: TimeZone>(&self, other: DateTime<Tz>) -> Self {
+        Self::from_inner(unsafe {
+            meos_sys::temporal_minus_timestamptz(
+                self.inner(),
+                other.timestamp_micros() - MICROSECONDS_UNTIL_2000,
+            )
+        })
+    }
+
+    /// Returns a new temporal object with values at `other` removed.
+    ///
+    /// # Arguments
+    /// * `other` - A time span specifying the values to remove.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_minus_*`
+    fn minus_tstz_span(&self, other: TsTzSpan) -> Self {
+        Self::from_inner(unsafe { meos_sys::temporal_minus_tstzspan(self.inner(), other.inner()) })
+    }
+
+    /// Returns a new temporal object with values at `other` removed.
+    ///
+    /// # Arguments
+    /// * `other` - A time span set specifying the values to remove.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_minus_*`
+    fn minus_tstz_span_set(&self, other: TsTzSpanSet) -> Self {
+        Self::from_inner(unsafe {
+            meos_sys::temporal_minus_tstzspanset(self.inner(), other.inner())
+        })
+    }
+
+    /// Returns a new temporal object containing the times `self` is not at its minimum value.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_minus_min`
+    fn minus_min(&self) -> Self {
+        Self::from_inner(unsafe { meos_sys::temporal_minus_min(self.inner()) })
+    }
+
+    /// Returns a new temporal object containing the times `self` is not at its maximum value.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_minus_max`
+    fn minus_max(&self) -> Self {
+        Self::from_inner(unsafe { meos_sys::temporal_minus_max(self.inner()) })
+    }
+
+    // ------------------------- Topological Operations ------------------------
+
+    /// Checks if the bounding box of `self` is adjacent to the bounding box of `other`.
+    ///
+    /// # Arguments
+    /// * `other` - A time or temporal object to compare.
+    ///
+    /// See also:
+    ///     `Collection.is_adjacent`
+    fn is_adjacent(&self, other: Self) -> bool {
+        self.bounding_box().is_adjacent(&other.bounding_box())
+    }
+
+    /// Checks if the bounding timespan of `self` is temporally adjacent to the bounding timespan of `other`.
+    ///
+    /// # Arguments
+    /// * `other` - A time or temporal object to compare.
+    ///
+    /// See also:
+    ///     `Collection.is_adjacent`
+    fn is_temporally_adjacent(&self, other: Self) -> bool {
+        self.timespan().is_adjacent(&other.timespan())
+    }
+
+    /// Checks if the bounding-box of `self` is contained in the bounding-box of `container`.
+    ///
+    /// # Arguments
+    /// * `container` - A time or temporal object to compare.
+    ///
+    /// See also:
+    ///     `Collection.is_contained_in`
+    fn is_contained_in(&self, other: Self) -> bool {
+        self.bounding_box().is_contained_in(&other.bounding_box())
+    }
+
+    /// Checks if the bounding timespan of `self` is contained in the bounding timespan of `container`.
+    ///
+    /// # Arguments
+    /// * `container` - A time or temporal object to compare.
+    ///
+    /// See also:
+    ///     `Collection.is_contained_in`
+    fn is_temporally_contained_in(&self, other: Self) -> bool {
+        self.timespan().is_contained_in(&other.timespan())
+    }
+
+    /// Checks if the bounding timespan of `self` contains the bounding timespan of `other`.
+    ///
+    /// # Arguments
+    /// * `other` - A time or temporal object to compare.
+    fn contains(&self, other: Self) -> bool {
+        other.bounding_box().is_contained_in(&self.bounding_box())
+    }
+
+    /// Checks if the bounding timespan of `self` temporally contains the bounding timespan of `other`.
+    ///
+    /// # Arguments
+    /// * `other` - A time or temporal object to compare.
+    fn temporally_contains(&self, other: Self) -> bool {
+        other.timespan().is_contained_in(&self.timespan())
+    }
+
+    /// Checks if the bounding timespan of `self` overlaps with the bounding timespan of `other`.
+    ///
+    /// # Arguments
+    /// * `other` - A time or temporal object to compare.
+    ///
+    /// See also:
+    ///     `Collection.overlaps`
+    fn overlaps(&self, other: Self) -> bool {
+        self.bounding_box().overlaps(&other.bounding_box())
+    }
+
+    /// Checks if the bounding timespan of `self` temporally overlaps with the bounding timespan of `other`.
+    ///
+    /// # Arguments
+    /// * `other` - A time or temporal object to compare.
+    ///
+    /// See also:
+    ///     `TsTzSpan.overlaps`
+    fn temporally_overlaps(&self, other: Self) -> bool {
+        self.timespan().overlaps(&other.timespan())
+    }
+
+    // ------------------------- Position Operations ---------------------------
+    /// Returns whether `self` is before `other`.
+    ///
+    /// # Arguments
+    /// * `other` - A time or temporal object to compare.
+    ///
+    /// # Returns
+    /// True if `self` is before `other`, False otherwise.
+    ///
+    /// See also:
+    ///     `TsTzSpan.is_before`
+    fn is_before(&self, other: Self) -> bool {
+        self.timespan().is_left(&other.timespan())
+    }
+
+    /// Returns whether `self` is before `other` allowing overlap.
+    ///
+    /// # Arguments
+    /// * `other` - A time or temporal object to compare.
+    ///
+    /// # Returns
+    /// True if `self` is before `other` allowing overlap, False otherwise.
+    ///
+    /// See also:
+    ///     `TsTzSpan.is_over_or_before`
+    fn is_over_or_before(&self, other: Self) -> bool {
+        self.timespan().is_over_or_left(&other.timespan())
+    }
+
+    /// Returns whether `self` is after `other`.
+    ///
+    /// # Arguments
+    /// * `other` - A time or temporal object to compare.
+    ///
+    /// # Returns
+    /// True if `self` is after `other`, False otherwise.
+    ///
+    /// See also:
+    ///     `TsTzSpan.is_after`
+    fn is_after(&self, other: Self) -> bool {
+        self.timespan().is_right(&other.timespan())
+    }
+
+    /// Returns whether `self` is after `other` allowing overlap.
+    ///
+    /// # Arguments
+    /// * `other` - A time or temporal object to compare.
+    ///
+    /// # Returns
+    /// True if `self` is after `other` allowing overlap, False otherwise.
+    ///
+    /// See also:
+    ///     `TsTzSpan.is_over_or_after`
+    fn is_over_or_after(&self, other: Self) -> bool {
+        self.timespan().is_over_or_right(&other.timespan())
+    }
+
+    // ------------------------- Similarity Operations -------------------------
+    /// Returns the Frechet distance between `self` and `other`.
+    ///
+    /// # Arguments
+    /// * `other` - A temporal object to compare.
+    ///
+    /// # Returns
+    /// A float with the Frechet distance.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_frechet_distance`
+    fn frechet_distance(&self, other: Self) -> f64 {
+        unsafe { meos_sys::temporal_frechet_distance(self.inner(), other.inner()) }
+    }
+
+    /// Returns the Dynamic Time Warp distance between `self` and `other`.
+    ///
+    /// # Arguments
+    /// * `other` - A temporal object to compare.
+    ///
+    /// # Returns
+    /// A float with the Dynamic Time Warp distance.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_dyntimewarp_distance`
+    fn dyntimewarp_distance(&self, other: Self) -> f64 {
+        unsafe { meos_sys::temporal_dyntimewarp_distance(self.inner(), other.inner()) }
+    }
+
+    /// Returns the Hausdorff distance between `self` and `other`.
+    ///
+    /// # Arguments
+    /// * `other` - A temporal object to compare.
+    ///
+    /// # Returns
+    /// A float with the Hausdorff distance.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_hausdorff_distance`
+    fn hausdorff_distance(&self, other: Self) -> f64 {
+        unsafe { meos_sys::temporal_hausdorff_distance(self.inner(), other.inner()) }
+    }
+
+    // ------------------------- Split Operations ------------------------------
+    /// Splits the temporal object into multiple pieces based on the given duration.
+    ///
+    /// # Arguments
+    /// * `duration` - Duration of each temporal tile.
+    /// * `start` - Start time for the tiles.
+    ///
+    /// # Returns
+    /// A list of temporal objects representing the split tiles.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_time_split`
+    fn time_split<Tz: TimeZone>(&self, duration: TimeDelta, start: DateTime<Tz>) -> Vec<Self> {
+        let mut duration = create_interval(duration);
+        let start = start.timestamp_micros() - MICROSECONDS_UNTIL_2000;
+        let mut count = 0;
+        let mut _buckets = Vec::new().as_mut_ptr();
+        unsafe {
+            let temps = meos_sys::temporal_time_split(
+                self.inner(),
+                ptr::addr_of_mut!(duration),
+                start,
+                _buckets,
+                ptr::addr_of_mut!(count),
+            );
+
+            Vec::from_raw_parts(temps, count as usize, count as usize)
+                .iter()
+                .map(|&t| Temporal::from_inner(t))
+                .collect()
+        }
+    }
+
+    /// Splits the temporal object into `n` equal-duration parts.
+    ///
+    /// # Arguments
+    /// * `n` - Number of parts to split into.
+    ///
+    /// # Returns
+    /// A list of temporal objects representing the split parts.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_time_split`
+    fn time_split_n(&self, n: usize) -> Vec<Self> {
+        let start = self.start_timestamp::<Utc>();
+        let duration = (self.end_timestamp::<Utc>() - start) / n as i32;
+        self.time_split(duration, start)
+    }
+
+    /// Extracts the subsequences where the object stays within a certain distance for a specified duration.
+    ///
+    /// # Arguments
+    /// * `max_distance` - Maximum distance of a stop.
+    /// * `min_duration` - Minimum duration of a stop.
+    ///
+    /// # Returns
+    /// A sequence set of stops.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_stops`
+    fn stops(&self, max_distance: f64, min_duration: TimeDelta) -> Self::TSS {
+        let interval = create_interval(min_duration);
+        unsafe {
+            <Self::TSS as TSequenceSet>::from_inner(meos_sys::temporal_stops(
+                self.inner(),
+                max_distance,
+                ptr::addr_of!(interval),
+            ))
+        }
+    }
 }

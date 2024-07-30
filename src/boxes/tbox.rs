@@ -24,7 +24,7 @@ use crate::{
 use super::r#box::Box as MeosBox;
 
 pub struct TBox {
-    _inner: *mut meos_sys::TBox,
+    _inner: *const meos_sys::TBox,
 }
 
 impl MeosBox for TBox {
@@ -426,11 +426,11 @@ impl MeosBox for TBox {
 }
 
 impl TBox {
-    fn inner(&self) -> *mut meos_sys::TBox {
+    fn inner(&self) -> *const meos_sys::TBox {
         self._inner
     }
 
-    fn from_inner(inner: *mut meos_sys::TBox) -> Self {
+    fn from_inner(inner: *const meos_sys::TBox) -> Self {
         Self { _inner: inner }
     }
 

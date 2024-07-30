@@ -16,7 +16,7 @@ use super::float_span::FloatSpan;
 use super::number_span_set::NumberSpanSet;
 
 pub struct FloatSpanSet {
-    _inner: *mut meos_sys::SpanSet,
+    _inner: *const meos_sys::SpanSet,
 }
 
 impl Drop for FloatSpanSet {
@@ -42,7 +42,7 @@ impl span_set::SpanSet for FloatSpanSet {
         self._inner
     }
 
-    fn from_inner(inner: *mut meos_sys::SpanSet) -> Self
+    fn from_inner(inner: *const meos_sys::SpanSet) -> Self
     where
         Self: Sized,
     {

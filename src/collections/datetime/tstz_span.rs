@@ -20,7 +20,7 @@ use crate::{
 use super::MICROSECONDS_UNTIL_2000;
 
 pub struct TsTzSpan {
-    _inner: *mut meos_sys::Span,
+    _inner: *const meos_sys::Span,
 }
 
 impl Drop for TsTzSpan {
@@ -52,7 +52,7 @@ impl span::Span for TsTzSpan {
     ///
     /// ## Returns
     /// * A new `TsTzSpan` instance.
-    fn from_inner(inner: *mut meos_sys::Span) -> Self {
+    fn from_inner(inner: *const meos_sys::Span) -> Self {
         Self { _inner: inner }
     }
 

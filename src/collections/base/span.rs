@@ -34,7 +34,7 @@ pub trait Span: Collection {
         Self::from_inner(span)
     }
 
-    fn from_inner(inner: *mut meos_sys::Span) -> Self;
+    fn from_inner(inner: *const meos_sys::Span) -> Self;
 
     fn as_wkb(&self, variant: WKBVariant) -> &[u8] {
         unsafe {
