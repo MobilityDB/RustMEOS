@@ -18,7 +18,7 @@ use crate::{
         datetime::{tstz_span::TsTzSpan, MICROSECONDS_UNTIL_2000},
     },
     errors::ParseError,
-    utils::create_interval,
+    utils::{create_interval, from_meos_timestamp, to_meos_timestamp},
     WKBVariant,
 };
 
@@ -64,7 +64,7 @@ impl MeosBox for STBox {
     /// ```
     fn from_time<Tz: TimeZone>(time: DateTime<Tz>) -> Self {
         // Convert DateTime<Utc> to the expected timestamp format for MEOS
-        let timestamptz = time.timestamp_micros() - MICROSECONDS_UNTIL_2000;
+        let timestamptz = to_meos_timestamp(&time);
         unsafe { Self::from_inner(meos_sys::timestamptz_to_stbox(timestamptz)) }
     }
 
@@ -128,7 +128,7 @@ impl MeosBox for STBox {
             let mut value: i64 = 0;
             let ptr: *mut i64 = ptr::addr_of_mut!(value);
             if meos_sys::stbox_tmin(self.inner(), ptr) {
-                DateTime::from_timestamp_micros(value + MICROSECONDS_UNTIL_2000)
+                Some(from_meos_timestamp(value))
             } else {
                 None
             }

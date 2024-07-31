@@ -14,9 +14,9 @@ use std::ops::{BitAnd, BitOr};
 use crate::collections::base::span_set::SpanSet;
 use crate::collections::base::*;
 use crate::errors::ParseError;
+use crate::utils::to_meos_timestamp;
 
 use super::tstz_span::TsTzSpan;
-use super::MICROSECONDS_UNTIL_2000;
 use crate::utils::create_interval;
 
 pub struct TsTzSpanSet {
@@ -179,10 +179,8 @@ impl span_set::SpanSet for TsTzSpanSet {
     fn distance_to_value(&self, value: &DateTime<Utc>) -> TimeDelta {
         unsafe {
             TimeDelta::seconds(
-                meos_sys::distance_spanset_timestamptz(
-                    self.inner(),
-                    value.timestamp_micros() - MICROSECONDS_UNTIL_2000,
-                ) as i64, // It returns the number of seconds: https://github.com/MobilityDB/MobilityDB/blob/6b60876817b53bc33967f7df50ab8e1f482b0133/meos/src/general/span_ops.c#L2292
+                meos_sys::distance_spanset_timestamptz(self.inner(), to_meos_timestamp(value))
+                    as i64, // It returns the number of seconds: https://github.com/MobilityDB/MobilityDB/blob/6b60876817b53bc33967f7df50ab8e1f482b0133/meos/src/general/span_ops.c#L2292
             )
         }
     }

@@ -13,11 +13,9 @@ use span::Span;
 use crate::{
     collections::base::*,
     errors::ParseError,
-    utils::{create_interval, from_interval},
+    utils::{create_interval, from_interval, from_meos_timestamp, to_meos_timestamp},
     BoundingBox,
 };
-
-use super::MICROSECONDS_UNTIL_2000;
 
 pub struct TsTzSpan {
     _inner: *const meos_sys::Span,
@@ -77,8 +75,7 @@ impl span::Span for TsTzSpan {
     /// ```
     fn lower(&self) -> Self::Type {
         let timestamp = unsafe { meos_sys::tstzspan_lower(self.inner()) };
-        DateTime::from_timestamp_micros(timestamp + MICROSECONDS_UNTIL_2000)
-            .expect("Wrong date returned from meos")
+        from_meos_timestamp(timestamp)
     }
 
     /// Returns the upper bound of the span.
@@ -102,8 +99,7 @@ impl span::Span for TsTzSpan {
     /// ```
     fn upper(&self) -> Self::Type {
         let timestamp = unsafe { meos_sys::tstzspan_upper(self.inner()) };
-        DateTime::from_timestamp_micros(timestamp + MICROSECONDS_UNTIL_2000)
-            .expect("Wrong date returned from meos")
+        from_meos_timestamp(timestamp)
     }
 
     /// Return a new `TsTzSpan` with the lower and upper bounds shifted by `delta`.
@@ -236,10 +232,7 @@ impl span::Span for TsTzSpan {
     fn distance_to_value(&self, value: &Self::Type) -> TimeDelta {
         unsafe {
             TimeDelta::seconds(
-                meos_sys::distance_span_timestamptz(
-                    self.inner(),
-                    value.timestamp_micros() - MICROSECONDS_UNTIL_2000,
-                ) as i64, // It returns the number of seconds: https://github.com/MobilityDB/MobilityDB/blob/6b60876817b53bc33967f7df50ab8e1f482b0133/meos/src/general/span_ops.c#L2292
+                meos_sys::distance_span_timestamptz(self.inner(), to_meos_timestamp(value)) as i64, // It returns the number of seconds: https://github.com/MobilityDB/MobilityDB/blob/6b60876817b53bc33967f7df50ab8e1f482b0133/meos/src/general/span_ops.c#L2292
             )
         }
     }
@@ -368,8 +361,8 @@ impl<Tz: TimeZone> From<Range<DateTime<Tz>>> for TsTzSpan {
     fn from(Range { start, end }: Range<DateTime<Tz>>) -> Self {
         let inner = unsafe {
             meos_sys::tstzspan_make(
-                start.timestamp_micros() - MICROSECONDS_UNTIL_2000,
-                end.timestamp_micros() - MICROSECONDS_UNTIL_2000,
+                to_meos_timestamp(&start),
+                to_meos_timestamp(&end),
                 true,
                 false,
             )
@@ -382,8 +375,8 @@ impl<Tz: TimeZone> From<RangeInclusive<DateTime<Tz>>> for TsTzSpan {
     fn from(range: RangeInclusive<DateTime<Tz>>) -> Self {
         let inner = unsafe {
             meos_sys::tstzspan_make(
-                range.start().timestamp_micros() - MICROSECONDS_UNTIL_2000,
-                range.end().timestamp_micros() - MICROSECONDS_UNTIL_2000,
+                to_meos_timestamp(range.start()),
+                to_meos_timestamp(range.end()),
                 true,
                 true,
             )

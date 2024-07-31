@@ -6,10 +6,10 @@ use crate::errors::ParseError;
 /// Enum representing the different types of interpolation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TInterpolation {
-    None,
-    Discrete,
-    Stepwise,
-    Linear,
+    None = meos_sys::interpType_INTERP_NONE as isize,
+    Discrete = meos_sys::interpType_DISCRETE as isize,
+    Stepwise = meos_sys::interpType_STEP as isize,
+    Linear = meos_sys::interpType_LINEAR as isize,
 }
 
 // Implementing `FromStr` for easier parsing from strings.

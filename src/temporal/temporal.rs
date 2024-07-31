@@ -3,9 +3,9 @@ use std::{collections::HashSet, ffi::CString, hash::Hash, ptr};
 use crate::{
     collections::{
         base::{collection::Collection, span::Span, span_set::SpanSet},
-        datetime::{tstz_span::TsTzSpan, tstz_span_set::TsTzSpanSet, MICROSECONDS_UNTIL_2000},
+        datetime::{tstz_span::TsTzSpan, tstz_span_set::TsTzSpanSet},
     },
-    utils::create_interval,
+    utils::{create_interval, from_meos_timestamp, to_meos_timestamp},
     BoundingBox, WKBVariant,
 };
 use chrono::{DateTime, TimeDelta, TimeZone, Utc};
@@ -241,33 +241,51 @@ pub trait Temporal: Collection + Hash {
     /// # Arguments
     /// * `n` - The index (0-based).
     ///
-    /// # Returns
+    /// # Return
     /// The n-th instant.
-    fn instant_n(&self, n: usize) -> Self::TI;
+    fn instant_n(&self, n: i32) -> Self::TI {
+        <Self::TI as TInstant>::from_inner(unsafe { meos_sys::temporal_instant_n(self.inner(), n) })
+    }
 
     /// Returns the list of instants in the temporal object.
     ///
     /// # Returns
     /// A list of instants.
-    fn instants(&self) -> Vec<Self::TI>;
+    fn instants(&self) -> Vec<Self::TI> {
+        let mut count = 0;
+        let instants =
+            unsafe { meos_sys::temporal_instants(self.inner(), ptr::addr_of_mut!(count)) };
+        unsafe {
+            Vec::from_raw_parts(instants, count as usize, count as usize)
+                .iter()
+                .map(|&instant| <Self::TI as TInstant>::from_inner(instant))
+                .collect()
+        }
+    }
 
     /// Returns the number of timestamps in the temporal object.
     ///
     /// # Returns
     /// The number of timestamps.
-    fn num_timestamps(&self) -> usize;
+    fn num_timestamps(&self) -> i32 {
+        unsafe { meos_sys::temporal_num_timestamps(self.inner()) }
+    }
 
     /// Returns the first timestamp in the temporal object.
     ///
     /// # Returns
     /// The first timestamp.
-    fn start_timestamp<Tz: TimeZone>(&self) -> DateTime<Tz>;
+    fn start_timestamp(&self) -> DateTime<Utc> {
+        from_meos_timestamp(unsafe { meos_sys::temporal_start_timestamptz(self.inner()) })
+    }
 
     /// Returns the last timestamp in the temporal object.
     ///
     /// # Returns
     /// The last timestamp.
-    fn end_timestamp<Tz: TimeZone>(&self) -> DateTime<Tz>;
+    fn end_timestamp(&self) -> DateTime<Utc> {
+        from_meos_timestamp(unsafe { meos_sys::temporal_end_timestamptz(self.inner()) })
+    }
 
     /// Returns the n-th timestamp in the temporal object.
     ///
@@ -276,19 +294,48 @@ pub trait Temporal: Collection + Hash {
     ///
     /// # Returns
     /// The n-th timestamp.
-    fn timestamp_n<Tz: TimeZone>(&self, n: usize) -> DateTime<Tz>;
+    fn timestamp_n(&self, n: i32) -> DateTime<Utc> {
+        let mut timestamp = 0;
+        unsafe {
+            meos_sys::temporal_timestamptz_n(self.inner(), n, ptr::addr_of_mut!(timestamp));
+        }
+        from_meos_timestamp(timestamp)
+    }
 
     /// Returns the list of timestamps in the temporal object.
     ///
     /// # Returns
     /// A list of timestamps.
-    fn timestamps<Tz: TimeZone>(&self) -> Vec<DateTime<Tz>>;
+    fn timestamps(&self) -> Vec<DateTime<Utc>> {
+        let mut count = 0;
+        let timestamps =
+            unsafe { meos_sys::temporal_timestamps(self.inner(), ptr::addr_of_mut!(count)) };
+        unsafe {
+            Vec::from_raw_parts(timestamps, count as usize, count as usize)
+                .iter()
+                .map(|&timestamp| from_meos_timestamp(timestamp))
+                .collect()
+        }
+    }
 
     /// Returns the list of segments in the temporal object.
     ///
     /// # Returns
     /// A list of segments.
-    fn segments(&self) -> Vec<Self::TS>;
+    ///
+    /// MEOS Functions:
+    ///    `temporal_segments`
+    fn segments(&self) -> Vec<Self::TS> {
+        let mut count = 0;
+        let segments =
+            unsafe { meos_sys::temporal_segments(self.inner(), ptr::addr_of_mut!(count)) };
+        unsafe {
+            Vec::from_raw_parts(segments, count as usize, count as usize)
+                .iter()
+                .map(|&segment| <Self::TS as TSequence>::from_inner(segment))
+                .collect()
+        }
+    }
 
     // ------------------------- Transformations -------------------------------
 
@@ -296,7 +343,11 @@ pub trait Temporal: Collection + Hash {
     ///
     /// MEOS Functions:
     ///     `temporal_set_interpolation`
-    fn set_interpolation(&self, interpolation: TInterpolation) -> Self;
+    fn set_interpolation(&self, interpolation: TInterpolation) -> Self {
+        Self::from_inner(unsafe {
+            meos_sys::temporal_set_interp(self.inner(), interpolation as u32)
+        })
+    }
 
     /// Returns a new `Temporal` with the temporal dimension shifted by `delta`.
     ///
@@ -305,7 +356,9 @@ pub trait Temporal: Collection + Hash {
     ///
     /// MEOS Functions:
     ///     `temporal_shift_time`
-    fn shift_time(&self, delta: TimeDelta) -> Self;
+    fn shift_time(&self, delta: TimeDelta) -> Self {
+        self.shift_scale_time(Some(delta), None)
+    }
 
     /// Returns a new `Temporal` scaled so the temporal dimension has duration `duration`.
     ///
@@ -314,7 +367,9 @@ pub trait Temporal: Collection + Hash {
     ///
     /// MEOS Functions:
     ///     `temporal_scale_time`
-    fn scale_time(&self, duration: TimeDelta) -> Self;
+    fn scale_time(&self, duration: TimeDelta) -> Self {
+        self.shift_scale_time(None, Some(duration))
+    }
 
     /// Returns a new `Temporal` with the time dimension shifted and scaled.
     ///
@@ -324,21 +379,52 @@ pub trait Temporal: Collection + Hash {
     ///
     /// MEOS Functions:
     ///     `temporal_shift_scale_time`
-    fn shift_scale_time(&self, shift: Option<TimeDelta>, duration: Option<TimeDelta>) -> Self;
+    fn shift_scale_time(&self, shift: Option<TimeDelta>, duration: Option<TimeDelta>) -> Self {
+        let d = {
+            if let Some(d) = shift {
+                &*Box::new(create_interval(d)) as *const meos_sys::Interval
+            } else {
+                std::ptr::null()
+            }
+        };
+
+        let w = {
+            if let Some(w) = duration {
+                &*Box::new(create_interval(w)) as *const meos_sys::Interval
+            } else {
+                std::ptr::null()
+            }
+        };
+
+        let modified = unsafe { meos_sys::temporal_shift_scale_time(self.inner(), d, w) };
+        Self::from_inner(modified)
+    }
 
     /// Returns a new `Temporal` downsampled with respect to `duration`.
     ///
     /// # Arguments
     /// * `duration` - TimeDelta of the temporal tiles.
     /// * `start` - Start time of the temporal tiles.
+    /// * `interpolation`- Interpolation of the resulting temporal object.
     ///
     /// MEOS Functions:
     ///     `temporal_tsample`
     fn temporal_sample<Tz: TimeZone>(
         self,
         duration: TimeDelta,
-        start: Option<DateTime<Tz>>,
-    ) -> Self;
+        start: DateTime<Tz>,
+        interpolation: TInterpolation,
+    ) -> Self {
+        let interval = create_interval(duration);
+        Self::from_inner(unsafe {
+            meos_sys::temporal_tsample(
+                self.inner(),
+                ptr::addr_of!(interval),
+                to_meos_timestamp(&start),
+                interpolation as u32,
+            )
+        })
+    }
 
     /// Returns a new `Temporal` with precision reduced to `duration`.
     ///
@@ -348,11 +434,16 @@ pub trait Temporal: Collection + Hash {
     ///
     /// MEOS Functions:
     ///     `temporal_tprecision`
-    fn temporal_precision<Tz: TimeZone>(
-        self,
-        duration: TimeDelta,
-        start: Option<DateTime<Tz>>,
-    ) -> Self;
+    fn temporal_precision<Tz: TimeZone>(self, duration: TimeDelta, start: DateTime<Tz>) -> Self {
+        let interval = create_interval(duration);
+        Self::from_inner(unsafe {
+            meos_sys::temporal_tprecision(
+                self.inner(),
+                ptr::addr_of!(interval),
+                to_meos_timestamp(&start),
+            )
+        })
+    }
 
     /// Converts `self` into a `TInstant`.
     ///
@@ -491,11 +582,7 @@ pub trait Temporal: Collection + Hash {
     ///     `temporal_delete`
     fn delete_at_timestamp<Tz: TimeZone>(&self, other: DateTime<Tz>, connect: bool) -> Self {
         Self::from_inner(unsafe {
-            meos_sys::temporal_delete_timestamptz(
-                self.inner(),
-                other.timestamp_micros() - MICROSECONDS_UNTIL_2000,
-                connect,
-            )
+            meos_sys::temporal_delete_timestamptz(self.inner(), to_meos_timestamp(&other), connect)
         })
     }
 
@@ -540,7 +627,7 @@ pub trait Temporal: Collection + Hash {
         unsafe {
             Self::from_inner(meos_sys::temporal_at_timestamptz(
                 self.inner(),
-                other.timestamp_micros() - MICROSECONDS_UNTIL_2000,
+                to_meos_timestamp(&other),
             ))
         }
     }
@@ -592,10 +679,7 @@ pub trait Temporal: Collection + Hash {
     ///     `temporal_minus_*`
     fn minus_timestamp<Tz: TimeZone>(&self, other: DateTime<Tz>) -> Self {
         Self::from_inner(unsafe {
-            meos_sys::temporal_minus_timestamptz(
-                self.inner(),
-                other.timestamp_micros() - MICROSECONDS_UNTIL_2000,
-            )
+            meos_sys::temporal_minus_timestamptz(self.inner(), to_meos_timestamp(&other))
         })
     }
 
@@ -837,7 +921,7 @@ pub trait Temporal: Collection + Hash {
     ///     `temporal_time_split`
     fn time_split<Tz: TimeZone>(&self, duration: TimeDelta, start: DateTime<Tz>) -> Vec<Self> {
         let mut duration = create_interval(duration);
-        let start = start.timestamp_micros() - MICROSECONDS_UNTIL_2000;
+        let start = to_meos_timestamp(&start);
         let mut count = 0;
         let mut _buckets = Vec::new().as_mut_ptr();
         unsafe {
@@ -867,8 +951,8 @@ pub trait Temporal: Collection + Hash {
     /// MEOS Functions:
     ///     `temporal_time_split`
     fn time_split_n(&self, n: usize) -> Vec<Self> {
-        let start = self.start_timestamp::<Utc>();
-        let duration = (self.end_timestamp::<Utc>() - start) / n as i32;
+        let start = self.start_timestamp();
+        let duration = (self.end_timestamp() - start) / n as i32;
         self.time_split(duration, start)
     }
 
