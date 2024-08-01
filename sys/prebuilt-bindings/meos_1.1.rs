@@ -5022,7 +5022,7 @@ extern "C" {
     pub fn meos_error(
         errlevel: ::std::os::raw::c_int,
         errcode: ::std::os::raw::c_int,
-        format: *mut ::std::os::raw::c_char,
+        format: *const ::std::os::raw::c_char,
         ...
     );
 }
@@ -5042,7 +5042,7 @@ pub type error_handler_fn = ::std::option::Option<
     unsafe extern "C" fn(
         arg1: ::std::os::raw::c_int,
         arg2: ::std::os::raw::c_int,
-        arg3: *mut ::std::os::raw::c_char,
+        arg3: *const ::std::os::raw::c_char,
     ),
 >;
 extern "C" {
@@ -5192,7 +5192,8 @@ extern "C" {
     pub fn timestamptz_to_date(t: TimestampTz) -> DateADT;
 }
 extern "C" {
-    pub fn geo_as_ewkb(gs: *const GSERIALIZED, endian: *mut ::std::os::raw::c_char) -> *mut bytea;
+    pub fn geo_as_ewkb(gs: *const GSERIALIZED, endian: *const ::std::os::raw::c_char)
+        -> *mut bytea;
 }
 extern "C" {
     pub fn geo_as_ewkt(
@@ -5205,7 +5206,7 @@ extern "C" {
         gs: *const GSERIALIZED,
         option: ::std::os::raw::c_int,
         precision: ::std::os::raw::c_int,
-        srs: *mut ::std::os::raw::c_char,
+        srs: *const ::std::os::raw::c_char,
     ) -> *mut ::std::os::raw::c_char;
 }
 extern "C" {
@@ -6002,7 +6003,7 @@ extern "C" {
 extern "C" {
     pub fn geoset_transform_pipeline(
         s: *const Set,
-        pipelinestr: *mut ::std::os::raw::c_char,
+        pipelinestr: *const ::std::os::raw::c_char,
         srid: int32,
         is_forward: bool,
     ) -> *mut Set;
@@ -6040,7 +6041,7 @@ extern "C" {
 extern "C" {
     pub fn point_transform_pipeline(
         gs: *const GSERIALIZED,
-        pipelinestr: *mut ::std::os::raw::c_char,
+        pipelinestr: *const ::std::os::raw::c_char,
         srid: int32,
         is_forward: bool,
     ) -> *mut GSERIALIZED;
@@ -7598,7 +7599,7 @@ extern "C" {
 extern "C" {
     pub fn stbox_transform_pipeline(
         box_: *const STBox,
-        pipelinestr: *mut ::std::os::raw::c_char,
+        pipelinestr: *const ::std::os::raw::c_char,
         srid: int32,
         is_forward: bool,
     ) -> *mut STBox;
@@ -7877,7 +7878,7 @@ extern "C" {
         with_bbox: bool,
         flags: ::std::os::raw::c_int,
         precision: ::std::os::raw::c_int,
-        srs: *mut ::std::os::raw::c_char,
+        srs: *const ::std::os::raw::c_char,
     ) -> *mut ::std::os::raw::c_char;
 }
 extern "C" {
@@ -7994,7 +7995,7 @@ extern "C" {
         instants: *mut *const TInstant,
         count: ::std::os::raw::c_int,
         interp: interpType,
-        maxt: *mut Interval,
+        maxt: *const Interval,
         maxdist: f64,
     ) -> *mut TSequenceSet;
 }
@@ -8305,13 +8306,13 @@ extern "C" {
 extern "C" {
     pub fn temporal_to_tsequence(
         temp: *const Temporal,
-        interp_str: *mut ::std::os::raw::c_char,
+        interp_str: *const ::std::os::raw::c_char,
     ) -> *mut TSequence;
 }
 extern "C" {
     pub fn temporal_to_tsequenceset(
         temp: *const Temporal,
-        interp_str: *mut ::std::os::raw::c_char,
+        interp_str: *const ::std::os::raw::c_char,
     ) -> *mut TSequenceSet;
 }
 extern "C" {
@@ -8368,7 +8369,7 @@ extern "C" {
 extern "C" {
     pub fn tpoint_transform_pipeline(
         temp: *const Temporal,
-        pipelinestr: *mut ::std::os::raw::c_char,
+        pipelinestr: *const ::std::os::raw::c_char,
         srid: int32,
         is_forward: bool,
     ) -> *mut Temporal;
@@ -8392,16 +8393,16 @@ extern "C" {
 }
 extern "C" {
     pub fn temporal_append_tinstant(
-        temp: *mut Temporal,
+        temp: *const Temporal,
         inst: *const TInstant,
         maxdist: f64,
-        maxt: *mut Interval,
+        maxt: *const Interval,
         expand: bool,
     ) -> *mut Temporal;
 }
 extern "C" {
     pub fn temporal_append_tsequence(
-        temp: *mut Temporal,
+        temp: *const Temporal,
         seq: *const TSequence,
         expand: bool,
     ) -> *mut Temporal;
@@ -8446,7 +8447,7 @@ extern "C" {
 }
 extern "C" {
     pub fn temporal_merge_array(
-        temparr: *mut *mut Temporal,
+        temparr: *mut *const Temporal,
         count: ::std::os::raw::c_int,
     ) -> *mut Temporal;
 }
@@ -10355,7 +10356,7 @@ extern "C" {
         xsize: f64,
         ysize: f64,
         zsize: f64,
-        duration: *mut Interval,
+        duration: *const Interval,
         sorigin: *mut GSERIALIZED,
         torigin: TimestampTz,
         hast: bool,
@@ -10376,8 +10377,8 @@ extern "C" {
 }
 extern "C" {
     pub fn temporal_time_split(
-        temp: *mut Temporal,
-        duration: *mut Interval,
+        temp: *const Temporal,
+        duration: *const Interval,
         torigin: TimestampTz,
         time_buckets: *mut *mut TimestampTz,
         count: *mut ::std::os::raw::c_int,
@@ -10385,7 +10386,7 @@ extern "C" {
 }
 extern "C" {
     pub fn tfloat_value_split(
-        temp: *mut Temporal,
+        temp: *const Temporal,
         size: f64,
         origin: f64,
         value_buckets: *mut *mut f64,
@@ -10394,9 +10395,9 @@ extern "C" {
 }
 extern "C" {
     pub fn tfloat_value_time_split(
-        temp: *mut Temporal,
+        temp: *const Temporal,
         size: f64,
-        duration: *mut Interval,
+        duration: *const Interval,
         vorigin: f64,
         torigin: TimestampTz,
         value_buckets: *mut *mut f64,
@@ -10409,7 +10410,7 @@ extern "C" {
         value: f64,
         t: TimestampTz,
         vsize: f64,
-        duration: *mut Interval,
+        duration: *const Interval,
         vorigin: f64,
         torigin: TimestampTz,
     ) -> *mut TBox;
@@ -10433,7 +10434,7 @@ extern "C" {
 }
 extern "C" {
     pub fn tint_value_split(
-        temp: *mut Temporal,
+        temp: *const Temporal,
         size: ::std::os::raw::c_int,
         origin: ::std::os::raw::c_int,
         value_buckets: *mut *mut ::std::os::raw::c_int,
@@ -10442,9 +10443,9 @@ extern "C" {
 }
 extern "C" {
     pub fn tint_value_time_split(
-        temp: *mut Temporal,
+        temp: *const Temporal,
         size: ::std::os::raw::c_int,
-        duration: *mut Interval,
+        duration: *const Interval,
         vorigin: ::std::os::raw::c_int,
         torigin: TimestampTz,
         value_buckets: *mut *mut ::std::os::raw::c_int,
@@ -10457,7 +10458,7 @@ extern "C" {
         value: ::std::os::raw::c_int,
         t: TimestampTz,
         vsize: ::std::os::raw::c_int,
-        duration: *mut Interval,
+        duration: *const Interval,
         vorigin: ::std::os::raw::c_int,
         torigin: TimestampTz,
     ) -> *mut TBox;
@@ -10474,7 +10475,7 @@ extern "C" {
 }
 extern "C" {
     pub fn tpoint_space_split(
-        temp: *mut Temporal,
+        temp: *const Temporal,
         xsize: f32,
         ysize: f32,
         zsize: f32,
@@ -10487,11 +10488,11 @@ extern "C" {
 }
 extern "C" {
     pub fn tpoint_space_time_split(
-        temp: *mut Temporal,
+        temp: *const Temporal,
         xsize: f32,
         ysize: f32,
         zsize: f32,
-        duration: *mut Interval,
+        duration: *const Interval,
         sorigin: *mut GSERIALIZED,
         torigin: TimestampTz,
         bitmatrix: bool,

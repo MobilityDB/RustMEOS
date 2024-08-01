@@ -22,9 +22,9 @@ fn main() {
 
     println!(
         "{:?}",
-        IntSpanSet::from_str("{[17, 18), [19, 20]}")
+        IntSpanSet::from_str("{[1, 2), [3, 4), [5, 6), [7, 8), [9, 10)}")
             .unwrap()
-            .scale(2)
+            .spans()
     );
 
     let span: FloatSpan = (67.0..5434.9).into();

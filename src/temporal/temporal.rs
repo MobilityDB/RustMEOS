@@ -1,11 +1,16 @@
-use std::{collections::HashSet, ffi::CString, hash::Hash, ptr};
+use std::{
+    collections::HashSet,
+    ffi::{c_void, CStr, CString},
+    hash::Hash,
+    ptr,
+};
 
 use crate::{
     collections::{
         base::{collection::Collection, span::Span, span_set::SpanSet},
         datetime::{tstz_span::TsTzSpan, tstz_span_set::TsTzSpanSet},
     },
-    utils::{create_interval, from_meos_timestamp, to_meos_timestamp},
+    utils::{create_interval, from_interval, from_meos_timestamp, to_meos_timestamp},
     BoundingBox, WKBVariant,
 };
 use chrono::{DateTime, TimeDelta, TimeZone, Utc};
@@ -68,7 +73,9 @@ pub trait Temporal: Collection + Hash {
     ///
     /// # Returns
     /// A temporal object.
-    fn from_wkb(wkb: &[u8]) -> Self;
+    fn from_wkb(wkb: &[u8]) -> Self {
+        unsafe { Self::from_inner(meos_sys::temporal_from_wkb(wkb.as_ptr(), wkb.len())) }
+    }
 
     /// Creates a temporal object from a hex-encoded WKB string.
     ///
@@ -77,7 +84,13 @@ pub trait Temporal: Collection + Hash {
     ///
     /// # Returns
     /// A temporal object.
-    fn from_hexwkb(hexwkb: &[u8]) -> Self;
+    fn from_hexwkb(hexwkb: &[u8]) -> Self {
+        let c_hexwkb = CString::new(hexwkb).unwrap();
+        unsafe {
+            let inner = meos_sys::temporal_from_hexwkb(c_hexwkb.as_ptr());
+            Self::from_inner(inner)
+        }
+    }
 
     /// Creates a temporal object by merging multiple temporal objects.
     ///
@@ -86,15 +99,14 @@ pub trait Temporal: Collection + Hash {
     ///
     /// # Returns
     /// A merged temporal object.
-    fn from_merge(temporals: &[Self]) -> Self;
+    fn from_merge(temporals: &[Self]) -> Self {
+        let mut t_list: Vec<_> = temporals.iter().map(Self::inner).collect();
+        Self::from_inner(unsafe {
+            meos_sys::temporal_merge_array(t_list.as_mut_ptr(), temporals.len() as i32)
+        })
+    }
 
-    fn inner(&self) -> *mut meos_sys::Temporal;
-
-    /// Returns the temporal object as a Well-Known Text (WKT) string.
-    ///
-    /// # Returns
-    /// The temporal object as a WKT string.
-    fn as_wkt(&self) -> String;
+    fn inner(&self) -> *const meos_sys::Temporal;
 
     /// Returns the temporal object as an MF-JSON string.
     ///
@@ -111,20 +123,48 @@ pub trait Temporal: Collection + Hash {
         with_bbox: bool,
         variant: JSONCVariant,
         precision: i32,
-        srs: Option<&str>,
-    ) -> String;
+        srs: &str,
+    ) -> String {
+        let srs = CString::new(srs).unwrap();
+        let out_str = unsafe {
+            meos_sys::temporal_as_mfjson(
+                self.inner(),
+                with_bbox,
+                variant as i32,
+                precision,
+                srs.as_ptr(),
+            )
+        };
+        let c_str = unsafe { CStr::from_ptr(out_str) };
+        let str = c_str.to_str().unwrap().to_owned();
+        unsafe { libc::free(out_str as *mut c_void) };
+        str
+    }
 
     /// Returns the temporal object as Well-Known Binary (WKB) bytes.
     ///
     /// # Returns
     /// The temporal object as WKB bytes.
-    fn as_wkb(&self, variant: WKBVariant) -> Vec<u8>;
+    fn as_wkb(&self, variant: WKBVariant) -> &[u8] {
+        unsafe {
+            let mut size: usize = 0;
+            let ptr = meos_sys::temporal_as_wkb(self.inner(), variant.into(), &mut size);
+            std::slice::from_raw_parts(ptr, size)
+        }
+    }
 
     /// Returns the temporal object as a hex-encoded WKB string.
     ///
     /// # Returns
-    /// The temporal object as a hex-encoded WKB string.
-    fn as_hexwkb(&self, variant: WKBVariant) -> String;
+    /// The temporal object as a hex-encoded WKB bytes.
+    fn as_hexwkb(&self, variant: WKBVariant) -> &[u8] {
+        unsafe {
+            let mut size: usize = 0;
+            let hexwkb_ptr = meos_sys::temporal_as_hexwkb(self.inner(), variant.into(), &mut size);
+
+            CStr::from_ptr(hexwkb_ptr).to_bytes()
+        }
+    }
 
     /// Returns the bounding box of the temporal object.
     ///
@@ -136,7 +176,10 @@ pub trait Temporal: Collection + Hash {
     ///
     /// # Returns
     /// The interpolation method.
-    fn interpolation(&self) -> TInterpolation;
+    fn interpolation(&self) -> TInterpolation {
+        let string = unsafe { CStr::from_ptr(meos_sys::temporal_interp(self.inner())) };
+        string.to_str().unwrap().parse().unwrap()
+    }
 
     /// Returns the set of unique values in the temporal object.
     ///
@@ -187,7 +230,9 @@ pub trait Temporal: Collection + Hash {
     ///
     /// # Returns
     /// The time span.
-    fn time(&self) -> TsTzSpanSet;
+    fn time(&self) -> TsTzSpanSet {
+        TsTzSpanSet::from_inner(unsafe { meos_sys::temporal_time(self.inner()) })
+    }
 
     /// Returns the time span on which the temporal object is defined.
     ///
@@ -204,37 +249,51 @@ pub trait Temporal: Collection + Hash {
     ///
     /// # Returns
     /// The duration of the temporal object.
-    fn duration(&self, ignore_gaps: bool) -> TimeDelta;
+    fn duration(&self, ignore_gaps: bool) -> TimeDelta {
+        from_interval(unsafe { meos_sys::temporal_duration(self.inner(), ignore_gaps).read() })
+    }
 
     /// Returns the number of instants in the temporal object.
     ///
     /// # Returns
     /// The number of instants.
-    fn num_instants(&self) -> usize;
+    fn num_instants(&self) -> i32 {
+        unsafe { meos_sys::temporal_num_instants(self.inner()) }
+    }
 
     /// Returns the first instant in the temporal object.
     ///
     /// # Returns
     /// The first instant.
-    fn start_instant(&self) -> Self::TI;
+    fn start_instant(&self) -> Self::TI {
+        <Self::TI as TInstant>::from_inner(unsafe {
+            meos_sys::temporal_start_instant(self.inner())
+        })
+    }
 
     /// Returns the last instant in the temporal object.
     ///
     /// # Returns
     /// The last instant.
-    fn end_instant(&self) -> Self::TI;
+    fn end_instant(&self) -> Self::TI {
+        <Self::TI as TInstant>::from_inner(unsafe { meos_sys::temporal_end_instant(self.inner()) })
+    }
 
     /// Returns the instant with the minimum value in the temporal object.
     ///
     /// # Returns
     /// The instant with the minimum value.
-    fn min_instant(&self) -> Self::TI;
+    fn min_instant(&self) -> Self::TI {
+        <Self::TI as TInstant>::from_inner(unsafe { meos_sys::temporal_min_instant(self.inner()) })
+    }
 
     /// Returns the instant with the maximum value in the temporal object.
     ///
     /// # Returns
     /// The instant with the maximum value.
-    fn max_instant(&self) -> Self::TI;
+    fn max_instant(&self) -> Self::TI {
+        <Self::TI as TInstant>::from_inner(unsafe { meos_sys::temporal_max_instant(self.inner()) })
+    }
 
     /// Returns the n-th instant in the temporal object.
     ///
@@ -532,20 +591,6 @@ pub trait Temporal: Collection + Hash {
     ///     `temporal_merge`
     fn merge_other(&self, other: Self) -> Self {
         Self::from_inner(unsafe { meos_sys::temporal_merge(self.inner(), other.inner()) })
-    }
-
-    /// Merges a list of temporal types
-    ///
-    /// # Arguments
-    /// * `list` - A list of temporal objects.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_merge_array`
-    fn merge(list: Vec<Self>) -> Self {
-        let mut t_list: Vec<_> = list.iter().map(Self::inner).collect();
-        Self::from_inner(unsafe {
-            meos_sys::temporal_merge_array(t_list.as_mut_ptr(), list.len() as i32)
-        })
     }
 
     /// Inserts `other` into `self`.
