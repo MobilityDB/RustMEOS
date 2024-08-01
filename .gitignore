@@ -5,3 +5,4 @@ Cargo.lock
 .vscode
 test
 test.c
+output.rs
