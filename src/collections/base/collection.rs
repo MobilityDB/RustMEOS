@@ -1,7 +1,7 @@
 use std::{fmt::Debug, str::FromStr};
 
 pub trait Collection: PartialEq + Debug + FromStr + Clone {
-    type Type: Clone;
+    type Type;
     // Topological Operations
 
     /// Returns whether `self` is contained in `container`.

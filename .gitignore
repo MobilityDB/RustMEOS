@@ -6,3 +6,4 @@ Cargo.lock
 test
 test.c
 output.rs
+wrapper.h

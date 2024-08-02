@@ -21,7 +21,6 @@ use super::{
 };
 
 pub trait Temporal: Collection + Hash {
-    type TBase;
     type TI: TInstant;
     type TS: TSequence;
     type TSS: TSequenceSet;
@@ -29,49 +28,49 @@ pub trait Temporal: Collection + Hash {
 
     /// Creates a temporal object from a base value and a time object.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `value` - Base value.
     /// * `base` - Time object to use as the temporal dimension.
     ///
-    /// # Returns
+    /// ## Returns
     /// A new temporal object.
-    fn from_base_time<Tz: TimeZone>(value: Self::TBase, base: DateTime<Tz>) -> Self;
+    fn from_base_time<Tz: TimeZone>(value: Self::Type, base: DateTime<Tz>) -> Self;
 
     /// Creates a temporal object from a base value and a TsTz span.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `value` - Base value.
     /// * `base` - Time object to use as the temporal dimension.
     ///
-    /// # Returns
+    /// ## Returns
     /// A new temporal object.
-    fn from_base_tstz_span<Tz: TimeZone>(value: Self::TBase, base: TsTzSpan) -> Self;
+    fn from_base_tstz_span<Tz: TimeZone>(value: Self::Type, base: TsTzSpan) -> Self;
 
     /// Creates a temporal object from a base value and a TsTz span set.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `value` - Base value.
     /// * `base` - Time object to use as the temporal dimension.
     ///
-    /// # Returns
+    /// ## Returns
     /// A new temporal object.
-    fn from_base_tstz_span_set<Tz: TimeZone>(value: Self::TBase, base: TsTzSpanSet) -> Self;
+    fn from_base_tstz_span_set<Tz: TimeZone>(value: Self::Type, base: TsTzSpanSet) -> Self;
 
     /// Creates a temporal object from an MF-JSON string.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `mfjson` - The MF-JSON string.
     ///
-    /// # Returns
+    /// ## Returns
     /// A temporal object.
     fn from_mfjson(mfjson: &str) -> Self;
 
     /// Creates a temporal object from Well-Known Binary (WKB) bytes.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `wkb` - The WKB bytes.
     ///
-    /// # Returns
+    /// ## Returns
     /// A temporal object.
     fn from_wkb(wkb: &[u8]) -> Self {
         unsafe { Self::from_inner(meos_sys::temporal_from_wkb(wkb.as_ptr(), wkb.len())) }
@@ -79,10 +78,10 @@ pub trait Temporal: Collection + Hash {
 
     /// Creates a temporal object from a hex-encoded WKB string.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `hexwkb` - The hex-encoded WKB string.
     ///
-    /// # Returns
+    /// ## Returns
     /// A temporal object.
     fn from_hexwkb(hexwkb: &[u8]) -> Self {
         let c_hexwkb = CString::new(hexwkb).unwrap();
@@ -94,10 +93,10 @@ pub trait Temporal: Collection + Hash {
 
     /// Creates a temporal object by merging multiple temporal objects.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `temporals` - The temporal objects to merge.
     ///
-    /// # Returns
+    /// ## Returns
     /// A merged temporal object.
     fn from_merge(temporals: &[Self]) -> Self {
         let mut t_list: Vec<_> = temporals.iter().map(Self::inner).collect();
@@ -110,13 +109,13 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns the temporal object as an MF-JSON string.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `with_bbox` - Whether to include the bounding box in the output.
     /// * `flags` - The flags to use for the output.
     /// * `precision` - The precision to use for the output.
     /// * `srs` - The spatial reference system (SRS) to use for the output.
     ///
-    /// # Returns
+    /// ## Returns
     /// The temporal object as an MF-JSON string.
     fn as_mfjson(
         &self,
@@ -143,7 +142,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns the temporal object as Well-Known Binary (WKB) bytes.
     ///
-    /// # Returns
+    /// ## Returns
     /// The temporal object as WKB bytes.
     fn as_wkb(&self, variant: WKBVariant) -> &[u8] {
         unsafe {
@@ -155,7 +154,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns the temporal object as a hex-encoded WKB string.
     ///
-    /// # Returns
+    /// ## Returns
     /// The temporal object as a hex-encoded WKB bytes.
     fn as_hexwkb(&self, variant: WKBVariant) -> &[u8] {
         unsafe {
@@ -168,13 +167,13 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns the bounding box of the temporal object.
     ///
-    /// # Returns
+    /// ## Returns
     /// The bounding box of the temporal object.
     fn bounding_box(&self) -> impl BoundingBox;
 
     /// Returns the interpolation method of the temporal object.
     ///
-    /// # Returns
+    /// ## Returns
     /// The interpolation method.
     fn interpolation(&self) -> TInterpolation {
         let string = unsafe { CStr::from_ptr(meos_sys::temporal_interp(self.inner())) };
@@ -183,52 +182,52 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns the set of unique values in the temporal object.
     ///
-    /// # Returns
+    /// ## Returns
     /// A set of unique values.
-    fn value_set(&self) -> HashSet<Self::TBase>;
+    fn value_set(&self) -> HashSet<Self::Type>;
 
     /// Returns the list of values taken by the temporal object.
     ///
-    /// # Returns
+    /// ## Returns
     /// A list of values.
-    fn values(&self) -> Vec<Self::TBase>;
+    fn values(&self) -> Vec<Self::Type>;
 
     /// Returns the starting value of the temporal object.
     ///
-    /// # Returns
+    /// ## Returns
     /// The starting value.
-    fn start_value(&self) -> Self::TBase;
+    fn start_value(&self) -> Self::Type;
 
     /// Returns the ending value of the temporal object.
     ///
-    /// # Returns
+    /// ## Returns
     /// The ending value.
-    fn end_value(&self) -> Self::TBase;
+    fn end_value(&self) -> Self::Type;
 
     /// Returns the minimum value of the temporal object.
     ///
-    /// # Returns
+    /// ## Returns
     /// The minimum value.
-    fn min_value(&self) -> Self::TBase;
+    fn min_value(&self) -> Self::Type;
 
     /// Returns the maximum value of the temporal object.
     ///
-    /// # Returns
+    /// ## Returns
     /// The maximum value.
-    fn max_value(&self) -> Self::TBase;
+    fn max_value(&self) -> Self::Type;
 
     /// Returns the value of the temporal object at a specific timestamp.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `timestamp` - The timestamp.
     ///
-    /// # Returns
+    /// ## Returns
     /// The value at the given timestamp.
-    fn value_at_timestamp<Tz: TimeZone>(&self, timestamp: DateTime<Tz>) -> Self::TBase;
+    fn value_at_timestamp<Tz: TimeZone>(&self, timestamp: DateTime<Tz>) -> Self::Type;
 
     /// Returns the time span on which the temporal object is defined.
     ///
-    /// # Returns
+    /// ## Returns
     /// The time span.
     fn time(&self) -> TsTzSpanSet {
         TsTzSpanSet::from_inner(unsafe { meos_sys::temporal_time(self.inner()) })
@@ -236,7 +235,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns the time span on which the temporal object is defined.
     ///
-    /// # Returns
+    /// ## Returns
     /// The time span.
     fn timespan(&self) -> TsTzSpan {
         unsafe { TsTzSpan::from_inner(meos_sys::temporal_to_tstzspan(self.inner())) }
@@ -244,10 +243,10 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns the duration of the temporal object.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `ignore_gaps` - Whether to ignore gaps in the temporal value.
     ///
-    /// # Returns
+    /// ## Returns
     /// The duration of the temporal object.
     fn duration(&self, ignore_gaps: bool) -> TimeDelta {
         from_interval(unsafe { meos_sys::temporal_duration(self.inner(), ignore_gaps).read() })
@@ -255,7 +254,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns the number of instants in the temporal object.
     ///
-    /// # Returns
+    /// ## Returns
     /// The number of instants.
     fn num_instants(&self) -> i32 {
         unsafe { meos_sys::temporal_num_instants(self.inner()) }
@@ -263,7 +262,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns the first instant in the temporal object.
     ///
-    /// # Returns
+    /// ## Returns
     /// The first instant.
     fn start_instant(&self) -> Self::TI {
         <Self::TI as TInstant>::from_inner(unsafe {
@@ -273,7 +272,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns the last instant in the temporal object.
     ///
-    /// # Returns
+    /// ## Returns
     /// The last instant.
     fn end_instant(&self) -> Self::TI {
         <Self::TI as TInstant>::from_inner(unsafe { meos_sys::temporal_end_instant(self.inner()) })
@@ -281,7 +280,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns the instant with the minimum value in the temporal object.
     ///
-    /// # Returns
+    /// ## Returns
     /// The instant with the minimum value.
     fn min_instant(&self) -> Self::TI {
         <Self::TI as TInstant>::from_inner(unsafe { meos_sys::temporal_min_instant(self.inner()) })
@@ -289,7 +288,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns the instant with the maximum value in the temporal object.
     ///
-    /// # Returns
+    /// ## Returns
     /// The instant with the maximum value.
     fn max_instant(&self) -> Self::TI {
         <Self::TI as TInstant>::from_inner(unsafe { meos_sys::temporal_max_instant(self.inner()) })
@@ -297,24 +296,29 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns the n-th instant in the temporal object.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `n` - The index (0-based).
     ///
-    /// # Return
-    /// The n-th instant.
-    fn instant_n(&self, n: i32) -> Self::TI {
-        <Self::TI as TInstant>::from_inner(unsafe { meos_sys::temporal_instant_n(self.inner(), n) })
+    /// ## Return
+    /// The n-th instant if exists, None otherwise.
+    fn instant_n(&self, n: i32) -> Option<Self::TI> {
+        let result = unsafe { meos_sys::temporal_instant_n(self.inner(), n) };
+        if !result.is_null() {
+            Some(<Self::TI as TInstant>::from_inner(result))
+        } else {
+            None
+        }
     }
 
     /// Returns the list of instants in the temporal object.
     ///
-    /// # Returns
+    /// ## Returns
     /// A list of instants.
     fn instants(&self) -> Vec<Self::TI> {
         let mut count = 0;
-        let instants =
-            unsafe { meos_sys::temporal_instants(self.inner(), ptr::addr_of_mut!(count)) };
         unsafe {
+            let instants = meos_sys::temporal_instants(self.inner(), ptr::addr_of_mut!(count));
+
             Vec::from_raw_parts(instants, count as usize, count as usize)
                 .iter()
                 .map(|&instant| <Self::TI as TInstant>::from_inner(instant))
@@ -324,7 +328,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns the number of timestamps in the temporal object.
     ///
-    /// # Returns
+    /// ## Returns
     /// The number of timestamps.
     fn num_timestamps(&self) -> i32 {
         unsafe { meos_sys::temporal_num_timestamps(self.inner()) }
@@ -332,7 +336,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns the first timestamp in the temporal object.
     ///
-    /// # Returns
+    /// ## Returns
     /// The first timestamp.
     fn start_timestamp(&self) -> DateTime<Utc> {
         from_meos_timestamp(unsafe { meos_sys::temporal_start_timestamptz(self.inner()) })
@@ -340,7 +344,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns the last timestamp in the temporal object.
     ///
-    /// # Returns
+    /// ## Returns
     /// The last timestamp.
     fn end_timestamp(&self) -> DateTime<Utc> {
         from_meos_timestamp(unsafe { meos_sys::temporal_end_timestamptz(self.inner()) })
@@ -348,22 +352,27 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns the n-th timestamp in the temporal object.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `n` - The index (0-based).
     ///
-    /// # Returns
-    /// The n-th timestamp.
-    fn timestamp_n(&self, n: i32) -> DateTime<Utc> {
+    /// ## Returns
+    /// The n-th timestamp if exists, None otherwise.
+    fn timestamp_n(&self, n: i32) -> Option<DateTime<Utc>> {
         let mut timestamp = 0;
         unsafe {
-            meos_sys::temporal_timestamptz_n(self.inner(), n, ptr::addr_of_mut!(timestamp));
+            let success =
+                meos_sys::temporal_timestamptz_n(self.inner(), n, ptr::addr_of_mut!(timestamp));
+            if success {
+                Some(from_meos_timestamp(timestamp))
+            } else {
+                None
+            }
         }
-        from_meos_timestamp(timestamp)
     }
 
     /// Returns the list of timestamps in the temporal object.
     ///
-    /// # Returns
+    /// ## Returns
     /// A list of timestamps.
     fn timestamps(&self) -> Vec<DateTime<Utc>> {
         let mut count = 0;
@@ -379,7 +388,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns the list of segments in the temporal object.
     ///
-    /// # Returns
+    /// ## Returns
     /// A list of segments.
     ///
     /// MEOS Functions:
@@ -410,7 +419,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns a new `Temporal` with the temporal dimension shifted by `delta`.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `delta` - TimeDelta to shift the temporal dimension.
     ///
     /// MEOS Functions:
@@ -421,7 +430,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns a new `Temporal` scaled so the temporal dimension has duration `duration`.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `duration` - TimeDelta representing the new temporal duration.
     ///
     /// MEOS Functions:
@@ -432,7 +441,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns a new `Temporal` with the time dimension shifted and scaled.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `shift` - TimeDelta to shift the time dimension.
     /// * `duration` - TimeDelta representing the new temporal duration.
     ///
@@ -461,7 +470,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns a new `Temporal` downsampled with respect to `duration`.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `duration` - TimeDelta of the temporal tiles.
     /// * `start` - Start time of the temporal tiles.
     /// * `interpolation`- Interpolation of the resulting temporal object.
@@ -487,7 +496,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns a new `Temporal` with precision reduced to `duration`.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `duration` - TimeDelta of the temporal tiles.
     /// * `start` - Start time of the temporal tiles.
     ///
@@ -514,7 +523,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Converts `self` into a `TSequence`.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `interpolation` - The interpolation type for the sequence.
     ///
     /// MEOS Functions:
@@ -528,7 +537,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Converts `self` into a `TSequenceSet`.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `interpolation` - The interpolation type for the sequence set.
     ///
     /// MEOS Functions:
@@ -544,7 +553,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Appends `instant` to `self`.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `instant` - Instant to append.
     /// * `max_dist` - Maximum distance for defining a gap.
     /// * `max_time` - Maximum time for defining a gap.
@@ -571,7 +580,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Appends `sequence` to `self`.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `sequence` - Sequence to append.
     ///
     /// MEOS Functions:
@@ -584,7 +593,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Merges `self` with `other`.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `other` - Another temporal object
     ///
     /// MEOS Functions:
@@ -595,7 +604,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Inserts `other` into `self`.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `other` - Temporal object to insert.
     /// * `connect` - Whether to connect inserted elements with existing ones.
     ///
@@ -607,7 +616,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Updates `self` with `other`.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `other` - Temporal object to update with.
     /// * `connect` - Whether to connect updated elements with existing ones.
     ///
@@ -619,7 +628,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Deletes elements from `self` at `other`.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `other` - Time object specifying the elements to delete.
     /// * `connect` - Whether to connect the potential gaps generated by the deletions.
     ///
@@ -633,7 +642,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Deletes elements from `self` at `other`.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `other` - Time span object specifying the elements to delete.
     /// * `connect` - Whether to connect the potential gaps generated by the deletions.
     ///
@@ -647,7 +656,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Deletes elements from `self` at `other`.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `other` - Time span set object specifying the elements to delete.
     /// * `connect` - Whether to connect the potential gaps generated by the deletions.
     ///
@@ -663,7 +672,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns a new temporal object with values restricted to the time `other`.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `other` - A timestamp to restrict the values to.
     ///
     /// MEOS Functions:
@@ -679,7 +688,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns a new temporal object with values restricted to the time `other`.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `other` - A time span to restrict the values to.
     ///
     /// MEOS Functions:
@@ -690,7 +699,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns a new temporal object with values restricted to the time `other`.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `other` - A time span set to restrict the values to.
     ///
     /// MEOS Functions:
@@ -717,7 +726,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns a new temporal object with values at `other` removed.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `other` - A timestamp specifying the values to remove.
     ///
     /// MEOS Functions:
@@ -730,7 +739,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns a new temporal object with values at `other` removed.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `other` - A time span specifying the values to remove.
     ///
     /// MEOS Functions:
@@ -741,7 +750,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns a new temporal object with values at `other` removed.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `other` - A time span set specifying the values to remove.
     ///
     /// MEOS Functions:
@@ -772,7 +781,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Checks if the bounding box of `self` is adjacent to the bounding box of `other`.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `other` - A time or temporal object to compare.
     ///
     /// See also:
@@ -783,7 +792,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Checks if the bounding timespan of `self` is temporally adjacent to the bounding timespan of `other`.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `other` - A time or temporal object to compare.
     ///
     /// See also:
@@ -794,7 +803,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Checks if the bounding-box of `self` is contained in the bounding-box of `container`.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `container` - A time or temporal object to compare.
     ///
     /// See also:
@@ -805,7 +814,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Checks if the bounding timespan of `self` is contained in the bounding timespan of `container`.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `container` - A time or temporal object to compare.
     ///
     /// See also:
@@ -816,7 +825,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Checks if the bounding timespan of `self` contains the bounding timespan of `other`.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `other` - A time or temporal object to compare.
     fn contains(&self, other: Self) -> bool {
         other.bounding_box().is_contained_in(&self.bounding_box())
@@ -824,7 +833,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Checks if the bounding timespan of `self` temporally contains the bounding timespan of `other`.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `other` - A time or temporal object to compare.
     fn temporally_contains(&self, other: Self) -> bool {
         other.timespan().is_contained_in(&self.timespan())
@@ -832,7 +841,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Checks if the bounding timespan of `self` overlaps with the bounding timespan of `other`.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `other` - A time or temporal object to compare.
     ///
     /// See also:
@@ -843,7 +852,7 @@ pub trait Temporal: Collection + Hash {
 
     /// Checks if the bounding timespan of `self` temporally overlaps with the bounding timespan of `other`.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `other` - A time or temporal object to compare.
     ///
     /// See also:
@@ -855,56 +864,56 @@ pub trait Temporal: Collection + Hash {
     // ------------------------- Position Operations ---------------------------
     /// Returns whether `self` is before `other`.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `other` - A time or temporal object to compare.
     ///
-    /// # Returns
+    /// ## Returns
     /// True if `self` is before `other`, False otherwise.
     ///
     /// See also:
-    ///     `TsTzSpan.is_before`
+    ///     `TsTzSpan.is_left`
     fn is_before(&self, other: Self) -> bool {
         self.timespan().is_left(&other.timespan())
     }
 
     /// Returns whether `self` is before `other` allowing overlap.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `other` - A time or temporal object to compare.
     ///
-    /// # Returns
+    /// ## Returns
     /// True if `self` is before `other` allowing overlap, False otherwise.
     ///
     /// See also:
-    ///     `TsTzSpan.is_over_or_before`
+    ///     `TsTzSpan.is_over_or_left`
     fn is_over_or_before(&self, other: Self) -> bool {
         self.timespan().is_over_or_left(&other.timespan())
     }
 
     /// Returns whether `self` is after `other`.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `other` - A time or temporal object to compare.
     ///
-    /// # Returns
+    /// ## Returns
     /// True if `self` is after `other`, False otherwise.
     ///
     /// See also:
-    ///     `TsTzSpan.is_after`
+    ///     `TsTzSpan.is_right`
     fn is_after(&self, other: Self) -> bool {
         self.timespan().is_right(&other.timespan())
     }
 
     /// Returns whether `self` is after `other` allowing overlap.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `other` - A time or temporal object to compare.
     ///
-    /// # Returns
+    /// ## Returns
     /// True if `self` is after `other` allowing overlap, False otherwise.
     ///
     /// See also:
-    ///     `TsTzSpan.is_over_or_after`
+    ///     `TsTzSpan.is_over_or_right`
     fn is_over_or_after(&self, other: Self) -> bool {
         self.timespan().is_over_or_right(&other.timespan())
     }
@@ -912,10 +921,10 @@ pub trait Temporal: Collection + Hash {
     // ------------------------- Similarity Operations -------------------------
     /// Returns the Frechet distance between `self` and `other`.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `other` - A temporal object to compare.
     ///
-    /// # Returns
+    /// ## Returns
     /// A float with the Frechet distance.
     ///
     /// MEOS Functions:
@@ -926,10 +935,10 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns the Dynamic Time Warp distance between `self` and `other`.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `other` - A temporal object to compare.
     ///
-    /// # Returns
+    /// ## Returns
     /// A float with the Dynamic Time Warp distance.
     ///
     /// MEOS Functions:
@@ -940,10 +949,10 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns the Hausdorff distance between `self` and `other`.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `other` - A temporal object to compare.
     ///
-    /// # Returns
+    /// ## Returns
     /// A float with the Hausdorff distance.
     ///
     /// MEOS Functions:
@@ -955,24 +964,24 @@ pub trait Temporal: Collection + Hash {
     // ------------------------- Split Operations ------------------------------
     /// Splits the temporal object into multiple pieces based on the given duration.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `duration` - Duration of each temporal tile.
     /// * `start` - Start time for the tiles.
     ///
-    /// # Returns
+    /// ## Returns
     /// A list of temporal objects representing the split tiles.
     ///
     /// MEOS Functions:
     ///     `temporal_time_split`
     fn time_split<Tz: TimeZone>(&self, duration: TimeDelta, start: DateTime<Tz>) -> Vec<Self> {
-        let mut duration = create_interval(duration);
+        let duration = create_interval(duration);
         let start = to_meos_timestamp(&start);
         let mut count = 0;
-        let mut _buckets = Vec::new().as_mut_ptr();
+        let _buckets = Vec::new().as_mut_ptr();
         unsafe {
             let temps = meos_sys::temporal_time_split(
                 self.inner(),
-                ptr::addr_of_mut!(duration),
+                ptr::addr_of!(duration),
                 start,
                 _buckets,
                 ptr::addr_of_mut!(count),
@@ -987,10 +996,10 @@ pub trait Temporal: Collection + Hash {
 
     /// Splits the temporal object into `n` equal-duration parts.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `n` - Number of parts to split into.
     ///
-    /// # Returns
+    /// ## Returns
     /// A list of temporal objects representing the split parts.
     ///
     /// MEOS Functions:
@@ -1003,11 +1012,11 @@ pub trait Temporal: Collection + Hash {
 
     /// Extracts the subsequences where the object stays within a certain distance for a specified duration.
     ///
-    /// # Arguments
+    /// ## Arguments
     /// * `max_distance` - Maximum distance of a stop.
     /// * `min_duration` - Minimum duration of a stop.
     ///
-    /// # Returns
+    /// ## Returns
     /// A sequence set of stops.
     ///
     /// MEOS Functions:

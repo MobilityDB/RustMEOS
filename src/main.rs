@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use chrono::TimeDelta;
-use geos::{Geom, Geometry};
+use geos::Geom;
 use meos::{
     boxes::{r#box::Box, stbox::STBox, tbox::TBox},
     collections::{
@@ -47,8 +47,5 @@ fn main() {
     let stbox = STBox::from_str("STBOX Z((1.0, 2.0, 3.0), (4.0, 5.0, 6.0))").unwrap();
     let wkb = stbox.as_wkb(WKBVariant::NDR);
     println!("{stbox:?} {wkb:?}");
-    let geometry = stbox.geos_geometry().to_wkt().unwrap();
-
-    println!("{geometry}");
     println!("{:?}", WKBVariant::Extended | WKBVariant::NDR)
 }
