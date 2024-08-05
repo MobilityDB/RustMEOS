@@ -136,17 +136,25 @@ macro_rules! impl_temporal {
                     }
                 }
 
-                fn at_value(&self, value: &Self::Type) -> Self {
-                    Self::from_inner_as_temporal(unsafe {
-                        meos_sys::[<$generic_type_name _at_value>](self.inner(), *value)
-                    })
+                fn at_value(&self, value: &Self::Type) -> Option<Self> {
+                    let result = unsafe { meos_sys::[<$generic_type_name _at_value>](self.inner(), *value) };
+                    if result != ptr::null_mut() {
+                        Some(Self::from_inner_as_temporal(result))
+                    } else {
+                        None
+                    }
                 }
 
-                fn at_values(&self, values: &[Self::Type]) -> Self {
-                    Self::from_inner_as_temporal(unsafe {
+                fn at_values(&self, values: &[Self::Type]) -> Option<Self> {
+                    unsafe {
                         let set = meos_sys::intset_make(values.as_ptr(), values.len() as i32);
-                        meos_sys::temporal_at_values(self.inner(), set)
-                    })
+                        let result = meos_sys::temporal_at_values(self.inner(), set);
+                        if result != ptr::null_mut() {
+                            Some(Self::from_inner_as_temporal(result))
+                        } else {
+                            None
+                        }
+                    }
                 }
 
                 fn minus_value(&self, value: Self::Type) -> Self {

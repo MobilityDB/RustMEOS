@@ -63,5 +63,7 @@ fn main() {
 
     println!("{tint:?}");
 
+    println!("{:?}", tint2.at_value(&111));
+
     println!("{}", tint2.always_greater(&tint).unwrap())
 }

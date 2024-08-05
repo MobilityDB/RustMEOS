@@ -704,13 +704,13 @@ pub trait Temporal: Collection + Hash {
     ///
     /// MEOS Functions:
     ///     `temporal_at_value`
-    fn at_value(&self, value: &Self::Type) -> Self;
+    fn at_value(&self, value: &Self::Type) -> Option<Self>;
 
     /// Returns a new temporal object containing the times `self` is in any of the values of `values`.
     ///
     /// MEOS Functions:
     ///     `temporal_at_values`
-    fn at_values(&self, values: &[Self::Type]) -> Self;
+    fn at_values(&self, values: &[Self::Type]) -> Option<Self>;
 
     /// Returns a new temporal object with values at `timestamp` removed.
     ///
