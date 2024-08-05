@@ -15,7 +15,7 @@ use crate::{
             collection::{impl_collection, Collection},
             span::Span,
         },
-        datetime::{tstz_span::TsTzSpan, MICROSECONDS_UNTIL_2000},
+        datetime::tstz_span::TsTzSpan,
     },
     errors::ParseError,
     utils::{create_interval, from_meos_timestamp, to_meos_timestamp},

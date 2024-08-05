@@ -17,10 +17,11 @@ use crate::{
             span_set::SpanSet,
         },
         datetime::{tstz_span::TsTzSpan, tstz_span_set::TsTzSpanSet},
-        number::int_span_set::IntSpanSet,
+        number::float_span_set::FloatSpanSet,
     },
     errors::ParseError,
     temporal::{
+        interpolation::TInterpolation,
         temporal::{
             impl_always_and_ever_value_functions, impl_simple_types_for_temporal, Temporal,
         },
@@ -40,15 +41,16 @@ macro_rules! impl_temporal {
                 impl_collection!(tnumber, $base_type);
 
                 fn contains(&self, content: &Self::Type) -> bool {
-                    IntSpanSet::from_inner(unsafe { meos_sys::tnumber_valuespans(self.inner()) })
+                    FloatSpanSet::from_inner(unsafe { meos_sys::tnumber_valuespans(self.inner()) })
                         .contains(content)
                 }
             }
             impl_simple_types_for_temporal!($type, $generic_type_name);
 
+
             impl Debug for $type {
                 fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                    let out_str = unsafe { meos_sys::[<$generic_type_name _out>](self.inner()) };
+                    let out_str = unsafe { meos_sys::[<$generic_type_name _out>](self.inner(), 3) };
                     let c_str = unsafe { CStr::from_ptr(out_str) };
                     let str = c_str.to_str().map_err(|_| std::fmt::Error)?;
                     let result = f.write_str(str);
@@ -64,11 +66,11 @@ macro_rules! impl_temporal {
             }
 
             impl Temporal for $type {
-                type TI = TIntInst;
+                type TI = TFloatInst;
 
-                type TS = TIntSeq;
+                type TS = TFloatSeq;
 
-                type TSS = TIntSeqSet;
+                type TSS = TFloatSeqSet;
 
                 type TBB = TBox;
 
@@ -120,7 +122,7 @@ macro_rules! impl_temporal {
                     &self,
                     timestamp: DateTime<Tz>,
                 ) -> Option<Self::Type> {
-                    let mut result = 0;
+                    let mut result = 0.;
                     unsafe {
                         let success = meos_sys::[<$generic_type_name _value_at_timestamptz>](
                             self.inner(),
@@ -144,7 +146,7 @@ macro_rules! impl_temporal {
 
                 fn at_values(&self, values: &[Self::Type]) -> Self {
                     Self::from_inner_as_temporal(unsafe {
-                        let set = meos_sys::intset_make(values.as_ptr(), values.len() as i32);
+                        let set = meos_sys::floatset_make(values.as_ptr(), values.len() as i32);
                         meos_sys::temporal_at_values(self.inner(), set)
                     })
                 }
@@ -157,19 +159,19 @@ macro_rules! impl_temporal {
 
                 fn minus_values(&self, values: &[Self::Type]) -> Self {
                     Self::from_inner_as_temporal(unsafe {
-                        let set = meos_sys::intset_make(values.as_ptr(), values.len() as i32);
+                        let set = meos_sys::floatset_make(values.as_ptr(), values.len() as i32);
                         meos_sys::temporal_minus_values(self.inner(), set)
                     })
                 }
 
-                impl_always_and_ever_value_functions!(int);
+                impl_always_and_ever_value_functions!(float);
             }
         }
     }
 }
 
-pub trait TInt:
-    Temporal<Type = i32, TI = TIntInst, TS = TIntSeq, TSS = TIntSeqSet, TBB = TBox>
+pub trait TFloat:
+    Temporal<Type = f64, TI = TFloatInst, TS = TFloatSeq, TSS = TFloatSeqSet, TBB = TBox>
 {
     // ------------------------- Transformations -------------------------------
 
@@ -180,21 +182,21 @@ pub trait TInt:
     /// * `width` - Value representing the width of the new temporal number
     ///
     /// # Safety
-    /// This function uses unsafe code to call the `meos_sys::tint_shift_scale_value` or
+    /// This function uses unsafe code to call the `meos_sys::tfloat_shift_scale_value` or
     /// `meos_sys::tfloat_shift_scale_value` functions.
     fn shift_scale_value(&self, shift: Option<Self::Type>, width: Option<Self::Type>) -> Self {
         let d = shift.unwrap_or_default();
         let w = width.unwrap_or_default();
-        let modified = unsafe { meos_sys::tint_shift_scale_value(self.inner(), d, w) };
+        let modified = unsafe { meos_sys::tfloat_shift_scale_value(self.inner(), d, w) };
         Self::from_inner_as_temporal(modified)
     }
 }
 
-pub struct TIntInst {
+pub struct TFloatInst {
     _inner: *const meos_sys::TInstant,
 }
 
-impl TInstant for TIntInst {
+impl TInstant for TFloatInst {
     fn from_inner(inner: *mut meos_sys::TInstant) -> Self {
         Self { _inner: inner }
     }
@@ -204,18 +206,19 @@ impl TInstant for TIntInst {
     }
 
     fn from_value_and_timestamp<Tz: TimeZone>(value: Self::Type, timestamp: DateTime<Tz>) -> Self {
-        Self::from_inner(unsafe { meos_sys::tintinst_make(value, to_meos_timestamp(&timestamp)) })
+        Self::from_inner(unsafe { meos_sys::tfloatinst_make(value, to_meos_timestamp(&timestamp)) })
     }
 }
 
-impl TInt for TIntInst {}
+impl TFloat for TFloatInst {}
 
-impl_temporal!(TIntInst, meos_sys::TInstant, i32, tint);
+impl_temporal!(TFloatInst, meos_sys::TInstant, f64, tfloat);
 
-pub struct TIntSeq {
+pub struct TFloatSeq {
     _inner: *const meos_sys::TSequence,
 }
-impl TIntSeq {
+
+impl TFloatSeq {
     /// Creates a temporal object from a value and a TsTz span.
     ///
     /// ## Arguments
@@ -224,12 +227,18 @@ impl TIntSeq {
     ///
     /// ## Returns
     /// A new temporal object.
-    pub fn from_value_and_tstz_span<Tz: TimeZone>(value: i32, time_span: TsTzSpan) -> Self {
-        Self::from_inner(unsafe { meos_sys::tintseq_from_base_tstzspan(value, time_span.inner()) })
+    pub fn from_value_and_tstz_span<Tz: TimeZone>(
+        value: f64,
+        time_span: TsTzSpan,
+        interpolation: TInterpolation,
+    ) -> Self {
+        Self::from_inner(unsafe {
+            meos_sys::tfloatseq_from_base_tstzspan(value, time_span.inner(), interpolation as u32)
+        })
     }
 }
 
-impl TSequence for TIntSeq {
+impl TSequence for TFloatSeq {
     fn from_inner(inner: *const meos_sys::TSequence) -> Self {
         Self { _inner: inner }
     }
@@ -239,15 +248,15 @@ impl TSequence for TIntSeq {
     }
 }
 
-impl TInt for TIntSeq {}
+impl TFloat for TFloatSeq {}
 
-impl_temporal!(TIntSeq, meos_sys::TSequence, i32, tint);
+impl_temporal!(TFloatSeq, meos_sys::TSequence, f64, tfloat);
 
-pub struct TIntSeqSet {
+pub struct TFloatSeqSet {
     _inner: *const meos_sys::TSequenceSet,
 }
 
-impl TIntSeqSet {
+impl TFloatSeqSet {
     /// Creates a temporal object from a base value and a TsTz span set.
     ///
     /// ## Arguments
@@ -257,20 +266,25 @@ impl TIntSeqSet {
     /// ## Returns
     /// A new temporal object.
     pub fn from_value_and_tstz_span_set<Tz: TimeZone>(
-        value: i32,
+        value: f64,
         time_span_set: TsTzSpanSet,
+        interpolation: TInterpolation,
     ) -> Self {
         Self::from_inner(unsafe {
-            meos_sys::tintseqset_from_base_tstzspanset(value, time_span_set.inner())
+            meos_sys::tfloatseqset_from_base_tstzspanset(
+                value,
+                time_span_set.inner(),
+                interpolation as u32,
+            )
         })
     }
 }
 
-impl TSequenceSet for TIntSeqSet {
+impl TSequenceSet for TFloatSeqSet {
     fn from_inner(inner: *const meos_sys::TSequenceSet) -> Self {
         Self { _inner: inner }
     }
 }
-impl TInt for TIntSeqSet {}
+impl TFloat for TFloatSeqSet {}
 
-impl_temporal!(TIntSeqSet, meos_sys::TSequenceSet, i32, tint);
+impl_temporal!(TFloatSeqSet, meos_sys::TSequenceSet, f64, tfloat);

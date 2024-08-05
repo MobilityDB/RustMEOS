@@ -430,7 +430,7 @@ impl TBox {
         self._inner
     }
 
-    fn from_inner(inner: *const meos_sys::TBox) -> Self {
+    pub fn from_inner(inner: *const meos_sys::TBox) -> Self {
         Self { _inner: inner }
     }
 

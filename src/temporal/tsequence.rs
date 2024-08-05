@@ -1,6 +1,5 @@
 use chrono::TimeZone;
 
-use crate::collections::datetime::tstz_span::TsTzSpan;
 
 use super::{interpolation::TInterpolation, temporal::Temporal, tinstant::TInstant};
 
@@ -16,7 +15,7 @@ pub trait TSequence: Temporal {
     /// We assume that the lower bound will be inclusive and
     /// the upper one exclusive (except for Discrete interpolations and instantaneous sequences, where it's inclusive), if you find yourself needing another variant, report it.
     fn new<Tz: TimeZone>(values: &[Self::TI], interpolation: TInterpolation) -> Self {
-        let mut t_list: Vec<_> = values.iter().map(<Self::TI as TInstant>::inner).collect();
+        let mut t_list: Vec<_> = values.iter().map(Self::TI::inner_as_tinstant).collect();
         // The default for discrete instances or instantaneous sequences is an inclusive upper bound
         let upper_inclusive =
             matches!(interpolation, TInterpolation::Discrete) || values.len() == 1;
@@ -31,14 +30,14 @@ pub trait TSequence: Temporal {
             )
         })
     }
-    fn from_value_and_tstzspan(value: Self::Type, time_span: TsTzSpan) -> Self;
+
     fn from_inner(inner: *const meos_sys::TSequence) -> Self;
-    fn inner(&self) -> *const meos_sys::TSequence;
+    fn inner_as_tsequence(&self) -> *const meos_sys::TSequence;
 
     fn is_lower_inclusive(&self) -> bool {
-        unsafe { meos_sys::temporal_lower_inc(Temporal::inner(self)) == 1 }
+        unsafe { meos_sys::temporal_lower_inc(self.inner()) == 1 }
     }
     fn is_upper_inclusive(&self) -> bool {
-        unsafe { meos_sys::temporal_upper_inc(Temporal::inner(self)) == 1 }
+        unsafe { meos_sys::temporal_upper_inc(self.inner()) == 1 }
     }
 }

@@ -1,7 +1,6 @@
 use std::str::FromStr;
 
 use chrono::TimeDelta;
-use geos::Geom;
 use meos::{
     boxes::{r#box::Box, stbox::STBox, tbox::TBox},
     collections::{
@@ -9,8 +8,12 @@ use meos::{
         datetime::{date_span_set::DateSpanSet, tstz_span_set::TsTzSpanSet},
         number::{float_span::FloatSpan, float_span_set::FloatSpanSet, int_span_set::IntSpanSet},
     },
-    init, WKBVariant,
+    init,
+    temporal::number::tint::TIntSeq,
+    WKBVariant,
 };
+
+use meos::temporal::temporal::Temporal;
 
 fn main() {
     init();
@@ -47,5 +50,18 @@ fn main() {
     let stbox = STBox::from_str("STBOX Z((1.0, 2.0, 3.0), (4.0, 5.0, 6.0))").unwrap();
     let wkb = stbox.as_wkb(WKBVariant::NDR);
     println!("{stbox:?} {wkb:?}");
-    println!("{:?}", WKBVariant::Extended | WKBVariant::NDR)
+    println!("{:?}", WKBVariant::Extended | WKBVariant::NDR);
+
+    let tint: TIntSeq = "[1@2001-01-01, 2@2001-01-03, 2@2001-01-04, 2@2001-01-05)"
+        .parse()
+        .unwrap();
+
+    let tint2: TIntSeq = "{3@2001-01-01, 5@2001-01-03, 9@2001-01-04, 111@2001-01-05}"
+        .parse()
+        .unwrap();
+    println!("{:?}", tint.values());
+
+    println!("{tint:?}");
+
+    println!("{}", tint2.always_greater(&tint).unwrap())
 }

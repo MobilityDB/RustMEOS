@@ -1,5 +1,4 @@
 use std::{
-    collections::HashSet,
     ffi::{c_void, CStr, CString},
     hash::Hash,
     ptr,
@@ -24,37 +23,8 @@ pub trait Temporal: Collection + Hash {
     type TI: TInstant;
     type TS: TSequence;
     type TSS: TSequenceSet;
-    fn from_inner(inner: *const meos_sys::Temporal) -> Self;
-
-    /// Creates a temporal object from a base value and a time object.
-    ///
-    /// ## Arguments
-    /// * `value` - Base value.
-    /// * `base` - Time object to use as the temporal dimension.
-    ///
-    /// ## Returns
-    /// A new temporal object.
-    fn from_base_time<Tz: TimeZone>(value: Self::Type, base: DateTime<Tz>) -> Self;
-
-    /// Creates a temporal object from a base value and a TsTz span.
-    ///
-    /// ## Arguments
-    /// * `value` - Base value.
-    /// * `base` - Time object to use as the temporal dimension.
-    ///
-    /// ## Returns
-    /// A new temporal object.
-    fn from_base_tstz_span<Tz: TimeZone>(value: Self::Type, base: TsTzSpan) -> Self;
-
-    /// Creates a temporal object from a base value and a TsTz span set.
-    ///
-    /// ## Arguments
-    /// * `value` - Base value.
-    /// * `base` - Time object to use as the temporal dimension.
-    ///
-    /// ## Returns
-    /// A new temporal object.
-    fn from_base_tstz_span_set<Tz: TimeZone>(value: Self::Type, base: TsTzSpanSet) -> Self;
+    type TBB: BoundingBox;
+    fn from_inner_as_temporal(inner: *const meos_sys::Temporal) -> Self;
 
     /// Creates a temporal object from an MF-JSON string.
     ///
@@ -73,7 +43,9 @@ pub trait Temporal: Collection + Hash {
     /// ## Returns
     /// A temporal object.
     fn from_wkb(wkb: &[u8]) -> Self {
-        unsafe { Self::from_inner(meos_sys::temporal_from_wkb(wkb.as_ptr(), wkb.len())) }
+        unsafe {
+            Self::from_inner_as_temporal(meos_sys::temporal_from_wkb(wkb.as_ptr(), wkb.len()))
+        }
     }
 
     /// Creates a temporal object from a hex-encoded WKB string.
@@ -87,7 +59,7 @@ pub trait Temporal: Collection + Hash {
         let c_hexwkb = CString::new(hexwkb).unwrap();
         unsafe {
             let inner = meos_sys::temporal_from_hexwkb(c_hexwkb.as_ptr());
-            Self::from_inner(inner)
+            Self::from_inner_as_temporal(inner)
         }
     }
 
@@ -100,7 +72,7 @@ pub trait Temporal: Collection + Hash {
     /// A merged temporal object.
     fn from_merge(temporals: &[Self]) -> Self {
         let mut t_list: Vec<_> = temporals.iter().map(Self::inner).collect();
-        Self::from_inner(unsafe {
+        Self::from_inner_as_temporal(unsafe {
             meos_sys::temporal_merge_array(t_list.as_mut_ptr(), temporals.len() as i32)
         })
     }
@@ -169,7 +141,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Returns
     /// The bounding box of the temporal object.
-    fn bounding_box(&self) -> impl BoundingBox;
+    fn bounding_box(&self) -> Self::TBB;
 
     /// Returns the interpolation method of the temporal object.
     ///
@@ -184,7 +156,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Returns
     /// A set of unique values.
-    fn value_set(&self) -> HashSet<Self::Type>;
+    // fn value_set(&self) -> HashSet<Self::Type>;
 
     /// Returns the list of values taken by the temporal object.
     ///
@@ -223,7 +195,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Returns
     /// The value at the given timestamp.
-    fn value_at_timestamp<Tz: TimeZone>(&self, timestamp: DateTime<Tz>) -> Self::Type;
+    fn value_at_timestamp<Tz: TimeZone>(&self, timestamp: DateTime<Tz>) -> Option<Self::Type>;
 
     /// Returns the time span on which the temporal object is defined.
     ///
@@ -412,7 +384,7 @@ pub trait Temporal: Collection + Hash {
     /// MEOS Functions:
     ///     `temporal_set_interpolation`
     fn set_interpolation(&self, interpolation: TInterpolation) -> Self {
-        Self::from_inner(unsafe {
+        Self::from_inner_as_temporal(unsafe {
             meos_sys::temporal_set_interp(self.inner(), interpolation as u32)
         })
     }
@@ -465,7 +437,7 @@ pub trait Temporal: Collection + Hash {
         };
 
         let modified = unsafe { meos_sys::temporal_shift_scale_time(self.inner(), d, w) };
-        Self::from_inner(modified)
+        Self::from_inner_as_temporal(modified)
     }
 
     /// Returns a new `Temporal` downsampled with respect to `duration`.
@@ -484,7 +456,7 @@ pub trait Temporal: Collection + Hash {
         interpolation: TInterpolation,
     ) -> Self {
         let interval = create_interval(duration);
-        Self::from_inner(unsafe {
+        Self::from_inner_as_temporal(unsafe {
             meos_sys::temporal_tsample(
                 self.inner(),
                 ptr::addr_of!(interval),
@@ -504,7 +476,7 @@ pub trait Temporal: Collection + Hash {
     ///     `temporal_tprecision`
     fn temporal_precision<Tz: TimeZone>(self, duration: TimeDelta, start: DateTime<Tz>) -> Self {
         let interval = create_interval(duration);
-        Self::from_inner(unsafe {
+        Self::from_inner_as_temporal(unsafe {
             meos_sys::temporal_tprecision(
                 self.inner(),
                 ptr::addr_of!(interval),
@@ -567,10 +539,10 @@ pub trait Temporal: Collection + Hash {
         max_time: Option<TimeDelta>,
     ) -> Self {
         let mut max_time = create_interval(max_time.unwrap_or_default());
-        Self::from_inner(unsafe {
+        Self::from_inner_as_temporal(unsafe {
             meos_sys::temporal_append_tinstant(
                 self.inner(),
-                TInstant::inner(&instant),
+                TInstant::inner_as_tinstant(&instant),
                 max_dist.unwrap_or_default(),
                 ptr::addr_of_mut!(max_time),
                 false,
@@ -586,8 +558,8 @@ pub trait Temporal: Collection + Hash {
     /// MEOS Functions:
     ///     `temporal_append_tsequence`
     fn append_sequence(&self, sequence: Self::TS) -> Self {
-        Self::from_inner(unsafe {
-            meos_sys::temporal_append_tsequence(self.inner(), TSequence::inner(&sequence), false)
+        Self::from_inner_as_temporal(unsafe {
+            meos_sys::temporal_append_tsequence(self.inner(), sequence.inner_as_tsequence(), false)
         })
     }
 
@@ -599,7 +571,9 @@ pub trait Temporal: Collection + Hash {
     /// MEOS Functions:
     ///     `temporal_merge`
     fn merge_other(&self, other: Self) -> Self {
-        Self::from_inner(unsafe { meos_sys::temporal_merge(self.inner(), other.inner()) })
+        Self::from_inner_as_temporal(unsafe {
+            meos_sys::temporal_merge(self.inner(), other.inner())
+        })
     }
 
     /// Inserts `other` into `self`.
@@ -611,7 +585,9 @@ pub trait Temporal: Collection + Hash {
     /// MEOS Functions:
     ///     `temporal_insert`
     fn insert(&self, other: Self, connect: bool) -> Self {
-        Self::from_inner(unsafe { meos_sys::temporal_insert(self.inner(), other.inner(), connect) })
+        Self::from_inner_as_temporal(unsafe {
+            meos_sys::temporal_insert(self.inner(), other.inner(), connect)
+        })
     }
 
     /// Updates `self` with `other`.
@@ -623,7 +599,9 @@ pub trait Temporal: Collection + Hash {
     /// MEOS Functions:
     ///     `temporal_update`
     fn update(&self, other: Self, connect: bool) -> Self {
-        Self::from_inner(unsafe { meos_sys::temporal_update(self.inner(), other.inner(), connect) })
+        Self::from_inner_as_temporal(unsafe {
+            meos_sys::temporal_update(self.inner(), other.inner(), connect)
+        })
     }
 
     /// Deletes elements from `self` at `other`.
@@ -635,36 +613,30 @@ pub trait Temporal: Collection + Hash {
     /// MEOS Functions:
     ///     `temporal_delete`
     fn delete_at_timestamp<Tz: TimeZone>(&self, other: DateTime<Tz>, connect: bool) -> Self {
-        Self::from_inner(unsafe {
+        Self::from_inner_as_temporal(unsafe {
             meos_sys::temporal_delete_timestamptz(self.inner(), to_meos_timestamp(&other), connect)
         })
     }
 
-    /// Deletes elements from `self` at `other`.
+    /// Deletes elements from `self` at `time_span`.
     ///
     /// ## Arguments
-    /// * `other` - Time span object specifying the elements to delete.
+    /// * `time_span` - Time span object specifying the elements to delete.
     /// * `connect` - Whether to connect the potential gaps generated by the deletions.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_delete`
-    fn delete_at_tstz_span(&self, other: TsTzSpan, connect: bool) -> Self {
-        Self::from_inner(unsafe {
-            meos_sys::temporal_delete_tstzspan(self.inner(), other.inner(), connect)
+    fn delete_at_tstz_span(&self, time_span: TsTzSpan, connect: bool) -> Self {
+        Self::from_inner_as_temporal(unsafe {
+            meos_sys::temporal_delete_tstzspan(self.inner(), time_span.inner(), connect)
         })
     }
 
-    /// Deletes elements from `self` at `other`.
+    /// Deletes elements from `self` at `time_span_set`.
     ///
     /// ## Arguments
-    /// * `other` - Time span set object specifying the elements to delete.
+    /// * `time_span_set` - Time span set object specifying the elements to delete.
     /// * `connect` - Whether to connect the potential gaps generated by the deletions.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_delete`
-    fn delete_at_tstz_span_set(&self, other: TsTzSpanSet, connect: bool) -> Self {
-        Self::from_inner(unsafe {
-            meos_sys::temporal_delete_tstzspanset(self.inner(), other.inner(), connect)
+    fn delete_at_tstz_span_set(&self, time_span_set: TsTzSpanSet, connect: bool) -> Self {
+        Self::from_inner_as_temporal(unsafe {
+            meos_sys::temporal_delete_tstzspanset(self.inner(), time_span_set.inner(), connect)
         })
     }
 
@@ -679,33 +651,37 @@ pub trait Temporal: Collection + Hash {
     ///     `temporal_at_temporal_at_timestamptz`
     fn at_timestamp<Tz: TimeZone>(&self, other: DateTime<Tz>) -> Self {
         unsafe {
-            Self::from_inner(meos_sys::temporal_at_timestamptz(
+            Self::from_inner_as_temporal(meos_sys::temporal_at_timestamptz(
                 self.inner(),
                 to_meos_timestamp(&other),
             ))
         }
     }
 
-    /// Returns a new temporal object with values restricted to the time `other`.
+    /// Returns a new temporal object with values restricted to the time `time_span`.
     ///
     /// ## Arguments
-    /// * `other` - A time span to restrict the values to.
+    /// * `time_span` - A time span to restrict the values to.
     ///
     /// MEOS Functions:
-    ///     `temporal_at_tstzspan*`
-    fn at_tstz_span(&self, other: TsTzSpan) -> Self {
-        Self::from_inner(unsafe { meos_sys::temporal_at_tstzspan(self.inner(), other.inner()) })
+    ///     `temporal_at_tstzspan`
+    fn at_tstz_span(&self, time_span: TsTzSpan) -> Self {
+        Self::from_inner_as_temporal(unsafe {
+            meos_sys::temporal_at_tstzspan(self.inner(), time_span.inner())
+        })
     }
 
-    /// Returns a new temporal object with values restricted to the time `other`.
+    /// Returns a new temporal object with values restricted to the time `time_span_set`.
     ///
     /// ## Arguments
-    /// * `other` - A time span set to restrict the values to.
+    /// * `time_span_set` - A time span set to restrict the values to.
     ///
     /// MEOS Functions:
     ///     `temporal_at_tstzspanset`
-    fn at_tstz_span_set(&self, other: TsTzSpanSet) -> Self {
-        Self::from_inner(unsafe { meos_sys::temporal_at_tstzspanset(self.inner(), other.inner()) })
+    fn at_tstz_span_set(&self, time_span_set: TsTzSpanSet) -> Self {
+        Self::from_inner_as_temporal(unsafe {
+            meos_sys::temporal_at_tstzspanset(self.inner(), time_span_set.inner())
+        })
     }
 
     /// Returns a new temporal object containing the times `self` is at its minimum value.
@@ -713,7 +689,7 @@ pub trait Temporal: Collection + Hash {
     /// MEOS Functions:
     ///     `temporal_at_min`
     fn at_min(&self) -> Self {
-        Self::from_inner(unsafe { meos_sys::temporal_at_min(self.inner()) })
+        Self::from_inner_as_temporal(unsafe { meos_sys::temporal_at_min(self.inner()) })
     }
 
     /// Returns a new temporal object containing the times `self` is at its maximum value.
@@ -721,43 +697,64 @@ pub trait Temporal: Collection + Hash {
     /// MEOS Functions:
     ///     `temporal_at_max`
     fn at_max(&self) -> Self {
-        Self::from_inner(unsafe { meos_sys::temporal_at_max(self.inner()) })
+        Self::from_inner_as_temporal(unsafe { meos_sys::temporal_at_max(self.inner()) })
     }
 
-    /// Returns a new temporal object with values at `other` removed.
+    /// Returns a new temporal object containing the times `self` is at `value`.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_at_value`
+    fn at_value(&self, value: &Self::Type) -> Self;
+
+    /// Returns a new temporal object containing the times `self` is in any of the values of `values`.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_at_values`
+    fn at_values(&self, values: &[Self::Type]) -> Self;
+
+    /// Returns a new temporal object with values at `timestamp` removed.
     ///
     /// ## Arguments
-    /// * `other` - A timestamp specifying the values to remove.
+    /// * `timestamp` - A timestamp specifying the values to remove.
     ///
     /// MEOS Functions:
     ///     `temporal_minus_*`
-    fn minus_timestamp<Tz: TimeZone>(&self, other: DateTime<Tz>) -> Self {
-        Self::from_inner(unsafe {
-            meos_sys::temporal_minus_timestamptz(self.inner(), to_meos_timestamp(&other))
+    fn minus_timestamp<Tz: TimeZone>(&self, timestamp: DateTime<Tz>) -> Self {
+        Self::from_inner_as_temporal(unsafe {
+            meos_sys::temporal_minus_timestamptz(self.inner(), to_meos_timestamp(&timestamp))
         })
     }
 
-    /// Returns a new temporal object with values at `other` removed.
+    /// Returns a new temporal object with values at any of the values of `timestamps` removed.
     ///
     /// ## Arguments
-    /// * `other` - A time span specifying the values to remove.
+    /// * `timestamps` - A timestamp specifying the values to remove.
     ///
     /// MEOS Functions:
     ///     `temporal_minus_*`
-    fn minus_tstz_span(&self, other: TsTzSpan) -> Self {
-        Self::from_inner(unsafe { meos_sys::temporal_minus_tstzspan(self.inner(), other.inner()) })
+    fn minus_timestamp_set<Tz: TimeZone>(&self, timestamps: &[DateTime<Tz>]) -> Self {
+        let timestamps: Vec<_> = timestamps.iter().map(to_meos_timestamp).collect();
+        let set = unsafe { meos_sys::tstzset_make(timestamps.as_ptr(), timestamps.len() as i32) };
+        Self::from_inner_as_temporal(unsafe { meos_sys::temporal_minus_tstzset(self.inner(), set) })
     }
 
-    /// Returns a new temporal object with values at `other` removed.
+    /// Returns a new temporal object with values at `time_span` removed.
     ///
     /// ## Arguments
-    /// * `other` - A time span set specifying the values to remove.
+    /// * `time_span` - A time span specifying the values to remove.
+    fn minus_tstz_span(&self, time_span: TsTzSpan) -> Self {
+        Self::from_inner_as_temporal(unsafe {
+            meos_sys::temporal_minus_tstzspan(self.inner(), time_span.inner())
+        })
+    }
+
+    /// Returns a new temporal object with values at `time_span_set` removed.
     ///
-    /// MEOS Functions:
-    ///     `temporal_minus_*`
-    fn minus_tstz_span_set(&self, other: TsTzSpanSet) -> Self {
-        Self::from_inner(unsafe {
-            meos_sys::temporal_minus_tstzspanset(self.inner(), other.inner())
+    /// ## Arguments
+    /// * `time_span_set` - A time span set specifying the values to remove.
+    fn minus_tstz_span_set(&self, time_span_set: TsTzSpanSet) -> Self {
+        Self::from_inner_as_temporal(unsafe {
+            meos_sys::temporal_minus_tstzspanset(self.inner(), time_span_set.inner())
         })
     }
 
@@ -766,7 +763,7 @@ pub trait Temporal: Collection + Hash {
     /// MEOS Functions:
     ///     `temporal_minus_min`
     fn minus_min(&self) -> Self {
-        Self::from_inner(unsafe { meos_sys::temporal_minus_min(self.inner()) })
+        Self::from_inner_as_temporal(unsafe { meos_sys::temporal_minus_min(self.inner()) })
     }
 
     /// Returns a new temporal object containing the times `self` is not at its maximum value.
@@ -774,8 +771,20 @@ pub trait Temporal: Collection + Hash {
     /// MEOS Functions:
     ///     `temporal_minus_max`
     fn minus_max(&self) -> Self {
-        Self::from_inner(unsafe { meos_sys::temporal_minus_max(self.inner()) })
+        Self::from_inner_as_temporal(unsafe { meos_sys::temporal_minus_max(self.inner()) })
     }
+
+    /// Returns a new temporal object containing the times `self` is not at `value`.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_minus_value`
+    fn minus_value(&self, value: Self::Type) -> Self;
+
+    /// Returns a new temporal object containing the times `self` is not at `values`.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_minus_values`
+    fn minus_values(&self, values: &[Self::Type]) -> Self;
 
     // ------------------------- Topological Operations ------------------------
 
@@ -989,7 +998,7 @@ pub trait Temporal: Collection + Hash {
 
             Vec::from_raw_parts(temps, count as usize, count as usize)
                 .iter()
-                .map(|&t| Temporal::from_inner(t))
+                .map(|&t| Temporal::from_inner_as_temporal(t))
                 .collect()
         }
     }
@@ -1031,4 +1040,503 @@ pub trait Temporal: Collection + Hash {
             ))
         }
     }
+
+    /// Returns whether the values of `self` are always less than `other`.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - Another temporal instance to compare against.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the values of `self` are always less than `other`, `false` otherwise.
+    fn always_less(&self, other: &Self) -> Option<bool> {
+        let result = unsafe { meos_sys::always_lt_temporal_temporal(self.inner(), other.inner()) };
+        if result != -1 {
+            Some(result == 1)
+        } else {
+            None
+        }
+    }
+
+    /// Returns whether the values of `self` are always less than or equal to `other`.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - Another temporal instance to compare against.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the values of `self` are always less than or equal to `other`, `false` otherwise.
+    fn always_less_or_equal(&self, other: &Self) -> Option<bool> {
+        let result = unsafe { meos_sys::always_le_temporal_temporal(self.inner(), other.inner()) };
+        if result != -1 {
+            Some(result == 1)
+        } else {
+            None
+        }
+    }
+
+    /// Returns whether the values of `self` are always equal to `other`.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - Another temporal instance to compare against.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the values of `self` are always equal to `other`, `false` otherwise.
+    fn always_equal(&self, other: &Self) -> Option<bool> {
+        let result = unsafe { meos_sys::always_eq_temporal_temporal(self.inner(), other.inner()) };
+        if result != -1 {
+            Some(result == 1)
+        } else {
+            None
+        }
+    }
+
+    /// Returns whether the values of `self` are always not equal to `other`.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - Another temporal instance to compare against.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the values of `self` are always not equal to `other`, `false` otherwise.
+    fn always_not_equal(&self, other: &Self) -> Option<bool> {
+        let result = unsafe { meos_sys::always_ne_temporal_temporal(self.inner(), other.inner()) };
+        if result != -1 {
+            Some(result == 1)
+        } else {
+            None
+        }
+    }
+
+    /// Returns whether the values of `self` are always greater than or equal to `other`.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - Another temporal instance to compare against.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the values of `self` are always greater than or equal to `other`, `false` otherwise.
+    fn always_greater_or_equal(&self, other: &Self) -> Option<bool> {
+        let result = unsafe { meos_sys::always_ge_temporal_temporal(self.inner(), other.inner()) };
+        if result != -1 {
+            Some(result == 1)
+        } else {
+            None
+        }
+    }
+
+    /// Returns whether the values of `self` are always greater than `other`.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - Another temporal instance to compare against.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the values of `self` are always greater than `other`, `false` otherwise.
+    fn always_greater(&self, other: &Self) -> Option<bool> {
+        let result = unsafe { meos_sys::always_gt_temporal_temporal(self.inner(), other.inner()) };
+        if result != -1 {
+            Some(result == 1)
+        } else {
+            None
+        };
+        if result != -1 {
+            Some(result == 1)
+        } else {
+            None
+        }
+    }
+
+    /// Returns whether the values of `self` are ever less than `other`.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - Another temporal instance to compare against.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the values of `self` are ever less than `other`, `false` otherwise.
+    fn ever_less(&self, other: &Self) -> Option<bool> {
+        let result = unsafe { meos_sys::ever_lt_temporal_temporal(self.inner(), other.inner()) };
+        if result != -1 {
+            Some(result == 1)
+        } else {
+            None
+        }
+    }
+
+    /// Returns whether the values of `self` are ever less than or equal to `other`.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - Another temporal instance to compare against.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the values of `self` are ever less than or equal to `other`, `false` otherwise.
+    fn ever_less_or_equal(&self, other: &Self) -> Option<bool> {
+        let result = unsafe { meos_sys::ever_le_temporal_temporal(self.inner(), other.inner()) };
+        if result != -1 {
+            Some(result == 1)
+        } else {
+            None
+        }
+    }
+
+    /// Returns whether the values of `self` are ever equal to `other`.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - Another temporal instance to compare against.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the values of `self` are ever equal to `other`, `false` otherwise.
+    fn ever_equal(&self, other: &Self) -> Option<bool> {
+        let result = unsafe { meos_sys::ever_eq_temporal_temporal(self.inner(), other.inner()) };
+        if result != -1 {
+            Some(result == 1)
+        } else {
+            None
+        }
+    }
+
+    /// Returns whether the values of `self` are ever not equal to `other`.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - Another temporal instance to compare against.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the values of `self` are ever not equal to `other`, `false` otherwise.
+    fn ever_not_equal(&self, other: &Self) -> Option<bool> {
+        let result = unsafe { meos_sys::ever_ne_temporal_temporal(self.inner(), other.inner()) };
+        if result != -1 {
+            Some(result == 1)
+        } else {
+            None
+        }
+    }
+
+    /// Returns whether the values of `self` are ever greater than or equal to `other`.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - Another temporal instance to compare against.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the values of `self` are ever greater than or equal to `other`, `false` otherwise.
+    fn ever_greater_or_equal(&self, other: &Self) -> Option<bool> {
+        let result = unsafe { meos_sys::ever_ge_temporal_temporal(self.inner(), other.inner()) };
+        if result != -1 {
+            Some(result == 1)
+        } else {
+            None
+        }
+    }
+
+    /// Returns whether the values of `self` are ever greater than `other`.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - Another temporal instance to compare against.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the values of `self` are ever greater than `other`, `false` otherwise.
+    fn ever_greater(&self, other: &Self) -> Option<bool> {
+        let result = unsafe { meos_sys::ever_gt_temporal_temporal(self.inner(), other.inner()) };
+        if result != -1 {
+            Some(result == 1)
+        } else {
+            None
+        }
+    }
+
+    /// Returns whether the values of `self` are always less than `value`.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - Value to compare against.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the values of `self` are always less than `value`, `false` otherwise.
+    fn always_less_than_value(&self, value: Self::Type) -> Option<bool>;
+
+    /// Returns whether the values of `self` are always less than or equal to `value`.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - Value to compare against.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the values of `self` are always less than or equal to `value`, `false` otherwise.
+    fn always_less_or_equal_than_value(&self, value: Self::Type) -> Option<bool>;
+
+    /// Returns whether the values of `self` are always equal to `value`.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - Value to compare against.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the values of `self` are always equal to `value`, `false` otherwise.
+    fn always_equal_than_value(&self, value: Self::Type) -> Option<bool>;
+
+    /// Returns whether the values of `self` are always not equal to `value`.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - Value to compare against.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the values of `self` are always not equal to `value`, `false` otherwise.
+    fn always_not_equal_than_value(&self, value: Self::Type) -> Option<bool>;
+
+    /// Returns whether the values of `self` are always greater than or equal to `value`.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - Value to compare against.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the values of `self` are always greater than or equal to `value`, `false` otherwise.
+    fn always_greater_or_equal_than_value(&self, value: Self::Type) -> Option<bool>;
+
+    /// Returns whether the values of `self` are always greater than `value`.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - Value to compare against.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the values of `self` are always greater than `value`, `false` otherwise.
+    fn always_greater_than_value(&self, value: Self::Type) -> Option<bool>;
+
+    /// Returns whether the values of `self` are ever less than `value`.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - Value to compare against.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the values of `self` are ever less than `value`, `false` otherwise.
+    fn ever_less_than_value(&self, value: Self::Type) -> Option<bool>;
+
+    /// Returns whether the values of `self` are ever less than or equal to `value`.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - Value to compare against.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the values of `self` are ever less than or equal to `value`, `false` otherwise.
+    fn ever_less_or_equal_than_value(&self, value: Self::Type) -> Option<bool>;
+
+    /// Returns whether the values of `self` are ever equal to `value`.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - Value to compare against.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the values of `self` are ever equal to `value`, `false` otherwise.
+    fn ever_equal_than_value(&self, value: Self::Type) -> Option<bool>;
+
+    /// Returns whether the values of `self` are ever not equal to `value`.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - Value to compare against.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the values of `self` are ever not equal to `value`, `false` otherwise.
+    fn ever_not_equal_than_value(&self, value: Self::Type) -> Option<bool>;
+
+    /// Returns whether the values of `self` are ever greater than or equal to `value`.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - Value to compare against.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the values of `self` are ever greater than or equal to `value`, `false` otherwise.
+    fn ever_greater_or_equal_than_value(&self, value: Self::Type) -> Option<bool>;
+
+    /// Returns whether the values of `self` are ever greater than `value`.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - Value to compare against.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the values of `self` are ever greater than `value`, `false` otherwise.
+    fn ever_greater_than_value(&self, value: Self::Type) -> Option<bool>;
 }
+
+macro_rules! impl_simple_types_for_temporal {
+    ($type:ty, $generic_type_name:ident) => {
+        paste::paste! {
+
+            impl Clone for $type {
+                fn clone(&self) -> Self {
+                    Temporal::from_inner_as_temporal(unsafe { meos_sys::temporal_copy(self.inner()) })
+                }
+            }
+
+            impl FromStr for $type {
+                type Err = ParseError;
+
+                fn from_str(s: &str) -> Result<Self, Self::Err> {
+                    CString::new(s).map_err(|_| ParseError).map(|string| {
+                        let inner = unsafe { meos_sys::[<$generic_type_name _in>](string.as_ptr()) };
+                        Self::from_inner_as_temporal(inner)
+                    })
+                }
+            }
+
+            impl PartialEq for $type {
+                fn eq(&self, other: &Self) -> bool {
+                    unsafe { meos_sys::temporal_eq(self.inner(), other.inner()) }
+                }
+            }
+
+            impl Hash for $type {
+                fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+                    let hash = unsafe { meos_sys::temporal_hash(self.inner()) };
+                    state.write_u32(hash);
+
+                    state.finish();
+                }
+            }
+        }
+    };
+}
+
+pub(crate) use impl_simple_types_for_temporal;
+
+macro_rules! impl_always_and_ever_value_functions {
+    ($type:ident) => {
+        paste::paste! {
+            fn always_less_than_value(&self, value: Self::Type) -> Option<bool> {
+                let result = unsafe {meos_sys::[<always_lt_t $type _ $type>](self.inner(), value)};
+                if result != -1 {
+                    Some(result == 1)
+                } else {
+                    None
+                }
+            }
+            fn always_less_or_equal_than_value(&self, value: Self::Type) -> Option<bool> {
+                let result = unsafe { meos_sys::[<always_le_t $type _ $type>](self.inner(), value)};
+                if result != -1 {
+                    Some(result == 1)
+                } else {
+                    None
+                }
+            }
+            fn always_equal_than_value(&self, value: Self::Type) -> Option<bool> {
+                let result = unsafe { meos_sys::[<always_eq_t $type _ $type>](self.inner(), value)};
+                if result != -1 {
+                    Some(result == 1)
+                } else {
+                    None
+                }
+            }
+            fn always_not_equal_than_value(&self, value: Self::Type) -> Option<bool> {
+                let result = unsafe { meos_sys::[<always_ne_t $type _ $type>](self.inner(), value)};
+                if result != -1 {
+                    Some(result == 1)
+                } else {
+                    None
+                }
+            }
+            fn always_greater_or_equal_than_value(&self, value: Self::Type) -> Option<bool> {
+                let result = unsafe { meos_sys::[<always_ge_t $type _ $type>](self.inner(), value)};
+                if result != -1 {
+                    Some(result == 1)
+                } else {
+                    None
+                }
+            }
+            fn always_greater_than_value(&self, value: Self::Type) -> Option<bool> {
+                let result = unsafe { meos_sys::[<always_gt_t $type _ $type>](self.inner(), value)};
+                if result != -1 {
+                    Some(result == 1)
+                } else {
+                    None
+                }
+            }
+            fn ever_less_than_value(&self, value: Self::Type) -> Option<bool> {
+                let result = unsafe { meos_sys::[<ever_lt_t $type _ $type>](self.inner(), value)};
+                if result != -1 {
+                    Some(result == 1)
+                } else {
+                    None
+                }
+            }
+            fn ever_less_or_equal_than_value(&self, value: Self::Type) -> Option<bool> {
+                let result = unsafe { meos_sys::[<ever_le_t $type _ $type>](self.inner(), value)};
+                if result != -1 {
+                    Some(result == 1)
+                } else {
+                    None
+                }
+            }
+            fn ever_equal_than_value(&self, value: Self::Type) -> Option<bool> {
+                let result = unsafe { meos_sys::[<ever_eq_t $type _ $type>](self.inner(), value)};
+                if result != -1 {
+                    Some(result == 1)
+                } else {
+                    None
+                }
+            }
+            fn ever_not_equal_than_value(&self, value: Self::Type) -> Option<bool> {
+                let result = unsafe { meos_sys::[<ever_ne_t $type _ $type>](self.inner(), value)};
+                if result != -1 {
+                    Some(result == 1)
+                } else {
+                    None
+                }
+            }
+            fn ever_greater_or_equal_than_value(&self, value: Self::Type) -> Option<bool> {
+                let result = unsafe { meos_sys::[<ever_ge_t $type _ $type>](self.inner(), value)};
+                if result != -1 {
+                    Some(result == 1)
+                } else {
+                    None
+                }
+            }
+            fn ever_greater_than_value(&self, value: Self::Type) -> Option<bool> {
+                let result = unsafe { meos_sys::[<ever_gt_t $type _ $type>](self.inner(), value)};
+                if result != -1 {
+                    Some(result == 1)
+                } else {
+                    None
+                }
+            }
+    }
+    };
+}
+
+pub(crate) use impl_always_and_ever_value_functions;
