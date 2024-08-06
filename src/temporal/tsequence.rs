@@ -1,6 +1,5 @@
 use chrono::TimeZone;
 
-
 use super::{interpolation::TInterpolation, temporal::Temporal, tinstant::TInstant};
 
 pub trait TSequence: Temporal {
@@ -35,9 +34,9 @@ pub trait TSequence: Temporal {
     fn inner_as_tsequence(&self) -> *const meos_sys::TSequence;
 
     fn is_lower_inclusive(&self) -> bool {
-        unsafe { meos_sys::temporal_lower_inc(self.inner()) == 1 }
+        unsafe { meos_sys::temporal_lower_inc(self.inner()) }
     }
     fn is_upper_inclusive(&self) -> bool {
-        unsafe { meos_sys::temporal_upper_inc(self.inner()) == 1 }
+        unsafe { meos_sys::temporal_upper_inc(self.inner()) }
     }
 }

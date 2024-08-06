@@ -6047,14 +6047,20 @@ extern "C" {
     ) -> *mut GSERIALIZED;
 }
 extern "C" {
-    pub fn set_spans(
+    pub fn set_spans(s: *const Set) -> *mut Span;
+}
+extern "C" {
+    pub fn set_spans_merge(
         s: *const Set,
         max_count: ::std::os::raw::c_int,
         count: *mut ::std::os::raw::c_int,
     ) -> *mut Span;
 }
 extern "C" {
-    pub fn spanset_spans(
+    pub fn spanset_spans(ss: *const SpanSet) -> *mut Span;
+}
+extern "C" {
+    pub fn spanset_spans_merge(
         ss: *const SpanSet,
         max_count: ::std::os::raw::c_int,
         count: *mut ::std::os::raw::c_int,
@@ -8111,10 +8117,10 @@ extern "C" {
     ) -> *mut *mut TSequence;
 }
 extern "C" {
-    pub fn temporal_lower_inc(temp: *const Temporal) -> ::std::os::raw::c_int;
+    pub fn temporal_lower_inc(temp: *const Temporal) -> bool;
 }
 extern "C" {
-    pub fn temporal_upper_inc(temp: *const Temporal) -> ::std::os::raw::c_int;
+    pub fn temporal_upper_inc(temp: *const Temporal) -> bool;
 }
 extern "C" {
     pub fn temporal_start_instant(temp: *const Temporal) -> *mut TInstant;
@@ -8393,7 +8399,7 @@ extern "C" {
 }
 extern "C" {
     pub fn temporal_append_tinstant(
-        temp: *const Temporal,
+        temp: *mut Temporal,
         inst: *const TInstant,
         maxdist: f64,
         maxt: *const Interval,
@@ -8402,7 +8408,7 @@ extern "C" {
 }
 extern "C" {
     pub fn temporal_append_tsequence(
-        temp: *const Temporal,
+        temp: *mut Temporal,
         seq: *const TSequence,
         expand: bool,
     ) -> *mut Temporal;
@@ -9206,21 +9212,30 @@ extern "C" {
     pub fn tne_ttext_text(temp: *const Temporal, txt: *const text) -> *mut Temporal;
 }
 extern "C" {
-    pub fn temporal_spans(
+    pub fn temporal_spans(temp: *const Temporal, count: *mut ::std::os::raw::c_int) -> *mut Span;
+}
+extern "C" {
+    pub fn temporal_spans_merge(
         temp: *const Temporal,
         max_count: ::std::os::raw::c_int,
         count: *mut ::std::os::raw::c_int,
     ) -> *mut Span;
 }
 extern "C" {
-    pub fn tnumber_tboxes(
+    pub fn tnumber_tboxes(temp: *const Temporal, count: *mut ::std::os::raw::c_int) -> *mut TBox;
+}
+extern "C" {
+    pub fn tnumber_tboxes_merge(
         temp: *const Temporal,
         max_count: ::std::os::raw::c_int,
         count: *mut ::std::os::raw::c_int,
     ) -> *mut TBox;
 }
 extern "C" {
-    pub fn tpoint_stboxes(
+    pub fn tpoint_stboxes(temp: *const Temporal, count: *mut ::std::os::raw::c_int) -> *mut STBox;
+}
+extern "C" {
+    pub fn tpoint_stboxes_merge(
         temp: *const Temporal,
         max_count: ::std::os::raw::c_int,
         count: *mut ::std::os::raw::c_int,
@@ -9886,7 +9901,10 @@ extern "C" {
     pub fn bearing_tpoint_tpoint(temp1: *const Temporal, temp2: *const Temporal) -> *mut Temporal;
 }
 extern "C" {
-    pub fn geo_gboxes(
+    pub fn geo_gboxes(gs: *const GSERIALIZED, count: *mut ::std::os::raw::c_int) -> *mut GBOX;
+}
+extern "C" {
+    pub fn geo_gboxes_merge(
         gs: *const GSERIALIZED,
         max_count: ::std::os::raw::c_int,
         count: *mut ::std::os::raw::c_int,
@@ -10350,26 +10368,45 @@ extern "C" {
     ) -> *mut Span;
 }
 extern "C" {
-    pub fn stbox_tile(
-        point: *mut GSERIALIZED,
+    pub fn stbox_space_tile(
+        point: *const GSERIALIZED,
+        xsize: f64,
+        ysize: f64,
+        zsize: f64,
+        sorigin: *const GSERIALIZED,
+    ) -> *mut STBox;
+}
+extern "C" {
+    pub fn stbox_space_tiles(
+        bounds: *const STBox,
+        xsize: f64,
+        ysize: f64,
+        zsize: f64,
+        sorigin: *const GSERIALIZED,
+        border_inc: bool,
+        count: *mut ::std::os::raw::c_int,
+    ) -> *mut STBox;
+}
+extern "C" {
+    pub fn stbox_space_time_tile(
+        point: *const GSERIALIZED,
         t: TimestampTz,
         xsize: f64,
         ysize: f64,
         zsize: f64,
         duration: *const Interval,
-        sorigin: *mut GSERIALIZED,
+        sorigin: *const GSERIALIZED,
         torigin: TimestampTz,
-        hast: bool,
     ) -> *mut STBox;
 }
 extern "C" {
-    pub fn stbox_tile_list(
+    pub fn stbox_space_time_tiles(
         bounds: *const STBox,
         xsize: f64,
         ysize: f64,
         zsize: f64,
         duration: *const Interval,
-        sorigin: *mut GSERIALIZED,
+        sorigin: *const GSERIALIZED,
         torigin: TimestampTz,
         border_inc: bool,
         count: *mut ::std::os::raw::c_int,
@@ -10406,7 +10443,7 @@ extern "C" {
     ) -> *mut *mut Temporal;
 }
 extern "C" {
-    pub fn tfloatbox_tile(
+    pub fn tfloatbox_value_time_tile(
         value: f64,
         t: TimestampTz,
         vsize: f64,
@@ -10416,7 +10453,7 @@ extern "C" {
     ) -> *mut TBox;
 }
 extern "C" {
-    pub fn tfloatbox_tile_list(
+    pub fn tfloatbox_value_time_tiles(
         box_: *const TBox,
         xsize: f64,
         duration: *const Interval,
@@ -10454,7 +10491,7 @@ extern "C" {
     ) -> *mut *mut Temporal;
 }
 extern "C" {
-    pub fn tintbox_tile(
+    pub fn tintbox_value_time_tile(
         value: ::std::os::raw::c_int,
         t: TimestampTz,
         vsize: ::std::os::raw::c_int,
@@ -10464,7 +10501,7 @@ extern "C" {
     ) -> *mut TBox;
 }
 extern "C" {
-    pub fn tintbox_tile_list(
+    pub fn tintbox_value_time_tiles(
         box_: *const TBox,
         xsize: ::std::os::raw::c_int,
         duration: *const Interval,
@@ -10479,7 +10516,7 @@ extern "C" {
         xsize: f32,
         ysize: f32,
         zsize: f32,
-        sorigin: *mut GSERIALIZED,
+        sorigin: *const GSERIALIZED,
         bitmatrix: bool,
         border_inc: bool,
         space_buckets: *mut *mut *mut GSERIALIZED,
@@ -10493,7 +10530,7 @@ extern "C" {
         ysize: f32,
         zsize: f32,
         duration: *const Interval,
-        sorigin: *mut GSERIALIZED,
+        sorigin: *const GSERIALIZED,
         torigin: TimestampTz,
         bitmatrix: bool,
         border_inc: bool,

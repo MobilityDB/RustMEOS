@@ -8,6 +8,7 @@ use std::{
 
 use chrono::{DateTime, TimeZone};
 
+use super::tnumber::{impl_temporal_for_tnumber, TNumber};
 use crate::{
     boxes::tbox::TBox,
     collections::{
@@ -23,7 +24,9 @@ use crate::{
     temporal::{
         interpolation::TInterpolation,
         temporal::{
-            impl_always_and_ever_value_functions, impl_simple_types_for_temporal, Temporal,
+            impl_always_and_ever_value_equality_functions,
+            impl_always_and_ever_value_functions_with_ordering, impl_simple_traits_for_temporal,
+            OrderedTemporal, Temporal,
         },
         tinstant::TInstant,
         tsequence::TSequence,
@@ -32,150 +35,19 @@ use crate::{
     utils::to_meos_timestamp,
 };
 
-use super::tnumber::TNumber;
-
-macro_rules! impl_temporal {
-    ($type:ty, $meos_type:ty, $base_type:ty, $generic_type_name:ident) => {
-        paste::paste! {
-            impl Collection for $type {
-                impl_collection!(tnumber, $base_type);
-
-                fn contains(&self, content: &Self::Type) -> bool {
-                    FloatSpanSet::from_inner(unsafe { meos_sys::tnumber_valuespans(self.inner()) })
-                        .contains(content)
-                }
-            }
-            impl_simple_types_for_temporal!($type, $generic_type_name);
-
-
-            impl Debug for $type {
-                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                    let out_str = unsafe { meos_sys::[<$generic_type_name _out>](self.inner(), 3) };
-                    let c_str = unsafe { CStr::from_ptr(out_str) };
-                    let str = c_str.to_str().map_err(|_| std::fmt::Error)?;
-                    let result = f.write_str(str);
-                    unsafe { libc::free(out_str as *mut c_void) };
-                    result
-                }
-            }
-
-            impl TNumber for $type {
-                fn nearest_approach_distance(&self, other: &Self) -> $base_type {
-                    unsafe { meos_sys::[<nad_ $generic_type_name _ $generic_type_name>](self.inner(), other.inner()) }
-                }
-            }
-
-            impl Temporal for $type {
-                type TI = TFloatInst;
-
-                type TS = TFloatSeq;
-
-                type TSS = TFloatSeqSet;
-
-                type TBB = TBox;
-
-                fn from_inner_as_temporal(inner: *const meos_sys::Temporal) -> Self {
-                    Self {
-                        _inner: inner as *const $meos_type,
-                    }
-                }
-
-                fn from_mfjson(mfjson: &str) -> Self {
-                    let cstr = CString::new(mfjson).unwrap();
-                    Self::from_inner_as_temporal(unsafe { meos_sys::[<$generic_type_name _from_mfjson>](cstr.as_ptr()) })
-                }
-
-                fn inner(&self) -> *const meos_sys::Temporal {
-                    self._inner as *const meos_sys::Temporal
-                }
-
-                fn bounding_box(&self) -> Self::TBB {
-                    TNumber::bounding_box(self)
-                }
-
-                fn values(&self) -> Vec<Self::Type> {
-                    let mut count = 0;
-                    unsafe {
-                        let values = meos_sys::[<$generic_type_name _values>](self.inner(), ptr::addr_of_mut!(count));
-
-                        Vec::from_raw_parts(values, count as usize, count as usize)
-                    }
-                }
-
-                fn start_value(&self) -> Self::Type {
-                    unsafe { meos_sys::[<$generic_type_name _start_value>](self.inner()) }
-                }
-
-                fn end_value(&self) -> Self::Type {
-                    unsafe { meos_sys::[<$generic_type_name _end_value>](self.inner()) }
-                }
-
-                fn min_value(&self) -> Self::Type {
-                    unsafe { meos_sys::[<$generic_type_name _min_value>](self.inner()) }
-                }
-
-                fn max_value(&self) -> Self::Type {
-                    unsafe { meos_sys::[<$generic_type_name _max_value>](self.inner()) }
-                }
-
-                fn value_at_timestamp<Tz: TimeZone>(
-                    &self,
-                    timestamp: DateTime<Tz>,
-                ) -> Option<Self::Type> {
-                    let mut result = 0.;
-                    unsafe {
-                        let success = meos_sys::[<$generic_type_name _value_at_timestamptz>](
-                            self.inner(),
-                            to_meos_timestamp(&timestamp),
-                            true,
-                            ptr::addr_of_mut!(result),
-                        );
-                        if success {
-                            Some(result)
-                        } else {
-                            None
-                        }
-                    }
-                }
-
-                fn at_value(&self, value: &Self::Type) -> Option<Self> {
-                    let result = unsafe { meos_sys::[<$generic_type_name _at_value>](self.inner(), *value) };
-                    if result != ptr::null_mut() {
-                        Some(Self::from_inner_as_temporal(result))
-                    } else {
-                        None
-                    }
-                }
-
-                fn at_values(&self, values: &[Self::Type]) -> Option<Self> {
-                    unsafe {
-                        let set = meos_sys::floatset_make(values.as_ptr(), values.len() as i32);
-                        let result = meos_sys::temporal_at_values(self.inner(), set);
-                        if result != ptr::null_mut() {
-                            Some(Self::from_inner_as_temporal(result))
-                        } else {
-                            None
-                        }
-                    }
-                }
-
-                fn minus_value(&self, value: Self::Type) -> Self {
-                    Self::from_inner_as_temporal(unsafe {
-                        meos_sys::[<$generic_type_name _minus_value>](self.inner(), value)
-                    })
-                }
-
-                fn minus_values(&self, values: &[Self::Type]) -> Self {
-                    Self::from_inner_as_temporal(unsafe {
-                        let set = meos_sys::floatset_make(values.as_ptr(), values.len() as i32);
-                        meos_sys::temporal_minus_values(self.inner(), set)
-                    })
-                }
-
-                impl_always_and_ever_value_functions!(float);
+macro_rules! impl_debug {
+    ($type:ty) => {
+        impl Debug for $type {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                let out_str = unsafe { meos_sys::tfloat_out(self.inner(), 3) };
+                let c_str = unsafe { CStr::from_ptr(out_str) };
+                let str = c_str.to_str().map_err(|_| std::fmt::Error)?;
+                let result = f.write_str(str);
+                unsafe { libc::free(out_str as *mut c_void) };
+                result
             }
         }
-    }
+    };
 }
 
 pub trait TFloat:
@@ -220,7 +92,8 @@ impl TInstant for TFloatInst {
 
 impl TFloat for TFloatInst {}
 
-impl_temporal!(TFloatInst, meos_sys::TInstant, f64, tfloat);
+impl_temporal_for_tnumber!(TFloatInst, meos_sys::TInstant, f64, Float);
+impl_debug!(TFloatInst);
 
 pub struct TFloatSeq {
     _inner: *const meos_sys::TSequence,
@@ -258,7 +131,8 @@ impl TSequence for TFloatSeq {
 
 impl TFloat for TFloatSeq {}
 
-impl_temporal!(TFloatSeq, meos_sys::TSequence, f64, tfloat);
+impl_temporal_for_tnumber!(TFloatSeq, meos_sys::TSequence, f64, Float);
+impl_debug!(TFloatSeq);
 
 pub struct TFloatSeqSet {
     _inner: *const meos_sys::TSequenceSet,
@@ -295,4 +169,5 @@ impl TSequenceSet for TFloatSeqSet {
 }
 impl TFloat for TFloatSeqSet {}
 
-impl_temporal!(TFloatSeqSet, meos_sys::TSequenceSet, f64, tfloat);
+impl_temporal_for_tnumber!(TFloatSeqSet, meos_sys::TSequenceSet, f64, Float);
+impl_debug!(TFloatSeqSet);

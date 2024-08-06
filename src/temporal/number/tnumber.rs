@@ -134,3 +134,145 @@ pub trait TNumber: Temporal<TBB = TBox> {
     /// * `other` - A temporal number to compute the nearest approach distance to.
     fn nearest_approach_distance(&self, other: &Self) -> Self::Type;
 }
+
+/// Generates the neccessary code to implement the temporal trait for the appropriate type
+///
+/// ## Parameters:
+///     - `type`: The actual Rust type to implement the traits to
+///     - `temporal_type`: Whether it's TInstant, TSequence, or TSequenceSet
+///     - `base_type`: The base Rust type, i32 or f64.
+///     - `basic_type`: Whether it's int or float.
+macro_rules! impl_temporal_for_tnumber {
+    ($type:ty, $temporal_type:ty, $base_type:ty, $basic_type:ident) => {
+        paste::paste! {
+            impl Collection for $type {
+                impl_collection!(tnumber, $base_type);
+
+                fn contains(&self, content: &Self::Type) -> bool {
+                    [<$basic_type SpanSet>]::from_inner(unsafe { meos_sys::tnumber_valuespans(self.inner()) })
+                        .contains(content)
+                }
+            }
+            impl_simple_traits_for_temporal!($type, [<t $basic_type:lower>]);
+
+
+            impl TNumber for $type {
+                fn nearest_approach_distance(&self, other: &Self) -> Self::Type {
+                    unsafe { meos_sys::[<nad_ t $basic_type:lower _ t $basic_type:lower>](self.inner(), other.inner()) }
+                }
+            }
+
+            impl OrderedTemporal for $type {
+                fn min_value(&self) -> Self::Type {
+                    unsafe { meos_sys::[<t $basic_type:lower _min_value>](self.inner()) }
+                }
+
+                fn max_value(&self) -> Self::Type {
+                    unsafe { meos_sys::[<t $basic_type:lower _max_value>](self.inner()) }
+                }
+
+                impl_always_and_ever_value_functions_with_ordering!([<$basic_type:lower>]);
+            }
+            impl Temporal for $type {
+                type TI = [<T $basic_type Inst>];
+                type TS = [<T $basic_type Seq>];
+                type TSS = [<T $basic_type SeqSet>];
+                type TBB = TBox;
+
+                fn from_inner_as_temporal(inner: *const meos_sys::Temporal) -> Self {
+                    Self {
+                        _inner: inner as *const $temporal_type,
+                    }
+                }
+
+                fn from_mfjson(mfjson: &str) -> Self {
+                    let cstr = CString::new(mfjson).unwrap();
+                    Self::from_inner_as_temporal(unsafe { meos_sys::[<t $basic_type:lower _from_mfjson>](cstr.as_ptr()) })
+                }
+
+                fn inner(&self) -> *const meos_sys::Temporal {
+                    self._inner as *const meos_sys::Temporal
+                }
+
+                fn bounding_box(&self) -> Self::TBB {
+                    TNumber::bounding_box(self)
+                }
+
+                fn values(&self) -> Vec<Self::Type> {
+                    let mut count = 0;
+                    unsafe {
+                        let values = meos_sys::[<t $basic_type:lower _values>](self.inner(), ptr::addr_of_mut!(count));
+
+                        Vec::from_raw_parts(values, count as usize, count as usize)
+                    }
+                }
+
+                fn start_value(&self) -> Self::Type {
+                    unsafe { meos_sys::[<t $basic_type:lower _start_value>](self.inner()) }
+                }
+
+                fn end_value(&self) -> Self::Type {
+                    unsafe { meos_sys::[<t $basic_type:lower _end_value>](self.inner()) }
+                }
+
+                fn value_at_timestamp<Tz: TimeZone>(
+                    &self,
+                    timestamp: DateTime<Tz>,
+                ) -> Option<Self::Type> {
+                    let mut result = 0.into();
+                    unsafe {
+                        let success = meos_sys::[<t $basic_type:lower _value_at_timestamptz>](
+                            self.inner(),
+                            to_meos_timestamp(&timestamp),
+                            true,
+                            ptr::addr_of_mut!(result),
+                        );
+                        if success {
+                            Some(result)
+                        } else {
+                            None
+                        }
+                    }
+                }
+
+                fn at_value(&self, value: &Self::Type) -> Option<Self> {
+                    let result = unsafe { meos_sys::[<t $basic_type:lower _at_value>](self.inner(), *value) };
+                    if !result.is_null() {
+                        Some(Self::from_inner_as_temporal(result))
+                    } else {
+                        None
+                    }
+                }
+
+                fn at_values(&self, values: &[Self::Type]) -> Option<Self> {
+                    unsafe {
+                        let set = meos_sys::[<$basic_type:lower set_make>](values.as_ptr(), values.len() as i32);
+                        let result = meos_sys::temporal_at_values(self.inner(), set);
+                        if !result.is_null() {
+                            Some(Self::from_inner_as_temporal(result))
+                        } else {
+                            None
+                        }
+                    }
+                }
+
+                fn minus_value(&self, value: Self::Type) -> Self {
+                    Self::from_inner_as_temporal(unsafe {
+                        meos_sys::[<t $basic_type:lower _minus_value>](self.inner(), value)
+                    })
+                }
+
+                fn minus_values(&self, values: &[Self::Type]) -> Self {
+                    Self::from_inner_as_temporal(unsafe {
+                        let set = meos_sys::[<$basic_type:lower set_make>](values.as_ptr(), values.len() as i32);
+                        meos_sys::temporal_minus_values(self.inner(), set)
+                    })
+                }
+
+                impl_always_and_ever_value_equality_functions!([<$basic_type:lower>]);
+            }
+        }
+    }
+}
+
+pub(crate) use impl_temporal_for_tnumber;

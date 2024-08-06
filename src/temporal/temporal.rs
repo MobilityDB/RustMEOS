@@ -176,18 +176,6 @@ pub trait Temporal: Collection + Hash {
     /// The ending value.
     fn end_value(&self) -> Self::Type;
 
-    /// Returns the minimum value of the temporal object.
-    ///
-    /// ## Returns
-    /// The minimum value.
-    fn min_value(&self) -> Self::Type;
-
-    /// Returns the maximum value of the temporal object.
-    ///
-    /// ## Returns
-    /// The maximum value.
-    fn max_value(&self) -> Self::Type;
-
     /// Returns the value of the temporal object at a specific timestamp.
     ///
     /// ## Arguments
@@ -541,7 +529,7 @@ pub trait Temporal: Collection + Hash {
         let mut max_time = create_interval(max_time.unwrap_or_default());
         Self::from_inner_as_temporal(unsafe {
             meos_sys::temporal_append_tinstant(
-                self.inner(),
+                self.inner() as *mut _,
                 TInstant::inner_as_tinstant(&instant),
                 max_dist.unwrap_or_default(),
                 ptr::addr_of_mut!(max_time),
@@ -559,7 +547,11 @@ pub trait Temporal: Collection + Hash {
     ///     `temporal_append_tsequence`
     fn append_sequence(&self, sequence: Self::TS) -> Self {
         Self::from_inner_as_temporal(unsafe {
-            meos_sys::temporal_append_tsequence(self.inner(), sequence.inner_as_tsequence(), false)
+            meos_sys::temporal_append_tsequence(
+                self.inner() as *mut _,
+                sequence.inner_as_tsequence(),
+                false,
+            )
         })
     }
 
@@ -684,22 +676,6 @@ pub trait Temporal: Collection + Hash {
         })
     }
 
-    /// Returns a new temporal object containing the times `self` is at its minimum value.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_at_min`
-    fn at_min(&self) -> Self {
-        Self::from_inner_as_temporal(unsafe { meos_sys::temporal_at_min(self.inner()) })
-    }
-
-    /// Returns a new temporal object containing the times `self` is at its maximum value.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_at_max`
-    fn at_max(&self) -> Self {
-        Self::from_inner_as_temporal(unsafe { meos_sys::temporal_at_max(self.inner()) })
-    }
-
     /// Returns a new temporal object containing the times `self` is at `value`.
     ///
     /// MEOS Functions:
@@ -756,22 +732,6 @@ pub trait Temporal: Collection + Hash {
         Self::from_inner_as_temporal(unsafe {
             meos_sys::temporal_minus_tstzspanset(self.inner(), time_span_set.inner())
         })
-    }
-
-    /// Returns a new temporal object containing the times `self` is not at its minimum value.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_minus_min`
-    fn minus_min(&self) -> Self {
-        Self::from_inner_as_temporal(unsafe { meos_sys::temporal_minus_min(self.inner()) })
-    }
-
-    /// Returns a new temporal object containing the times `self` is not at its maximum value.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_minus_max`
-    fn minus_max(&self) -> Self {
-        Self::from_inner_as_temporal(unsafe { meos_sys::temporal_minus_max(self.inner()) })
     }
 
     /// Returns a new temporal object containing the times `self` is not at `value`.
@@ -1041,42 +1001,6 @@ pub trait Temporal: Collection + Hash {
         }
     }
 
-    /// Returns whether the values of `self` are always less than `other`.
-    ///
-    /// # Arguments
-    ///
-    /// * `other` - Another temporal instance to compare against.
-    ///
-    /// # Returns
-    ///
-    /// `true` if the values of `self` are always less than `other`, `false` otherwise.
-    fn always_less(&self, other: &Self) -> Option<bool> {
-        let result = unsafe { meos_sys::always_lt_temporal_temporal(self.inner(), other.inner()) };
-        if result != -1 {
-            Some(result == 1)
-        } else {
-            None
-        }
-    }
-
-    /// Returns whether the values of `self` are always less than or equal to `other`.
-    ///
-    /// # Arguments
-    ///
-    /// * `other` - Another temporal instance to compare against.
-    ///
-    /// # Returns
-    ///
-    /// `true` if the values of `self` are always less than or equal to `other`, `false` otherwise.
-    fn always_less_or_equal(&self, other: &Self) -> Option<bool> {
-        let result = unsafe { meos_sys::always_le_temporal_temporal(self.inner(), other.inner()) };
-        if result != -1 {
-            Some(result == 1)
-        } else {
-            None
-        }
-    }
-
     /// Returns whether the values of `self` are always equal to `other`.
     ///
     /// # Arguments
@@ -1106,6 +1030,167 @@ pub trait Temporal: Collection + Hash {
     /// `true` if the values of `self` are always not equal to `other`, `false` otherwise.
     fn always_not_equal(&self, other: &Self) -> Option<bool> {
         let result = unsafe { meos_sys::always_ne_temporal_temporal(self.inner(), other.inner()) };
+        if result != -1 {
+            Some(result == 1)
+        } else {
+            None
+        }
+    }
+
+    /// Returns whether the values of `self` are ever equal to `other`.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - Another temporal instance to compare against.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the values of `self` are ever equal to `other`, `false` otherwise.
+    fn ever_equal(&self, other: &Self) -> Option<bool> {
+        let result = unsafe { meos_sys::ever_eq_temporal_temporal(self.inner(), other.inner()) };
+        if result != -1 {
+            Some(result == 1)
+        } else {
+            None
+        }
+    }
+
+    /// Returns whether the values of `self` are ever not equal to `other`.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - Another temporal instance to compare against.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the values of `self` are ever not equal to `other`, `false` otherwise.
+    fn ever_not_equal(&self, other: &Self) -> Option<bool> {
+        let result = unsafe { meos_sys::ever_ne_temporal_temporal(self.inner(), other.inner()) };
+        if result != -1 {
+            Some(result == 1)
+        } else {
+            None
+        }
+    }
+
+    /// Returns whether the values of `self` are always equal to `value`.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - Value to compare against.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the values of `self` are always equal to `value`, `false` otherwise.
+    fn always_equal_than_value(&self, value: Self::Type) -> Option<bool>;
+
+    /// Returns whether the values of `self` are always not equal to `value`.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - Value to compare against.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the values of `self` are always not equal to `value`, `false` otherwise.
+    fn always_not_equal_than_value(&self, value: Self::Type) -> Option<bool>;
+
+    /// Returns whether the values of `self` are ever equal to `value`.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - Value to compare against.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the values of `self` are ever equal to `value`, `false` otherwise.
+    fn ever_equal_than_value(&self, value: Self::Type) -> Option<bool>;
+
+    /// Returns whether the values of `self` are ever not equal to `value`.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - Value to compare against.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the values of `self` are ever not equal to `value`, `false` otherwise.
+    fn ever_not_equal_than_value(&self, value: Self::Type) -> Option<bool>;
+}
+
+pub trait OrderedTemporal: Temporal {
+    /// Returns the minimum value of the temporal object.
+    ///
+    /// ## Returns
+    /// The minimum value.
+    fn min_value(&self) -> Self::Type;
+
+    /// Returns the maximum value of the temporal object.
+    ///
+    /// ## Returns
+    /// The maximum value.
+    fn max_value(&self) -> Self::Type;
+
+    /// Returns a new temporal object containing the times `self` is at its minimum value.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_at_min`
+    fn at_min(&self) -> Self {
+        Self::from_inner_as_temporal(unsafe { meos_sys::temporal_at_min(self.inner()) })
+    }
+
+    /// Returns a new temporal object containing the times `self` is at its maximum value.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_at_max`
+    fn at_max(&self) -> Self {
+        Self::from_inner_as_temporal(unsafe { meos_sys::temporal_at_max(self.inner()) })
+    }
+    /// Returns a new temporal object containing the times `self` is not at its minimum value.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_minus_min`
+    fn minus_min(&self) -> Self {
+        Self::from_inner_as_temporal(unsafe { meos_sys::temporal_minus_min(self.inner()) })
+    }
+
+    /// Returns a new temporal object containing the times `self` is not at its maximum value.
+    ///
+    /// MEOS Functions:
+    ///     `temporal_minus_max`
+    fn minus_max(&self) -> Self {
+        Self::from_inner_as_temporal(unsafe { meos_sys::temporal_minus_max(self.inner()) })
+    }
+
+    /// Returns whether the values of `self` are always less than `other`.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - Another temporal instance to compare against.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the values of `self` are always less than `other`, `false` otherwise.
+    fn always_less(&self, other: &Self) -> Option<bool> {
+        let result = unsafe { meos_sys::always_lt_temporal_temporal(self.inner(), other.inner()) };
+        if result != -1 {
+            Some(result == 1)
+        } else {
+            None
+        }
+    }
+
+    /// Returns whether the values of `self` are always less than or equal to `other`.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - Another temporal instance to compare against.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the values of `self` are always less than or equal to `other`, `false` otherwise.
+    fn always_less_or_equal(&self, other: &Self) -> Option<bool> {
+        let result = unsafe { meos_sys::always_le_temporal_temporal(self.inner(), other.inner()) };
         if result != -1 {
             Some(result == 1)
         } else {
@@ -1153,7 +1238,6 @@ pub trait Temporal: Collection + Hash {
             None
         }
     }
-
     /// Returns whether the values of `self` are ever less than `other`.
     ///
     /// # Arguments
@@ -1171,7 +1255,6 @@ pub trait Temporal: Collection + Hash {
             None
         }
     }
-
     /// Returns whether the values of `self` are ever less than or equal to `other`.
     ///
     /// # Arguments
@@ -1183,42 +1266,6 @@ pub trait Temporal: Collection + Hash {
     /// `true` if the values of `self` are ever less than or equal to `other`, `false` otherwise.
     fn ever_less_or_equal(&self, other: &Self) -> Option<bool> {
         let result = unsafe { meos_sys::ever_le_temporal_temporal(self.inner(), other.inner()) };
-        if result != -1 {
-            Some(result == 1)
-        } else {
-            None
-        }
-    }
-
-    /// Returns whether the values of `self` are ever equal to `other`.
-    ///
-    /// # Arguments
-    ///
-    /// * `other` - Another temporal instance to compare against.
-    ///
-    /// # Returns
-    ///
-    /// `true` if the values of `self` are ever equal to `other`, `false` otherwise.
-    fn ever_equal(&self, other: &Self) -> Option<bool> {
-        let result = unsafe { meos_sys::ever_eq_temporal_temporal(self.inner(), other.inner()) };
-        if result != -1 {
-            Some(result == 1)
-        } else {
-            None
-        }
-    }
-
-    /// Returns whether the values of `self` are ever not equal to `other`.
-    ///
-    /// # Arguments
-    ///
-    /// * `other` - Another temporal instance to compare against.
-    ///
-    /// # Returns
-    ///
-    /// `true` if the values of `self` are ever not equal to `other`, `false` otherwise.
-    fn ever_not_equal(&self, other: &Self) -> Option<bool> {
-        let result = unsafe { meos_sys::ever_ne_temporal_temporal(self.inner(), other.inner()) };
         if result != -1 {
             Some(result == 1)
         } else {
@@ -1272,7 +1319,6 @@ pub trait Temporal: Collection + Hash {
     ///
     /// `true` if the values of `self` are always less than `value`, `false` otherwise.
     fn always_less_than_value(&self, value: Self::Type) -> Option<bool>;
-
     /// Returns whether the values of `self` are always less than or equal to `value`.
     ///
     /// # Arguments
@@ -1283,28 +1329,6 @@ pub trait Temporal: Collection + Hash {
     ///
     /// `true` if the values of `self` are always less than or equal to `value`, `false` otherwise.
     fn always_less_or_equal_than_value(&self, value: Self::Type) -> Option<bool>;
-
-    /// Returns whether the values of `self` are always equal to `value`.
-    ///
-    /// # Arguments
-    ///
-    /// * `value` - Value to compare against.
-    ///
-    /// # Returns
-    ///
-    /// `true` if the values of `self` are always equal to `value`, `false` otherwise.
-    fn always_equal_than_value(&self, value: Self::Type) -> Option<bool>;
-
-    /// Returns whether the values of `self` are always not equal to `value`.
-    ///
-    /// # Arguments
-    ///
-    /// * `value` - Value to compare against.
-    ///
-    /// # Returns
-    ///
-    /// `true` if the values of `self` are always not equal to `value`, `false` otherwise.
-    fn always_not_equal_than_value(&self, value: Self::Type) -> Option<bool>;
 
     /// Returns whether the values of `self` are always greater than or equal to `value`.
     ///
@@ -1338,7 +1362,6 @@ pub trait Temporal: Collection + Hash {
     ///
     /// `true` if the values of `self` are ever less than `value`, `false` otherwise.
     fn ever_less_than_value(&self, value: Self::Type) -> Option<bool>;
-
     /// Returns whether the values of `self` are ever less than or equal to `value`.
     ///
     /// # Arguments
@@ -1349,28 +1372,6 @@ pub trait Temporal: Collection + Hash {
     ///
     /// `true` if the values of `self` are ever less than or equal to `value`, `false` otherwise.
     fn ever_less_or_equal_than_value(&self, value: Self::Type) -> Option<bool>;
-
-    /// Returns whether the values of `self` are ever equal to `value`.
-    ///
-    /// # Arguments
-    ///
-    /// * `value` - Value to compare against.
-    ///
-    /// # Returns
-    ///
-    /// `true` if the values of `self` are ever equal to `value`, `false` otherwise.
-    fn ever_equal_than_value(&self, value: Self::Type) -> Option<bool>;
-
-    /// Returns whether the values of `self` are ever not equal to `value`.
-    ///
-    /// # Arguments
-    ///
-    /// * `value` - Value to compare against.
-    ///
-    /// # Returns
-    ///
-    /// `true` if the values of `self` are ever not equal to `value`, `false` otherwise.
-    fn ever_not_equal_than_value(&self, value: Self::Type) -> Option<bool>;
 
     /// Returns whether the values of `self` are ever greater than or equal to `value`.
     ///
@@ -1395,10 +1396,9 @@ pub trait Temporal: Collection + Hash {
     fn ever_greater_than_value(&self, value: Self::Type) -> Option<bool>;
 }
 
-macro_rules! impl_simple_types_for_temporal {
-    ($type:ty, $generic_type_name:ident) => {
+macro_rules! impl_simple_traits_for_temporal {
+    ($type:ty, $meos_type:ident) => {
         paste::paste! {
-
             impl Clone for $type {
                 fn clone(&self) -> Self {
                     Temporal::from_inner_as_temporal(unsafe { meos_sys::temporal_copy(self.inner()) })
@@ -1410,7 +1410,7 @@ macro_rules! impl_simple_types_for_temporal {
 
                 fn from_str(s: &str) -> Result<Self, Self::Err> {
                     CString::new(s).map_err(|_| ParseError).map(|string| {
-                        let inner = unsafe { meos_sys::[<$generic_type_name _in>](string.as_ptr()) };
+                        let inner = unsafe { meos_sys::[<$meos_type _in>](string.as_ptr()) };
                         Self::from_inner_as_temporal(inner)
                     })
                 }
@@ -1434,29 +1434,11 @@ macro_rules! impl_simple_types_for_temporal {
     };
 }
 
-pub(crate) use impl_simple_types_for_temporal;
-
-macro_rules! impl_always_and_ever_value_functions {
-    ($type:ident) => {
+macro_rules! impl_always_and_ever_value_equality_functions {
+    ($type:ident, $transform_function:expr) => {
         paste::paste! {
-            fn always_less_than_value(&self, value: Self::Type) -> Option<bool> {
-                let result = unsafe {meos_sys::[<always_lt_t $type _ $type>](self.inner(), value)};
-                if result != -1 {
-                    Some(result == 1)
-                } else {
-                    None
-                }
-            }
-            fn always_less_or_equal_than_value(&self, value: Self::Type) -> Option<bool> {
-                let result = unsafe { meos_sys::[<always_le_t $type _ $type>](self.inner(), value)};
-                if result != -1 {
-                    Some(result == 1)
-                } else {
-                    None
-                }
-            }
             fn always_equal_than_value(&self, value: Self::Type) -> Option<bool> {
-                let result = unsafe { meos_sys::[<always_eq_t $type _ $type>](self.inner(), value)};
+                let result = unsafe { meos_sys::[<always_eq_t $type _ $type>](self.inner(), $transform_function(&value)) };
                 if result != -1 {
                     Some(result == 1)
                 } else {
@@ -1464,39 +1446,7 @@ macro_rules! impl_always_and_ever_value_functions {
                 }
             }
             fn always_not_equal_than_value(&self, value: Self::Type) -> Option<bool> {
-                let result = unsafe { meos_sys::[<always_ne_t $type _ $type>](self.inner(), value)};
-                if result != -1 {
-                    Some(result == 1)
-                } else {
-                    None
-                }
-            }
-            fn always_greater_or_equal_than_value(&self, value: Self::Type) -> Option<bool> {
-                let result = unsafe { meos_sys::[<always_ge_t $type _ $type>](self.inner(), value)};
-                if result != -1 {
-                    Some(result == 1)
-                } else {
-                    None
-                }
-            }
-            fn always_greater_than_value(&self, value: Self::Type) -> Option<bool> {
-                let result = unsafe { meos_sys::[<always_gt_t $type _ $type>](self.inner(), value)};
-                if result != -1 {
-                    Some(result == 1)
-                } else {
-                    None
-                }
-            }
-            fn ever_less_than_value(&self, value: Self::Type) -> Option<bool> {
-                let result = unsafe { meos_sys::[<ever_lt_t $type _ $type>](self.inner(), value)};
-                if result != -1 {
-                    Some(result == 1)
-                } else {
-                    None
-                }
-            }
-            fn ever_less_or_equal_than_value(&self, value: Self::Type) -> Option<bool> {
-                let result = unsafe { meos_sys::[<ever_le_t $type _ $type>](self.inner(), value)};
+                let result = unsafe { meos_sys::[<always_ne_t $type _ $type>](self.inner(), $transform_function(&value)) };
                 if result != -1 {
                     Some(result == 1)
                 } else {
@@ -1504,7 +1454,7 @@ macro_rules! impl_always_and_ever_value_functions {
                 }
             }
             fn ever_equal_than_value(&self, value: Self::Type) -> Option<bool> {
-                let result = unsafe { meos_sys::[<ever_eq_t $type _ $type>](self.inner(), value)};
+                let result = unsafe { meos_sys::[<ever_eq_t $type _ $type>](self.inner(), $transform_function(&value)) };
                 if result != -1 {
                     Some(result == 1)
                 } else {
@@ -1512,7 +1462,67 @@ macro_rules! impl_always_and_ever_value_functions {
                 }
             }
             fn ever_not_equal_than_value(&self, value: Self::Type) -> Option<bool> {
-                let result = unsafe { meos_sys::[<ever_ne_t $type _ $type>](self.inner(), value)};
+                let result = unsafe { meos_sys::[<ever_ne_t $type _ $type>](self.inner(), $transform_function(&value)) };
+                if result != -1 {
+                    Some(result == 1)
+                } else {
+                    None
+                }
+
+            }
+        }
+    };
+    ($type:ident) => {
+        impl_always_and_ever_value_equality_functions!($type, |&x| x);
+    };
+}
+
+macro_rules! impl_always_and_ever_value_functions_with_ordering {
+
+    ($type:ident, $transform_function:expr) => {
+        paste::paste! {
+            fn always_less_than_value(&self, value: Self::Type) -> Option<bool> {
+                let result = unsafe { meos_sys::[<always_lt_t $type _ $type>](self.inner(), $transform_function(&value)) };
+                if result != -1 {
+                    Some(result == 1)
+                } else {
+                    None
+                }
+            }
+            fn always_less_or_equal_than_value(&self, value: Self::Type) -> Option<bool> {
+                let result = unsafe { meos_sys::[<always_le_t $type _ $type>](self.inner(), $transform_function(&value)) };
+                if result != -1 {
+                    Some(result == 1)
+                } else {
+                    None
+                }
+            }
+            fn always_greater_or_equal_than_value(&self, value: Self::Type) -> Option<bool> {
+                let result = unsafe { meos_sys::[<always_ge_t $type _ $type>](self.inner(), $transform_function(&value)) };
+                if result != -1 {
+                    Some(result == 1)
+                } else {
+                    None
+                }
+            }
+            fn always_greater_than_value(&self, value: Self::Type) -> Option<bool> {
+                let result = unsafe { meos_sys::[<always_gt_t $type _ $type>](self.inner(), $transform_function(&value)) };
+                if result != -1 {
+                    Some(result == 1)
+                } else {
+                    None
+                }
+            }
+            fn ever_less_than_value(&self, value: Self::Type) -> Option<bool> {
+                let result = unsafe { meos_sys::[<ever_lt_t $type _ $type>](self.inner(), $transform_function(&value)) };
+                if result != -1 {
+                    Some(result == 1)
+                } else {
+                    None
+                }
+            }
+            fn ever_less_or_equal_than_value(&self, value: Self::Type) -> Option<bool> {
+                let result = unsafe { meos_sys::[<ever_le_t $type _ $type>](self.inner(), $transform_function(&value)) };
                 if result != -1 {
                     Some(result == 1)
                 } else {
@@ -1520,7 +1530,7 @@ macro_rules! impl_always_and_ever_value_functions {
                 }
             }
             fn ever_greater_or_equal_than_value(&self, value: Self::Type) -> Option<bool> {
-                let result = unsafe { meos_sys::[<ever_ge_t $type _ $type>](self.inner(), value)};
+                let result = unsafe { meos_sys::[<ever_ge_t $type _ $type>](self.inner(), $transform_function(&value)) };
                 if result != -1 {
                     Some(result == 1)
                 } else {
@@ -1528,15 +1538,22 @@ macro_rules! impl_always_and_ever_value_functions {
                 }
             }
             fn ever_greater_than_value(&self, value: Self::Type) -> Option<bool> {
-                let result = unsafe { meos_sys::[<ever_gt_t $type _ $type>](self.inner(), value)};
+                let result = unsafe { meos_sys::[<ever_gt_t $type _ $type>](self.inner(), $transform_function(&value)) };
                 if result != -1 {
                     Some(result == 1)
                 } else {
                     None
                 }
             }
-    }
+        }
+    };
+    ($type:ident) => {
+        impl_always_and_ever_value_functions_with_ordering!($type, |&x| x);
     };
 }
 
-pub(crate) use impl_always_and_ever_value_functions;
+pub(crate) use impl_always_and_ever_value_functions_with_ordering;
+
+pub(crate) use impl_always_and_ever_value_equality_functions;
+
+pub(crate) use impl_simple_traits_for_temporal;

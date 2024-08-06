@@ -9,11 +9,15 @@ use meos::{
         number::{float_span::FloatSpan, float_span_set::FloatSpanSet, int_span_set::IntSpanSet},
     },
     init,
-    temporal::number::tint::TIntSeq,
+    temporal::{
+        number::tint::TIntSeq,
+        tbool::TBoolSeq,
+        ttext::{TText, TTextSeq},
+    },
     WKBVariant,
 };
 
-use meos::temporal::temporal::Temporal;
+use meos::temporal::temporal::{OrderedTemporal, Temporal};
 
 fn main() {
     init();
@@ -56,6 +60,18 @@ fn main() {
         .parse()
         .unwrap();
 
+    let yatint = TIntSeq::from_mfjson(
+        r#"{"type":"MovingInteger","bbox":[10,25],"period":{"begin":"2001-01-01T18:00:00+01","end":"2001-01-01T18:10:00+01"},"values":[10,25],"datetimes":["2001-01-01T18:00:00+01",
+"2001-01-01T18:10:00+01"],"lowerInc":true,"upperInc":true,
+"interpolation":"Discrete"}"#,
+    );
+
+    println!("{yatint:?}");
+    println!(
+        "{}",
+        yatint.as_mfjson(true, meos::temporal::JSONCVariant::Pretty, 3, "4326")
+    );
+
     let tint2: TIntSeq = "{3@2001-01-01, 5@2001-01-03, 9@2001-01-04, 111@2001-01-05}"
         .parse()
         .unwrap();
@@ -65,5 +81,21 @@ fn main() {
 
     println!("{:?}", tint2.at_value(&111));
 
-    println!("{}", tint2.always_greater(&tint).unwrap())
+    println!("{}", tint2.always_greater(&tint).unwrap());
+
+    let tbool: TBoolSeq = "[true@2001-01-01 08:00:00, false@2001-01-03 08:00:00]"
+        .parse()
+        .unwrap();
+    let tbool2: TBoolSeq = "[false@2001-01-01 08:00:00, true@2001-01-03 08:00:00]"
+        .parse()
+        .unwrap();
+    println!("{:?}", tbool | true);
+
+    let ttext: TTextSeq = "{AAA@2001-01-01 08:00:00, BBB@2001-01-03 08:00:00}"
+        .parse()
+        .unwrap();
+
+    println!("{ttext:?}");
+    println!("{:?}", ttext.at_value(&String::from("AAA")));
+    println!("{:?}", ttext.concatenate_str("uwu"));
 }
