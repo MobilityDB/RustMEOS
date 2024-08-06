@@ -7,3 +7,4 @@ test
 test.c
 output.rs
 wrapper.h
+test.rs
