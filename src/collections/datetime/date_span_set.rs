@@ -44,8 +44,6 @@ impl span_set::SpanSet for DateSpanSet {
     }
 
     fn from_inner(inner: *const meos_sys::SpanSet) -> Self
-    where
-        Self: Sized,
     {
         Self { _inner: inner }
     }

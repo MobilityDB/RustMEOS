@@ -9,13 +9,14 @@ use crate::{
         base::{collection::Collection, span::Span, span_set::SpanSet},
         datetime::{tstz_span::TsTzSpan, tstz_span_set::TsTzSpanSet},
     },
+    factory,
     utils::{create_interval, from_interval, from_meos_timestamp, to_meos_timestamp},
-    BoundingBox, WKBVariant,
+    BoundingBox, MeosEnum, WKBVariant,
 };
 use chrono::{DateTime, TimeDelta, TimeZone, Utc};
 
 use super::{
-    interpolation::TInterpolation, tinstant::TInstant, tsequence::TSequence,
+    interpolation::TInterpolation, tbool::TBoolTrait, tinstant::TInstant, tsequence::TSequence,
     tsequence_set::TSequenceSet, JSONCVariant,
 };
 
@@ -24,6 +25,7 @@ pub trait Temporal: Collection + Hash {
     type TS: TSequence;
     type TSS: TSequenceSet;
     type TBB: BoundingBox;
+    type Enum: MeosEnum;
     fn from_inner_as_temporal(inner: *const meos_sys::Temporal) -> Self;
 
     /// Creates a temporal object from an MF-JSON string.
@@ -491,7 +493,7 @@ pub trait Temporal: Collection + Hash {
     fn to_sequence(&self, interpolation: TInterpolation) -> Self::TS {
         let c_str = CString::new(interpolation.to_string()).unwrap();
         TSequence::from_inner(unsafe {
-            meos_sys::temporal_to_tsequence(self.inner(), c_str.as_ptr() as *mut _)
+            meos_sys::temporal_to_tsequence(self.inner(), c_str.as_ptr())
         })
     }
 
@@ -505,7 +507,7 @@ pub trait Temporal: Collection + Hash {
     fn to_sequence_set(&self, interpolation: TInterpolation) -> Self::TSS {
         let c_str = CString::new(interpolation.to_string()).unwrap();
         TSequenceSet::from_inner(unsafe {
-            meos_sys::temporal_to_tsequenceset(self.inner(), c_str.as_ptr() as *mut _)
+            meos_sys::temporal_to_tsequenceset(self.inner(), c_str.as_ptr())
         })
     }
 
@@ -525,14 +527,19 @@ pub trait Temporal: Collection + Hash {
         instant: Self::TI,
         max_dist: Option<f64>,
         max_time: Option<TimeDelta>,
-    ) -> Self {
-        let mut max_time = create_interval(max_time.unwrap_or_default());
-        Self::from_inner_as_temporal(unsafe {
+    ) -> Self::Enum {
+        let td = create_interval(max_time.unwrap_or_default());
+        let max_time_ptr = if max_time.is_some() {
+            ptr::addr_of!(td)
+        } else {
+            ptr::null()
+        };
+        factory::<Self::Enum>(unsafe {
             meos_sys::temporal_append_tinstant(
                 self.inner() as *mut _,
-                TInstant::inner_as_tinstant(&instant),
+                instant.inner_as_tinstant(),
                 max_dist.unwrap_or_default(),
-                ptr::addr_of_mut!(max_time),
+                max_time_ptr,
                 false,
             )
         })
@@ -545,8 +552,8 @@ pub trait Temporal: Collection + Hash {
     ///
     /// MEOS Functions:
     ///     `temporal_append_tsequence`
-    fn append_sequence(&self, sequence: Self::TS) -> Self {
-        Self::from_inner_as_temporal(unsafe {
+    fn append_sequence(&self, sequence: Self::TS) -> Self::Enum {
+        factory::<Self::Enum>(unsafe {
             meos_sys::temporal_append_tsequence(
                 self.inner() as *mut _,
                 sequence.inner_as_tsequence(),
@@ -748,7 +755,7 @@ pub trait Temporal: Collection + Hash {
 
     // ------------------------- Topological Operations ------------------------
 
-    /// Checks if the bounding box of `self` is adjacent to the bounding box of `other`.
+    /// Returns a `TBool` representing whether the bounding box of `self` is adjacent to the bounding box of `other` accross time.
     ///
     /// ## Arguments
     /// * `other` - A time or temporal object to compare.
@@ -759,7 +766,7 @@ pub trait Temporal: Collection + Hash {
         self.bounding_box().is_adjacent(&other.bounding_box())
     }
 
-    /// Checks if the bounding timespan of `self` is temporally adjacent to the bounding timespan of `other`.
+    /// Returns a `TBool` representing whether the bounding timespan of `self` is temporally adjacent to the bounding timespan of `other` accross time.
     ///
     /// ## Arguments
     /// * `other` - A time or temporal object to compare.
@@ -770,7 +777,7 @@ pub trait Temporal: Collection + Hash {
         self.timespan().is_adjacent(&other.timespan())
     }
 
-    /// Checks if the bounding-box of `self` is contained in the bounding-box of `container`.
+    /// Returns a `TBool` representing whether the bounding-box of `self` is contained in the bounding-box of `container` accross time.
     ///
     /// ## Arguments
     /// * `container` - A time or temporal object to compare.
@@ -781,7 +788,7 @@ pub trait Temporal: Collection + Hash {
         self.bounding_box().is_contained_in(&other.bounding_box())
     }
 
-    /// Checks if the bounding timespan of `self` is contained in the bounding timespan of `container`.
+    /// Returns a `TBool` representing whether the bounding timespan of `self` is contained in the bounding timespan of `container` accross time.
     ///
     /// ## Arguments
     /// * `container` - A time or temporal object to compare.
@@ -792,7 +799,7 @@ pub trait Temporal: Collection + Hash {
         self.timespan().is_contained_in(&other.timespan())
     }
 
-    /// Checks if the bounding timespan of `self` contains the bounding timespan of `other`.
+    /// Returns a `TBool` representing whether the bounding timespan of `self` contains the bounding timespan of `other` accross time.
     ///
     /// ## Arguments
     /// * `other` - A time or temporal object to compare.
@@ -800,7 +807,7 @@ pub trait Temporal: Collection + Hash {
         other.bounding_box().is_contained_in(&self.bounding_box())
     }
 
-    /// Checks if the bounding timespan of `self` temporally contains the bounding timespan of `other`.
+    /// Returns a `TBool` representing whether the bounding timespan of `self` temporally contains the bounding timespan of `other` accross time.
     ///
     /// ## Arguments
     /// * `other` - A time or temporal object to compare.
@@ -808,7 +815,7 @@ pub trait Temporal: Collection + Hash {
         other.timespan().is_contained_in(&self.timespan())
     }
 
-    /// Checks if the bounding timespan of `self` overlaps with the bounding timespan of `other`.
+    /// Returns a `TBool` representing whether the bounding timespan of `self` overlaps with the bounding timespan of `other` accross time.
     ///
     /// ## Arguments
     /// * `other` - A time or temporal object to compare.
@@ -819,7 +826,7 @@ pub trait Temporal: Collection + Hash {
         self.bounding_box().overlaps(&other.bounding_box())
     }
 
-    /// Checks if the bounding timespan of `self` temporally overlaps with the bounding timespan of `other`.
+    /// Returns a `TBool` representing whether the bounding timespan of `self` temporally overlaps with the bounding timespan of `other` accross time.
     ///
     /// ## Arguments
     /// * `other` - A time or temporal object to compare.
@@ -1003,11 +1010,11 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns whether the values of `self` are always equal to `other`.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `other` - Another temporal instance to compare against.
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// `true` if the values of `self` are always equal to `other`, `false` otherwise.
     fn always_equal(&self, other: &Self) -> Option<bool> {
@@ -1021,11 +1028,11 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns whether the values of `self` are always not equal to `other`.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `other` - Another temporal instance to compare against.
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// `true` if the values of `self` are always not equal to `other`, `false` otherwise.
     fn always_not_equal(&self, other: &Self) -> Option<bool> {
@@ -1039,11 +1046,11 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns whether the values of `self` are ever equal to `other`.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `other` - Another temporal instance to compare against.
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// `true` if the values of `self` are ever equal to `other`, `false` otherwise.
     fn ever_equal(&self, other: &Self) -> Option<bool> {
@@ -1057,11 +1064,11 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns whether the values of `self` are ever not equal to `other`.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `other` - Another temporal instance to compare against.
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// `true` if the values of `self` are ever not equal to `other`, `false` otherwise.
     fn ever_not_equal(&self, other: &Self) -> Option<bool> {
@@ -1075,50 +1082,51 @@ pub trait Temporal: Collection + Hash {
 
     /// Returns whether the values of `self` are always equal to `value`.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `value` - Value to compare against.
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// `true` if the values of `self` are always equal to `value`, `false` otherwise.
     fn always_equal_than_value(&self, value: Self::Type) -> Option<bool>;
 
     /// Returns whether the values of `self` are always not equal to `value`.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `value` - Value to compare against.
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// `true` if the values of `self` are always not equal to `value`, `false` otherwise.
     fn always_not_equal_than_value(&self, value: Self::Type) -> Option<bool>;
 
     /// Returns whether the values of `self` are ever equal to `value`.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `value` - Value to compare against.
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// `true` if the values of `self` are ever equal to `value`, `false` otherwise.
     fn ever_equal_than_value(&self, value: Self::Type) -> Option<bool>;
 
     /// Returns whether the values of `self` are ever not equal to `value`.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `value` - Value to compare against.
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// `true` if the values of `self` are ever not equal to `value`, `false` otherwise.
     fn ever_not_equal_than_value(&self, value: Self::Type) -> Option<bool>;
 }
 
 pub trait OrderedTemporal: Temporal {
+    type TBoolType: TBoolTrait;
     /// Returns the minimum value of the temporal object.
     ///
     /// ## Returns
@@ -1162,13 +1170,169 @@ pub trait OrderedTemporal: Temporal {
         Self::from_inner_as_temporal(unsafe { meos_sys::temporal_minus_max(self.inner()) })
     }
 
+    /// Returns a `TBool` representing whether `self` is greater than `other` accross time.
+    ///
+    /// ## Arguments
+    ///
+    /// * `other` - A reference to another temporal object to compare with.
+    ///
+    /// ## Returns
+    ///
+    /// A temporal boolean indicating if `self` is greater than `other`.
+    fn temporal_greater_than(&self, other: &Self) -> Self::TBoolType {
+        Self::TBoolType::from_inner_as_temporal(unsafe {
+            meos_sys::tgt_temporal_temporal(self.inner(), other.inner())
+        })
+    }
+
+    /// Returns a `TBool` representing whether `self` is greater than or equal to `other` accross time.
+    ///
+    /// ## Arguments
+    ///
+    /// * `other` - A reference to another temporal object to compare with.
+    ///
+    /// ## Returns
+    ///
+    /// A temporal boolean indicating if `self` is greater than or equal to `other`.
+    fn temporal_greater_or_equal_than(&self, other: &Self) -> Self::TBoolType {
+        Self::TBoolType::from_inner_as_temporal(unsafe {
+            meos_sys::tge_temporal_temporal(self.inner(), other.inner())
+        })
+    }
+
+    /// Returns a `TBool` representing whether `self` is less than `other` accross time.
+    ///
+    /// ## Arguments
+    ///
+    /// * `other` - A reference to another temporal object to compare with.
+    ///
+    /// ## Returns
+    ///
+    /// A temporal boolean indicating if `self` is less than `other`.
+    fn temporal_lower_than(&self, other: &Self) -> Self::TBoolType {
+        Self::TBoolType::from_inner_as_temporal(unsafe {
+            meos_sys::tlt_temporal_temporal(self.inner(), other.inner())
+        })
+    }
+
+    /// Returns a `TBool` representing whether `self` is less than or equal to `other` accross time.
+    ///
+    /// ## Arguments
+    ///
+    /// * `other` - A reference to another temporal object to compare with.
+    ///
+    /// ## Returns
+    ///
+    /// A temporal boolean indicating if `self` is less than or equal to `other`.
+    fn temporal_lower_or_equal_than(&self, other: &Self) -> Self::TBoolType {
+        Self::TBoolType::from_inner_as_temporal(unsafe {
+            meos_sys::tle_temporal_temporal(self.inner(), other.inner())
+        })
+    }
+
+    /// Returns a `TBool` representing whether `self` is equal to `other` accross time.
+    ///
+    /// ## Arguments
+    ///
+    /// * `other` - A reference to another temporal object to compare with.
+    ///
+    /// ## Returns
+    ///
+    /// A temporal boolean indicating if `self` is equal to `other`.
+    fn temporal_equal(&self, other: &Self) -> Self::TBoolType {
+        Self::TBoolType::from_inner_as_temporal(unsafe {
+            meos_sys::teq_temporal_temporal(self.inner(), other.inner())
+        })
+    }
+
+    /// Returns a `TBool` representing whether `self` is not equal to `other` accross time.
+    ///
+    /// ## Arguments
+    ///
+    /// * `other` - A reference to another temporal object to compare with.
+    ///
+    /// ## Returns
+    ///
+    /// A temporal boolean indicating if `self` is not equal to `other`.
+    fn temporal_not_equal(&self, other: &Self) -> Self::TBoolType {
+        Self::TBoolType::from_inner_as_temporal(unsafe {
+            meos_sys::tne_temporal_temporal(self.inner(), other.inner())
+        })
+    }
+
+    /// Returns a `TBool` representing whether `self` is greater than the given value accross time.
+    ///
+    /// ## Arguments
+    ///
+    /// * `other` - A reference to a value to compare with.
+    ///
+    /// ## Returns
+    ///
+    /// A temporal boolean indicating if `self` is greater than the given value.
+    fn temporal_greater_than_value(&self, other: &Self::Type) -> Self::TBoolType;
+
+    /// Returns a `TBool` representing whether `self` is greater than or equal to the given value accross time.
+    ///
+    /// ## Arguments
+    ///
+    /// * `other` - A reference to a value to compare with.
+    ///
+    /// ## Returns
+    ///
+    /// A temporal boolean indicating if `self` is greater than or equal to the given value.
+    fn temporal_greater_or_equal_than_value(&self, other: &Self::Type) -> Self::TBoolType;
+
+    /// Returns a `TBool` representing whether `self` is less than the given value accross time.
+    ///
+    /// ## Arguments
+    ///
+    /// * `other` - A reference to a value to compare with.
+    ///
+    /// ## Returns
+    ///
+    /// A temporal boolean indicating if `self` is less than the given value.
+    fn temporal_lower_than_value(&self, other: &Self::Type) -> Self::TBoolType;
+
+    /// Returns a `TBool` representing whether `self` is less than or equal to the given value accross time.
+    ///
+    /// ## Arguments
+    ///
+    /// * `other` - A reference to a value to compare with.
+    ///
+    /// ## Returns
+    ///
+    /// A temporal boolean indicating if `self` is less than or equal to the given value.
+    fn temporal_lower_or_equal_than_value(&self, other: &Self::Type) -> Self::TBoolType;
+
+    /// Returns a `TBool` representing whether `self` is equal to the given value accross time.
+    ///
+    /// ## Arguments
+    ///
+    /// * `other` - A reference to a value to compare with.
+    ///
+    /// ## Returns
+    ///
+    /// A temporal boolean indicating if `self` is equal to the given value.
+    fn temporal_equal_value(&self, other: &Self::Type) -> Self::TBoolType;
+
+    /// Returns a `TBool` representing whether `self` is not equal to the given value accross time.
+    ///
+    /// ## Arguments
+    ///
+    /// * `other` - A reference to a value to compare with.
+    ///
+    /// ## Returns
+    ///
+    /// A temporal boolean indicating if `self` is not equal to the given value.
+    fn temporal_not_equal_value(&self, other: &Self::Type) -> Self::TBoolType;
+
     /// Returns whether the values of `self` are always less than `other`.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `other` - Another temporal instance to compare against.
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// `true` if the values of `self` are always less than `other`, `false` otherwise.
     fn always_less(&self, other: &Self) -> Option<bool> {
@@ -1182,11 +1346,11 @@ pub trait OrderedTemporal: Temporal {
 
     /// Returns whether the values of `self` are always less than or equal to `other`.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `other` - Another temporal instance to compare against.
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// `true` if the values of `self` are always less than or equal to `other`, `false` otherwise.
     fn always_less_or_equal(&self, other: &Self) -> Option<bool> {
@@ -1200,11 +1364,11 @@ pub trait OrderedTemporal: Temporal {
 
     /// Returns whether the values of `self` are always greater than or equal to `other`.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `other` - Another temporal instance to compare against.
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// `true` if the values of `self` are always greater than or equal to `other`, `false` otherwise.
     fn always_greater_or_equal(&self, other: &Self) -> Option<bool> {
@@ -1218,11 +1382,11 @@ pub trait OrderedTemporal: Temporal {
 
     /// Returns whether the values of `self` are always greater than `other`.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `other` - Another temporal instance to compare against.
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// `true` if the values of `self` are always greater than `other`, `false` otherwise.
     fn always_greater(&self, other: &Self) -> Option<bool> {
@@ -1240,11 +1404,11 @@ pub trait OrderedTemporal: Temporal {
     }
     /// Returns whether the values of `self` are ever less than `other`.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `other` - Another temporal instance to compare against.
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// `true` if the values of `self` are ever less than `other`, `false` otherwise.
     fn ever_less(&self, other: &Self) -> Option<bool> {
@@ -1257,11 +1421,11 @@ pub trait OrderedTemporal: Temporal {
     }
     /// Returns whether the values of `self` are ever less than or equal to `other`.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `other` - Another temporal instance to compare against.
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// `true` if the values of `self` are ever less than or equal to `other`, `false` otherwise.
     fn ever_less_or_equal(&self, other: &Self) -> Option<bool> {
@@ -1275,11 +1439,11 @@ pub trait OrderedTemporal: Temporal {
 
     /// Returns whether the values of `self` are ever greater than or equal to `other`.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `other` - Another temporal instance to compare against.
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// `true` if the values of `self` are ever greater than or equal to `other`, `false` otherwise.
     fn ever_greater_or_equal(&self, other: &Self) -> Option<bool> {
@@ -1293,11 +1457,11 @@ pub trait OrderedTemporal: Temporal {
 
     /// Returns whether the values of `self` are ever greater than `other`.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `other` - Another temporal instance to compare against.
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// `true` if the values of `self` are ever greater than `other`, `false` otherwise.
     fn ever_greater(&self, other: &Self) -> Option<bool> {
@@ -1311,86 +1475,88 @@ pub trait OrderedTemporal: Temporal {
 
     /// Returns whether the values of `self` are always less than `value`.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `value` - Value to compare against.
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// `true` if the values of `self` are always less than `value`, `false` otherwise.
     fn always_less_than_value(&self, value: Self::Type) -> Option<bool>;
+
     /// Returns whether the values of `self` are always less than or equal to `value`.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `value` - Value to compare against.
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// `true` if the values of `self` are always less than or equal to `value`, `false` otherwise.
     fn always_less_or_equal_than_value(&self, value: Self::Type) -> Option<bool>;
 
     /// Returns whether the values of `self` are always greater than or equal to `value`.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `value` - Value to compare against.
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// `true` if the values of `self` are always greater than or equal to `value`, `false` otherwise.
     fn always_greater_or_equal_than_value(&self, value: Self::Type) -> Option<bool>;
 
     /// Returns whether the values of `self` are always greater than `value`.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `value` - Value to compare against.
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// `true` if the values of `self` are always greater than `value`, `false` otherwise.
     fn always_greater_than_value(&self, value: Self::Type) -> Option<bool>;
 
     /// Returns whether the values of `self` are ever less than `value`.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `value` - Value to compare against.
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// `true` if the values of `self` are ever less than `value`, `false` otherwise.
     fn ever_less_than_value(&self, value: Self::Type) -> Option<bool>;
+
     /// Returns whether the values of `self` are ever less than or equal to `value`.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `value` - Value to compare against.
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// `true` if the values of `self` are ever less than or equal to `value`, `false` otherwise.
     fn ever_less_or_equal_than_value(&self, value: Self::Type) -> Option<bool>;
 
     /// Returns whether the values of `self` are ever greater than or equal to `value`.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `value` - Value to compare against.
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// `true` if the values of `self` are ever greater than or equal to `value`, `false` otherwise.
     fn ever_greater_or_equal_than_value(&self, value: Self::Type) -> Option<bool>;
 
     /// Returns whether the values of `self` are ever greater than `value`.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `value` - Value to compare against.
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// `true` if the values of `self` are ever greater than `value`, `false` otherwise.
     fn ever_greater_than_value(&self, value: Self::Type) -> Option<bool>;
@@ -1477,7 +1643,7 @@ macro_rules! impl_always_and_ever_value_equality_functions {
     };
 }
 
-macro_rules! impl_always_and_ever_value_functions_with_ordering {
+macro_rules! impl_ordered_temporal_functions {
 
     ($type:ident, $transform_function:expr) => {
         paste::paste! {
@@ -1545,14 +1711,45 @@ macro_rules! impl_always_and_ever_value_functions_with_ordering {
                     None
                 }
             }
+
+            fn temporal_greater_than_value(&self, other: &Self::Type) -> Self::TBoolType {
+                Self::TBoolType::from_inner_as_temporal(unsafe {
+                    meos_sys::[<tgt_t $type _ $type>](self.inner(), $transform_function(other))
+                })
+            }
+            fn temporal_greater_or_equal_than_value(&self, other: &Self::Type) -> Self::TBoolType {
+                Self::TBoolType::from_inner_as_temporal(unsafe {
+                    meos_sys::[<tge_t $type _ $type>](self.inner(), $transform_function(other))
+                })
+            }
+            fn temporal_lower_than_value(&self, other: &Self::Type) -> Self::TBoolType {
+                Self::TBoolType::from_inner_as_temporal(unsafe {
+                    meos_sys::[<tlt_t $type _ $type>](self.inner(), $transform_function(other))
+                })
+            }
+            fn temporal_lower_or_equal_than_value(&self, other: &Self::Type) -> Self::TBoolType {
+                Self::TBoolType::from_inner_as_temporal(unsafe {
+                    meos_sys::[<tle_t $type _ $type>](self.inner(), $transform_function(other))
+                })
+            }
+            fn temporal_equal_value(&self, other: &Self::Type) -> Self::TBoolType {
+                Self::TBoolType::from_inner_as_temporal(unsafe {
+                    meos_sys::[<teq_t $type _ $type>](self.inner(), $transform_function(other))
+                })
+            }
+            fn temporal_not_equal_value(&self, other: &Self::Type) -> Self::TBoolType {
+                Self::TBoolType::from_inner_as_temporal(unsafe {
+                    meos_sys::[<tne_t $type _ $type>](self.inner(), $transform_function(other))
+                })
+            }
         }
     };
     ($type:ident) => {
-        impl_always_and_ever_value_functions_with_ordering!($type, |&x| x);
+        impl_ordered_temporal_functions!($type, |&x| x);
     };
 }
 
-pub(crate) use impl_always_and_ever_value_functions_with_ordering;
+pub(crate) use impl_ordered_temporal_functions;
 
 pub(crate) use impl_always_and_ever_value_equality_functions;
 

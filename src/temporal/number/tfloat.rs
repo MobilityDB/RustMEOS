@@ -23,16 +23,17 @@ use crate::{
     errors::ParseError,
     temporal::{
         interpolation::TInterpolation,
+        tbool::{TBoolInstant, TBoolSequence, TBoolSequenceSet},
         temporal::{
-            impl_always_and_ever_value_equality_functions,
-            impl_always_and_ever_value_functions_with_ordering, impl_simple_traits_for_temporal,
-            OrderedTemporal, Temporal,
+            impl_always_and_ever_value_equality_functions, impl_ordered_temporal_functions,
+            impl_simple_traits_for_temporal, OrderedTemporal, Temporal,
         },
         tinstant::TInstant,
         tsequence::TSequence,
         tsequence_set::TSequenceSet,
     },
     utils::to_meos_timestamp,
+    MeosEnum,
 };
 
 macro_rules! impl_debug {
@@ -50,8 +51,37 @@ macro_rules! impl_debug {
     };
 }
 
-pub trait TFloat:
-    Temporal<Type = f64, TI = TFloatInst, TS = TFloatSeq, TSS = TFloatSeqSet, TBB = TBox>
+#[derive(Debug)]
+pub enum TFloat {
+    Instant(TFloatInstant),
+    Sequence(TFloatSequence),
+    SequenceSet(TFloatSequenceSet),
+}
+
+impl MeosEnum for TFloat {
+    fn from_instant(inner: *const meos_sys::TInstant) -> Self {
+        Self::Instant(TFloatInstant { _inner: inner })
+    }
+
+    fn from_sequence(inner: *const meos_sys::TSequence) -> Self {
+        Self::Sequence(TFloatSequence { _inner: inner })
+    }
+
+    fn from_sequence_set(inner: *const meos_sys::TSequenceSet) -> Self {
+        Self::SequenceSet(TFloatSequenceSet { _inner: inner })
+    }
+
+    fn inner(&self) -> *const meos_sys::Temporal {
+        match self {
+            TFloat::Instant(value) => value.inner(),
+            TFloat::Sequence(value) => value.inner(),
+            TFloat::SequenceSet(value) => value.inner(),
+        }
+    }
+}
+
+pub trait TFloatTrait:
+    TNumber<Type = f64, TI = TFloatInstant, TS = TFloatSequence, TSS = TFloatSequenceSet, TBB = TBox>
 {
     // ------------------------- Transformations -------------------------------
 
@@ -72,12 +102,12 @@ pub trait TFloat:
     }
 }
 
-pub struct TFloatInst {
+pub struct TFloatInstant {
     _inner: *const meos_sys::TInstant,
 }
 
-impl TInstant for TFloatInst {
-    fn from_inner(inner: *mut meos_sys::TInstant) -> Self {
+impl TInstant for TFloatInstant {
+    fn from_inner(inner: *const meos_sys::TInstant) -> Self {
         Self { _inner: inner }
     }
 
@@ -90,16 +120,16 @@ impl TInstant for TFloatInst {
     }
 }
 
-impl TFloat for TFloatInst {}
+impl TFloatTrait for TFloatInstant {}
 
-impl_temporal_for_tnumber!(TFloatInst, meos_sys::TInstant, f64, Float);
-impl_debug!(TFloatInst);
+impl_temporal_for_tnumber!(TFloatInstant, Instant, f64, Float);
+impl_debug!(TFloatInstant);
 
-pub struct TFloatSeq {
+pub struct TFloatSequence {
     _inner: *const meos_sys::TSequence,
 }
 
-impl TFloatSeq {
+impl TFloatSequence {
     /// Creates a temporal object from a value and a TsTz span.
     ///
     /// ## Arguments
@@ -119,7 +149,7 @@ impl TFloatSeq {
     }
 }
 
-impl TSequence for TFloatSeq {
+impl TSequence for TFloatSequence {
     fn from_inner(inner: *const meos_sys::TSequence) -> Self {
         Self { _inner: inner }
     }
@@ -129,16 +159,16 @@ impl TSequence for TFloatSeq {
     }
 }
 
-impl TFloat for TFloatSeq {}
+impl TFloatTrait for TFloatSequence {}
 
-impl_temporal_for_tnumber!(TFloatSeq, meos_sys::TSequence, f64, Float);
-impl_debug!(TFloatSeq);
+impl_temporal_for_tnumber!(TFloatSequence, Sequence, f64, Float);
+impl_debug!(TFloatSequence);
 
-pub struct TFloatSeqSet {
+pub struct TFloatSequenceSet {
     _inner: *const meos_sys::TSequenceSet,
 }
 
-impl TFloatSeqSet {
+impl TFloatSequenceSet {
     /// Creates a temporal object from a base value and a TsTz span set.
     ///
     /// ## Arguments
@@ -162,12 +192,12 @@ impl TFloatSeqSet {
     }
 }
 
-impl TSequenceSet for TFloatSeqSet {
+impl TSequenceSet for TFloatSequenceSet {
     fn from_inner(inner: *const meos_sys::TSequenceSet) -> Self {
         Self { _inner: inner }
     }
 }
-impl TFloat for TFloatSeqSet {}
+impl TFloatTrait for TFloatSequenceSet {}
 
-impl_temporal_for_tnumber!(TFloatSeqSet, meos_sys::TSequenceSet, f64, Float);
-impl_debug!(TFloatSeqSet);
+impl_temporal_for_tnumber!(TFloatSequenceSet, SequenceSet, f64, Float);
+impl_debug!(TFloatSequenceSet);

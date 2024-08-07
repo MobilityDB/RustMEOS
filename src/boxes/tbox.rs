@@ -649,10 +649,10 @@ impl TBox {
 }
 
 impl Collection for TBox {
-    impl_collection!(tbox, ());
+    impl_collection!(tbox, TBox);
 
     fn contains(&self, content: &Self::Type) -> bool {
-        unsafe { meos_sys::contains_tbox_tnumber(self.inner(), std::ptr::null()) }
+        unsafe { meos_sys::contains_tbox_tbox(self.inner(), content.inner()) }
     }
 }
 

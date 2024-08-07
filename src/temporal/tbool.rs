@@ -29,6 +29,7 @@ use crate::{
         tsequence_set::TSequenceSet,
     },
     utils::to_meos_timestamp,
+    MeosEnum,
 };
 
 macro_rules! impl_tbool_traits {
@@ -45,10 +46,11 @@ macro_rules! impl_tbool_traits {
             impl_simple_traits_for_temporal!($type, tbool);
 
             impl Temporal for $type {
-                type TI = TBoolInst;
-                type TS = TBoolSeq;
-                type TSS = TBoolSeqSet;
+                type TI = TBoolInstant;
+                type TS = TBoolSequence;
+                type TSS = TBoolSequenceSet;
                 type TBB = TsTzSpan;
+                type Enum = TBool;
 
 
                 impl_always_and_ever_value_equality_functions!(bool);
@@ -163,9 +165,43 @@ macro_rules! impl_tbool_traits {
     }
 }
 
-pub trait TBool:
-    Temporal<Type = bool, TI = TBoolInst, TS = TBoolSeq, TSS = TBoolSeqSet, TBB = TsTzSpan>
-    + BitAnd
+#[derive(Debug)]
+pub enum TBool {
+    Instant(TBoolInstant),
+    Sequence(TBoolSequence),
+    SequenceSet(TBoolSequenceSet),
+}
+
+impl MeosEnum for TBool {
+    fn from_instant(inner: *const meos_sys::TInstant) -> Self {
+        Self::Instant(TBoolInstant::from_inner(inner))
+    }
+
+    fn from_sequence(inner: *const meos_sys::TSequence) -> Self {
+        Self::Sequence(TBoolSequence::from_inner(inner))
+    }
+
+    fn from_sequence_set(inner: *const meos_sys::TSequenceSet) -> Self {
+        Self::SequenceSet(TBoolSequenceSet::from_inner(inner))
+    }
+
+    fn inner(&self) -> *const meos_sys::Temporal {
+        match self {
+            TBool::Instant(value) => value.inner(),
+            TBool::Sequence(value) => value.inner(),
+            TBool::SequenceSet(value) => value.inner(),
+        }
+    }
+}
+
+pub trait TBoolTrait:
+    Temporal<
+        Type = bool,
+        TI = TBoolInstant,
+        TS = TBoolSequence,
+        TSS = TBoolSequenceSet,
+        TBB = TsTzSpan,
+    > + BitAnd
     + BitAnd<bool>
     + BitOr
     + BitOr<bool>
@@ -208,12 +244,12 @@ macro_rules! impl_debug {
     };
 }
 
-pub struct TBoolInst {
+pub struct TBoolInstant {
     _inner: *const meos_sys::TInstant,
 }
 
-impl TInstant for TBoolInst {
-    fn from_inner(inner: *mut meos_sys::TInstant) -> Self {
+impl TInstant for TBoolInstant {
+    fn from_inner(inner: *const meos_sys::TInstant) -> Self {
         Self { _inner: inner }
     }
 
@@ -226,15 +262,15 @@ impl TInstant for TBoolInst {
     }
 }
 
-impl TBool for TBoolInst {}
+impl TBoolTrait for TBoolInstant {}
 
-impl_tbool_traits!(TBoolInst, meos_sys::TInstant);
-impl_debug!(TBoolInst);
+impl_tbool_traits!(TBoolInstant, meos_sys::TInstant);
+impl_debug!(TBoolInstant);
 
-pub struct TBoolSeq {
+pub struct TBoolSequence {
     _inner: *const meos_sys::TSequence,
 }
-impl TBoolSeq {
+impl TBoolSequence {
     /// Creates a temporal object from a value and a TsTz span.
     ///
     /// ## Arguments
@@ -248,7 +284,7 @@ impl TBoolSeq {
     }
 }
 
-impl TSequence for TBoolSeq {
+impl TSequence for TBoolSequence {
     fn from_inner(inner: *const meos_sys::TSequence) -> Self {
         Self { _inner: inner }
     }
@@ -258,16 +294,16 @@ impl TSequence for TBoolSeq {
     }
 }
 
-impl_tbool_traits!(TBoolSeq, meos_sys::TSequence);
-impl_debug!(TBoolSeq);
+impl_tbool_traits!(TBoolSequence, meos_sys::TSequence);
+impl_debug!(TBoolSequence);
 
-impl TBool for TBoolSeq {}
+impl TBoolTrait for TBoolSequence {}
 
-pub struct TBoolSeqSet {
+pub struct TBoolSequenceSet {
     _inner: *const meos_sys::TSequenceSet,
 }
 
-impl TBoolSeqSet {
+impl TBoolSequenceSet {
     /// Creates a temporal object from a base value and a TsTz span set.
     ///
     /// ## Arguments
@@ -286,12 +322,12 @@ impl TBoolSeqSet {
     }
 }
 
-impl TSequenceSet for TBoolSeqSet {
+impl TSequenceSet for TBoolSequenceSet {
     fn from_inner(inner: *const meos_sys::TSequenceSet) -> Self {
         Self { _inner: inner }
     }
 }
-impl TBool for TBoolSeqSet {}
+impl TBoolTrait for TBoolSequenceSet {}
 
-impl_tbool_traits!(TBoolSeqSet, meos_sys::TSequenceSet);
-impl_debug!(TBoolSeqSet);
+impl_tbool_traits!(TBoolSequenceSet, meos_sys::TSequenceSet);
+impl_debug!(TBoolSequenceSet);

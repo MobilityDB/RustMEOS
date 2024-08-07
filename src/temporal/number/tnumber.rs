@@ -138,12 +138,12 @@ pub trait TNumber: Temporal<TBB = TBox> {
 /// Generates the neccessary code to implement the temporal trait for the appropriate type
 ///
 /// ## Parameters:
-///     - `type`: The actual Rust type to implement the traits to
-///     - `temporal_type`: Whether it's TInstant, TSequence, or TSequenceSet
-///     - `base_type`: The base Rust type, i32 or f64.
-///     - `basic_type`: Whether it's int or float.
+///    - `type`: The actual Rust type to implement the traits to
+///    - `temporal_type`: Whether it's Instant, Sequence, or SequenceSet
+///    - `base_type`: The base Rust type, i32 or f64.
+///    - `basic_type`: Whether it's int or float.
 macro_rules! impl_temporal_for_tnumber {
-    ($type:ty, $temporal_type:ty, $base_type:ty, $basic_type:ident) => {
+    ($type:ty, $temporal_type:ident, $base_type:ty, $basic_type:ident) => {
         paste::paste! {
             impl Collection for $type {
                 impl_collection!(tnumber, $base_type);
@@ -163,6 +163,7 @@ macro_rules! impl_temporal_for_tnumber {
             }
 
             impl OrderedTemporal for $type {
+                type TBoolType = [<TBool $temporal_type>];
                 fn min_value(&self) -> Self::Type {
                     unsafe { meos_sys::[<t $basic_type:lower _min_value>](self.inner()) }
                 }
@@ -171,17 +172,18 @@ macro_rules! impl_temporal_for_tnumber {
                     unsafe { meos_sys::[<t $basic_type:lower _max_value>](self.inner()) }
                 }
 
-                impl_always_and_ever_value_functions_with_ordering!([<$basic_type:lower>]);
+                impl_ordered_temporal_functions!([<$basic_type:lower>]);
             }
             impl Temporal for $type {
-                type TI = [<T $basic_type Inst>];
-                type TS = [<T $basic_type Seq>];
-                type TSS = [<T $basic_type SeqSet>];
+                type TI = [<T $basic_type Instant>];
+                type TS = [<T $basic_type Sequence>];
+                type TSS = [<T $basic_type SequenceSet>];
                 type TBB = TBox;
+                type Enum = [<T $basic_type>];
 
                 fn from_inner_as_temporal(inner: *const meos_sys::Temporal) -> Self {
                     Self {
-                        _inner: inner as *const $temporal_type,
+                        _inner: inner as *const meos_sys::[<T $temporal_type>],
                     }
                 }
 

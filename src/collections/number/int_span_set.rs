@@ -41,10 +41,7 @@ impl span_set::SpanSet for IntSpanSet {
         self._inner
     }
 
-    fn from_inner(inner: *const meos_sys::SpanSet) -> Self
-    where
-        Self: Sized,
-    {
+    fn from_inner(inner: *const meos_sys::SpanSet) -> Self {
         Self { _inner: inner }
     }
 

@@ -1,8 +1,8 @@
 use std::str::FromStr;
 
-use chrono::TimeDelta;
+use chrono::{Days, TimeDelta, Utc};
 use meos::{
-    boxes::{r#box::Box, stbox::STBox, tbox::TBox},
+    boxes::{r#box::Box as MeosBox, stbox::STBox, tbox::TBox},
     collections::{
         base::span_set::SpanSet,
         datetime::{date_span_set::DateSpanSet, tstz_span_set::TsTzSpanSet},
@@ -10,14 +10,17 @@ use meos::{
     },
     init,
     temporal::{
-        number::tint::TIntSeq,
-        tbool::TBoolSeq,
-        ttext::{TText, TTextSeq},
+        number::tint::{TInt, TIntInstant, TIntSequence},
+        tbool::TBoolSequence,
+        ttext::TTextSequence,
     },
     WKBVariant,
 };
 
+use meos::MeosEnum;
+
 use meos::temporal::temporal::{OrderedTemporal, Temporal};
+use meos::temporal::ttext::TTextTrait;
 
 fn main() {
     init();
@@ -56,11 +59,11 @@ fn main() {
     println!("{stbox:?} {wkb:?}");
     println!("{:?}", WKBVariant::Extended | WKBVariant::NDR);
 
-    let tint: TIntSeq = "[1@2001-01-01, 2@2001-01-03, 2@2001-01-04, 2@2001-01-05)"
+    let tint: TIntSequence = "[1@2001-01-01, 2@2001-01-03, 2@2001-01-04, 2@2001-01-05)"
         .parse()
         .unwrap();
 
-    let yatint = TIntSeq::from_mfjson(
+    let yatint = TIntSequence::from_mfjson(
         r#"{"type":"MovingInteger","bbox":[10,25],"period":{"begin":"2001-01-01T18:00:00+01","end":"2001-01-01T18:10:00+01"},"values":[10,25],"datetimes":["2001-01-01T18:00:00+01",
 "2001-01-01T18:10:00+01"],"lowerInc":true,"upperInc":true,
 "interpolation":"Discrete"}"#,
@@ -72,7 +75,7 @@ fn main() {
         yatint.as_mfjson(true, meos::temporal::JSONCVariant::Pretty, 3, "4326")
     );
 
-    let tint2: TIntSeq = "{3@2001-01-01, 5@2001-01-03, 9@2001-01-04, 111@2001-01-05}"
+    let tint2: TIntSequence = "{3@2001-01-01, 5@2001-01-03, 9@2001-01-04, 111@2001-01-05}"
         .parse()
         .unwrap();
     println!("{:?}", tint.values());
@@ -83,17 +86,45 @@ fn main() {
 
     println!("{}", tint2.always_greater(&tint).unwrap());
 
-    let tbool: TBoolSeq = "[true@2001-01-01 08:00:00, false@2001-01-03 08:00:00]"
+    let tbool: TBoolSequence = "[true@2001-01-01 08:00:00, false@2001-01-03 08:00:00]"
         .parse()
         .unwrap();
-    let tbool2: TBoolSeq = "[false@2001-01-01 08:00:00, true@2001-01-03 08:00:00]"
+    let tbool2: TBoolSequence = "[false@2001-01-01 08:00:00, true@2001-01-03 08:00:00]"
         .parse()
         .unwrap();
     println!("{:?}", tbool | true);
 
-    let ttext: TTextSeq = "{AAA@2001-01-01 08:00:00, BBB@2001-01-03 08:00:00}"
+    let ttext: TTextSequence = "{AAA@2001-01-01 08:00:00, BBB@2001-01-03 08:00:00}"
         .parse()
         .unwrap();
+
+    let tinst = (4, Utc::now());
+    let tinst2 = (6, Utc::now().checked_add_days(Days::new(1)).unwrap());
+    let tinst3 = (8, Utc::now().checked_add_days(Days::new(2)).unwrap());
+
+    let tinst4 = (9, Utc::now().checked_add_days(Days::new(3)).unwrap());
+    let tinst5 = (10, Utc::now().checked_add_days(Days::new(4)).unwrap());
+    let tinst6 = (11, Utc::now().checked_add_days(Days::new(5)).unwrap());
+
+    let vector: TInt = [tinst, tinst2, tinst3].into_iter().collect();
+    let vector2: TInt = [tinst4, tinst5, tinst6].into_iter().collect();
+
+    unsafe {
+        println!("{:?}", TIntInstant::from(tinst).inner().read());
+    }
+    let a = TIntInstant::from(tinst).append_instant(
+        (4, Utc::now().checked_add_days(Days::new(1)).unwrap()).into(),
+        None,
+        None,
+    );
+
+    unsafe {
+        println!("{:?}", vector.inner().read());
+    }
+    println!("{vector:?}");
+
+    let ss: TInt = [vector, vector2].into_iter().collect();
+    println!("{:?}", ss);
 
     println!("{ttext:?}");
     println!("{:?}", ttext.at_value(&String::from("AAA")));

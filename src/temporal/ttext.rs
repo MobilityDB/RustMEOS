@@ -15,16 +15,17 @@ use crate::{
     },
     errors::ParseError,
     temporal::{
+        tbool::{TBoolInstant, TBoolSequence, TBoolSequenceSet},
         temporal::{
-            impl_always_and_ever_value_equality_functions,
-            impl_always_and_ever_value_functions_with_ordering, impl_simple_traits_for_temporal,
-            OrderedTemporal, Temporal,
+            impl_always_and_ever_value_equality_functions, impl_ordered_temporal_functions,
+            impl_simple_traits_for_temporal, OrderedTemporal, Temporal,
         },
         tinstant::TInstant,
         tsequence::TSequence,
         tsequence_set::TSequenceSet,
     },
     utils::to_meos_timestamp,
+    MeosEnum,
 };
 
 fn from_ctext(ctext: *mut meos_sys::text) -> String {
@@ -45,7 +46,7 @@ fn to_ctext(string: &str) -> *mut meos_sys::text {
 }
 
 macro_rules! impl_ttext_traits {
-    ($type:ty, $temporal_type:ty) => {
+    ($type:ty, $temporal_type:ident) => {
         paste::paste! {
             impl Collection for $type {
                 type Type = String;
@@ -87,6 +88,7 @@ macro_rules! impl_ttext_traits {
             impl_simple_traits_for_temporal!($type, ttext);
 
             impl OrderedTemporal for $type {
+                type TBoolType = [<TBool $temporal_type>];
                 fn min_value(&self) -> Self::Type {
                     from_ctext(unsafe { meos_sys::ttext_min_value(self.inner()) })
                 }
@@ -95,19 +97,20 @@ macro_rules! impl_ttext_traits {
                     from_ctext(unsafe { meos_sys::ttext_max_value(self.inner()) })
                 }
 
-                impl_always_and_ever_value_functions_with_ordering!(text, to_ctext);
+                impl_ordered_temporal_functions!(text, to_ctext);
             }
 
             impl Temporal for $type {
-                type TI = TTextInst;
-                type TS = TTextSeq;
-                type TSS = TTextSeqSet;
+                type TI = TTextInstant;
+                type TS = TTextSequence;
+                type TSS = TTextSequenceSet;
                 type TBB = TsTzSpan;
+                type Enum = TText;
 
                 impl_always_and_ever_value_equality_functions!(text, to_ctext);
                 fn from_inner_as_temporal(inner: *const meos_sys::Temporal) -> Self {
                     Self {
-                        _inner: inner as *const $temporal_type,
+                        _inner: inner as *const meos_sys::[<T $temporal_type>],
                     }
                 }
 
@@ -199,13 +202,56 @@ macro_rules! impl_ttext_traits {
     }
 }
 
-pub trait TText:
-    Temporal<Type = String, TI = TTextInst, TS = TTextSeq, TSS = TTextSeqSet, TBB = TsTzSpan>
+#[derive(Debug)]
+pub enum TText {
+    Instant(TTextInstant),
+    Sequence(TTextSequence),
+    SequenceSet(TTextSequenceSet),
+}
+
+impl MeosEnum for TText {
+    fn from_instant(inner: *const meos_sys::TInstant) -> Self {
+        Self::Instant(TTextInstant::from_inner(inner))
+    }
+
+    fn from_sequence(inner: *const meos_sys::TSequence) -> Self {
+        Self::Sequence(TTextSequence::from_inner(inner))
+    }
+
+    fn from_sequence_set(inner: *const meos_sys::TSequenceSet) -> Self {
+        Self::SequenceSet(TTextSequenceSet::from_inner(inner))
+    }
+
+    fn inner(&self) -> *const meos_sys::Temporal {
+        match self {
+            TText::Instant(value) => value.inner(),
+            TText::Sequence(value) => value.inner(),
+            TText::SequenceSet(value) => value.inner(),
+        }
+    }
+}
+
+pub trait TTextTrait:
+    Temporal<
+    Type = String,
+    TI = TTextInstant,
+    TS = TTextSequence,
+    TSS = TTextSequenceSet,
+    TBB = TsTzSpan,
+>
 {
     fn concatenate_str(&self, string: &str) -> Self {
         Self::from_inner_as_temporal(unsafe {
             meos_sys::textcat_ttext_text(self.inner(), to_ctext(string))
         })
+    }
+
+    fn lowercase(&self) -> Self {
+        Self::from_inner_as_temporal(unsafe { meos_sys::ttext_lower(self.inner()) })
+    }
+
+    fn uppercase(&self) -> Self {
+        Self::from_inner_as_temporal(unsafe { meos_sys::ttext_upper(self.inner()) })
     }
 }
 
@@ -224,12 +270,12 @@ macro_rules! impl_debug {
     };
 }
 
-pub struct TTextInst {
+pub struct TTextInstant {
     _inner: *const meos_sys::TInstant,
 }
 
-impl TInstant for TTextInst {
-    fn from_inner(inner: *mut meos_sys::TInstant) -> Self {
+impl TInstant for TTextInstant {
+    fn from_inner(inner: *const meos_sys::TInstant) -> Self {
         Self { _inner: inner }
     }
 
@@ -244,15 +290,15 @@ impl TInstant for TTextInst {
     }
 }
 
-impl TText for TTextInst {}
+impl TTextTrait for TTextInstant {}
 
-impl_ttext_traits!(TTextInst, meos_sys::TInstant);
-impl_debug!(TTextInst);
+impl_ttext_traits!(TTextInstant, Instant);
+impl_debug!(TTextInstant);
 
-pub struct TTextSeq {
+pub struct TTextSequence {
     _inner: *const meos_sys::TSequence,
 }
-impl TTextSeq {
+impl TTextSequence {
     /// Creates a temporal object from a value and a TsTz span.
     ///
     /// ## Arguments
@@ -268,7 +314,7 @@ impl TTextSeq {
     }
 }
 
-impl TSequence for TTextSeq {
+impl TSequence for TTextSequence {
     fn from_inner(inner: *const meos_sys::TSequence) -> Self {
         Self { _inner: inner }
     }
@@ -278,16 +324,16 @@ impl TSequence for TTextSeq {
     }
 }
 
-impl TText for TTextSeq {}
+impl TTextTrait for TTextSequence {}
 
-impl_ttext_traits!(TTextSeq, meos_sys::TSequence);
-impl_debug!(TTextSeq);
+impl_ttext_traits!(TTextSequence, Sequence);
+impl_debug!(TTextSequence);
 
-pub struct TTextSeqSet {
+pub struct TTextSequenceSet {
     _inner: *const meos_sys::TSequenceSet,
 }
 
-impl TTextSeqSet {
+impl TTextSequenceSet {
     /// Creates a temporal object from a base value and a TsTz span set.
     ///
     /// ## Arguments
@@ -306,12 +352,12 @@ impl TTextSeqSet {
     }
 }
 
-impl TSequenceSet for TTextSeqSet {
+impl TSequenceSet for TTextSequenceSet {
     fn from_inner(inner: *const meos_sys::TSequenceSet) -> Self {
         Self { _inner: inner }
     }
 }
-impl TText for TTextSeqSet {}
+impl TTextTrait for TTextSequenceSet {}
 
-impl_ttext_traits!(TTextSeqSet, meos_sys::TSequenceSet);
-impl_debug!(TTextSeqSet);
+impl_ttext_traits!(TTextSequenceSet, SequenceSet);
+impl_debug!(TTextSequenceSet);
