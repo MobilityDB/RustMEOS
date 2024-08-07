@@ -168,6 +168,7 @@ pub const WKT_ISO: u32 = 1;
 pub const WKT_SFSQL: u32 = 2;
 pub const WKT_EXTENDED: u32 = 4;
 pub const SKIPLIST_MAXLEVEL: u32 = 32;
+pub const NO_MEOS_TYPES: u32 = 56;
 pub type __u_char = ::std::os::raw::c_uchar;
 pub type __u_short = ::std::os::raw::c_ushort;
 pub type __u_int = ::std::os::raw::c_uint;
@@ -10546,6 +10547,488 @@ extern "C" {
         origin: TimestampTz,
         count: *mut ::std::os::raw::c_int,
     ) -> *mut Span;
+}
+pub const meosType_T_UNKNOWN: meosType = 0;
+pub const meosType_T_BOOL: meosType = 1;
+pub const meosType_T_DATE: meosType = 2;
+pub const meosType_T_DATEMULTIRANGE: meosType = 3;
+pub const meosType_T_DATERANGE: meosType = 4;
+pub const meosType_T_DATESET: meosType = 5;
+pub const meosType_T_DATESPAN: meosType = 6;
+pub const meosType_T_DATESPANSET: meosType = 7;
+pub const meosType_T_DOUBLE2: meosType = 8;
+pub const meosType_T_DOUBLE3: meosType = 9;
+pub const meosType_T_DOUBLE4: meosType = 10;
+pub const meosType_T_FLOAT8: meosType = 11;
+pub const meosType_T_FLOATSET: meosType = 12;
+pub const meosType_T_FLOATSPAN: meosType = 13;
+pub const meosType_T_FLOATSPANSET: meosType = 14;
+pub const meosType_T_INT4: meosType = 15;
+pub const meosType_T_INT4MULTIRANGE: meosType = 16;
+pub const meosType_T_INT4RANGE: meosType = 17;
+pub const meosType_T_INTSET: meosType = 18;
+pub const meosType_T_INTSPAN: meosType = 19;
+pub const meosType_T_INTSPANSET: meosType = 20;
+pub const meosType_T_INT8: meosType = 21;
+pub const meosType_T_INT8MULTIRANGE: meosType = 52;
+pub const meosType_T_INT8RANGE: meosType = 53;
+pub const meosType_T_BIGINTSET: meosType = 22;
+pub const meosType_T_BIGINTSPAN: meosType = 23;
+pub const meosType_T_BIGINTSPANSET: meosType = 24;
+pub const meosType_T_STBOX: meosType = 25;
+pub const meosType_T_TBOOL: meosType = 26;
+pub const meosType_T_TBOX: meosType = 27;
+pub const meosType_T_TDOUBLE2: meosType = 28;
+pub const meosType_T_TDOUBLE3: meosType = 29;
+pub const meosType_T_TDOUBLE4: meosType = 30;
+pub const meosType_T_TEXT: meosType = 31;
+pub const meosType_T_TEXTSET: meosType = 32;
+pub const meosType_T_TFLOAT: meosType = 33;
+pub const meosType_T_TIMESTAMPTZ: meosType = 34;
+pub const meosType_T_TINT: meosType = 35;
+pub const meosType_T_TSTZMULTIRANGE: meosType = 36;
+pub const meosType_T_TSTZRANGE: meosType = 37;
+pub const meosType_T_TSTZSET: meosType = 38;
+pub const meosType_T_TSTZSPAN: meosType = 39;
+pub const meosType_T_TSTZSPANSET: meosType = 40;
+pub const meosType_T_TTEXT: meosType = 41;
+pub const meosType_T_GEOMETRY: meosType = 42;
+pub const meosType_T_GEOMSET: meosType = 43;
+pub const meosType_T_GEOGRAPHY: meosType = 44;
+pub const meosType_T_GEOGSET: meosType = 45;
+pub const meosType_T_TGEOMPOINT: meosType = 46;
+pub const meosType_T_TGEOGPOINT: meosType = 47;
+pub const meosType_T_NPOINT: meosType = 48;
+pub const meosType_T_NPOINTSET: meosType = 49;
+pub const meosType_T_NSEGMENT: meosType = 50;
+pub const meosType_T_TNPOINT: meosType = 51;
+pub const meosType_T_POSE: meosType = 54;
+pub const meosType_T_TPOSE: meosType = 55;
+pub type meosType = ::std::os::raw::c_uint;
+pub const meosOper_UNKNOWN_OP: meosOper = 0;
+pub const meosOper_EQ_OP: meosOper = 1;
+pub const meosOper_NE_OP: meosOper = 2;
+pub const meosOper_LT_OP: meosOper = 3;
+pub const meosOper_LE_OP: meosOper = 4;
+pub const meosOper_GT_OP: meosOper = 5;
+pub const meosOper_GE_OP: meosOper = 6;
+pub const meosOper_ADJACENT_OP: meosOper = 7;
+pub const meosOper_UNION_OP: meosOper = 8;
+pub const meosOper_MINUS_OP: meosOper = 9;
+pub const meosOper_INTERSECT_OP: meosOper = 10;
+pub const meosOper_OVERLAPS_OP: meosOper = 11;
+pub const meosOper_CONTAINS_OP: meosOper = 12;
+pub const meosOper_CONTAINED_OP: meosOper = 13;
+pub const meosOper_SAME_OP: meosOper = 14;
+pub const meosOper_LEFT_OP: meosOper = 15;
+pub const meosOper_OVERLEFT_OP: meosOper = 16;
+pub const meosOper_RIGHT_OP: meosOper = 17;
+pub const meosOper_OVERRIGHT_OP: meosOper = 18;
+pub const meosOper_BELOW_OP: meosOper = 19;
+pub const meosOper_OVERBELOW_OP: meosOper = 20;
+pub const meosOper_ABOVE_OP: meosOper = 21;
+pub const meosOper_OVERABOVE_OP: meosOper = 22;
+pub const meosOper_FRONT_OP: meosOper = 23;
+pub const meosOper_OVERFRONT_OP: meosOper = 24;
+pub const meosOper_BACK_OP: meosOper = 25;
+pub const meosOper_OVERBACK_OP: meosOper = 26;
+pub const meosOper_BEFORE_OP: meosOper = 27;
+pub const meosOper_OVERBEFORE_OP: meosOper = 28;
+pub const meosOper_AFTER_OP: meosOper = 29;
+pub const meosOper_OVERAFTER_OP: meosOper = 30;
+pub const meosOper_EVEREQ_OP: meosOper = 31;
+pub const meosOper_EVERNE_OP: meosOper = 32;
+pub const meosOper_EVERLT_OP: meosOper = 33;
+pub const meosOper_EVERLE_OP: meosOper = 34;
+pub const meosOper_EVERGT_OP: meosOper = 35;
+pub const meosOper_EVERGE_OP: meosOper = 36;
+pub const meosOper_ALWAYSEQ_OP: meosOper = 37;
+pub const meosOper_ALWAYSNE_OP: meosOper = 38;
+pub const meosOper_ALWAYSLT_OP: meosOper = 39;
+pub const meosOper_ALWAYSLE_OP: meosOper = 40;
+pub const meosOper_ALWAYSGT_OP: meosOper = 41;
+pub const meosOper_ALWAYSGE_OP: meosOper = 42;
+pub type meosOper = ::std::os::raw::c_uint;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct temptype_catalog_struct {
+    pub temptype: meosType,
+    pub basetype: meosType,
+}
+#[test]
+fn bindgen_test_layout_temptype_catalog_struct() {
+    const UNINIT: ::std::mem::MaybeUninit<temptype_catalog_struct> =
+        ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<temptype_catalog_struct>(),
+        8usize,
+        concat!("Size of: ", stringify!(temptype_catalog_struct))
+    );
+    assert_eq!(
+        ::std::mem::align_of::<temptype_catalog_struct>(),
+        4usize,
+        concat!("Alignment of ", stringify!(temptype_catalog_struct))
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).temptype) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(temptype_catalog_struct),
+            "::",
+            stringify!(temptype)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).basetype) as usize - ptr as usize },
+        4usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(temptype_catalog_struct),
+            "::",
+            stringify!(basetype)
+        )
+    );
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct settype_catalog_struct {
+    pub settype: meosType,
+    pub basetype: meosType,
+}
+#[test]
+fn bindgen_test_layout_settype_catalog_struct() {
+    const UNINIT: ::std::mem::MaybeUninit<settype_catalog_struct> =
+        ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<settype_catalog_struct>(),
+        8usize,
+        concat!("Size of: ", stringify!(settype_catalog_struct))
+    );
+    assert_eq!(
+        ::std::mem::align_of::<settype_catalog_struct>(),
+        4usize,
+        concat!("Alignment of ", stringify!(settype_catalog_struct))
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).settype) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(settype_catalog_struct),
+            "::",
+            stringify!(settype)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).basetype) as usize - ptr as usize },
+        4usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(settype_catalog_struct),
+            "::",
+            stringify!(basetype)
+        )
+    );
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct spantype_catalog_struct {
+    pub spantype: meosType,
+    pub basetype: meosType,
+}
+#[test]
+fn bindgen_test_layout_spantype_catalog_struct() {
+    const UNINIT: ::std::mem::MaybeUninit<spantype_catalog_struct> =
+        ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<spantype_catalog_struct>(),
+        8usize,
+        concat!("Size of: ", stringify!(spantype_catalog_struct))
+    );
+    assert_eq!(
+        ::std::mem::align_of::<spantype_catalog_struct>(),
+        4usize,
+        concat!("Alignment of ", stringify!(spantype_catalog_struct))
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).spantype) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(spantype_catalog_struct),
+            "::",
+            stringify!(spantype)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).basetype) as usize - ptr as usize },
+        4usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(spantype_catalog_struct),
+            "::",
+            stringify!(basetype)
+        )
+    );
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct spansettype_catalog_struct {
+    pub spansettype: meosType,
+    pub spantype: meosType,
+}
+#[test]
+fn bindgen_test_layout_spansettype_catalog_struct() {
+    const UNINIT: ::std::mem::MaybeUninit<spansettype_catalog_struct> =
+        ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<spansettype_catalog_struct>(),
+        8usize,
+        concat!("Size of: ", stringify!(spansettype_catalog_struct))
+    );
+    assert_eq!(
+        ::std::mem::align_of::<spansettype_catalog_struct>(),
+        4usize,
+        concat!("Alignment of ", stringify!(spansettype_catalog_struct))
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).spansettype) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(spansettype_catalog_struct),
+            "::",
+            stringify!(spansettype)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).spantype) as usize - ptr as usize },
+        4usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(spansettype_catalog_struct),
+            "::",
+            stringify!(spantype)
+        )
+    );
+}
+extern "C" {
+    pub fn temptype_subtype(subtype: tempSubtype) -> bool;
+}
+extern "C" {
+    pub fn temptype_subtype_all(subtype: tempSubtype) -> bool;
+}
+extern "C" {
+    pub fn tempsubtype_name(subtype: tempSubtype) -> *const ::std::os::raw::c_char;
+}
+extern "C" {
+    pub fn tempsubtype_from_string(
+        str_: *const ::std::os::raw::c_char,
+        subtype: *mut int16,
+    ) -> bool;
+}
+extern "C" {
+    pub fn meosoper_name(oper: meosOper) -> *const ::std::os::raw::c_char;
+}
+extern "C" {
+    pub fn meosoper_from_string(name: *const ::std::os::raw::c_char) -> meosOper;
+}
+extern "C" {
+    pub fn interptype_name(interp: interpType) -> *const ::std::os::raw::c_char;
+}
+extern "C" {
+    pub fn interptype_from_string(interp_str: *const ::std::os::raw::c_char) -> interpType;
+}
+extern "C" {
+    pub fn meostype_name(type_: meosType) -> *const ::std::os::raw::c_char;
+}
+extern "C" {
+    pub fn temptype_basetype(type_: meosType) -> meosType;
+}
+extern "C" {
+    pub fn settype_basetype(type_: meosType) -> meosType;
+}
+extern "C" {
+    pub fn spantype_basetype(type_: meosType) -> meosType;
+}
+extern "C" {
+    pub fn spantype_spansettype(type_: meosType) -> meosType;
+}
+extern "C" {
+    pub fn spansettype_spantype(type_: meosType) -> meosType;
+}
+extern "C" {
+    pub fn basetype_spantype(type_: meosType) -> meosType;
+}
+extern "C" {
+    pub fn basetype_settype(type_: meosType) -> meosType;
+}
+extern "C" {
+    pub fn meos_basetype(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn alpha_basetype(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn tnumber_basetype(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn alphanum_basetype(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn geo_basetype(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn spatial_basetype(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn time_type(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn set_basetype(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn set_type(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn numset_type(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn ensure_numset_type(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn timeset_type(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn ensure_timeset_type(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn set_spantype(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn ensure_set_spantype(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn alphanumset_type(settype: meosType) -> bool;
+}
+extern "C" {
+    pub fn geoset_type(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn ensure_geoset_type(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn spatialset_type(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn ensure_spatialset_type(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn span_basetype(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn span_canon_basetype(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn span_type(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn span_bbox_type(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn numspan_basetype(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn numspan_type(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn ensure_numspan_type(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn timespan_basetype(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn timespan_type(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn ensure_timespan_type(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn spanset_type(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn numspanset_type(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn timespanset_type(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn ensure_timespanset_type(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn temporal_type(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn temporal_basetype(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn temptype_continuous(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn basetype_byvalue(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn basetype_varlength(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn basetype_length(type_: meosType) -> int16;
+}
+extern "C" {
+    pub fn talphanum_type(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn talpha_type(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn tnumber_type(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn ensure_tnumber_type(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn ensure_tnumber_basetype(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn tnumber_settype(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn tnumber_spantype(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn tnumber_spansettype(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn tspatial_type(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn ensure_tspatial_type(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn tspatial_basetype(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn tgeo_type(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn ensure_tgeo_type(type_: meosType) -> bool;
+}
+extern "C" {
+    pub fn ensure_tnumber_tgeo_type(type_: meosType) -> bool;
 }
 pub type __builtin_va_list = [__va_list_tag; 1usize];
 #[repr(C)]
