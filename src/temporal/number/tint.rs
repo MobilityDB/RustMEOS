@@ -130,8 +130,8 @@ impl TInstant for TIntInstant {
 }
 
 impl<Tz: TimeZone> From<(i32, DateTime<Tz>)> for TIntInstant {
-    fn from(value: (i32, DateTime<Tz>)) -> Self {
-        Self::from_value_and_timestamp(value.0, value.1)
+    fn from((v, t): (i32, DateTime<Tz>)) -> Self {
+        Self::from_value_and_timestamp(v, t)
     }
 }
 
@@ -167,35 +167,27 @@ impl TSequence for TIntSequence {
     }
 }
 
-impl FromIterator<TIntInstant> for TInt {
+impl FromIterator<TIntInstant> for TIntSequence {
     fn from_iter<T: IntoIterator<Item = TIntInstant>>(iter: T) -> Self {
-        let mut iter = iter.into_iter();
-        let first: TIntInstant = iter.next().unwrap();
-        let result = iter.fold(
-            TInt::from_sequence(first.to_sequence(TInterpolation::None).inner_as_tsequence()),
-            |acc, item| match acc {
-                TInt::Sequence(value) => value.append_instant(item, None, None),
-                TInt::SequenceSet(value) => value.append_instant(item, None, None),
-                TInt::Instant(_) => unreachable!(),
-            },
-        );
-        factory::<TInt>(result.inner())
+        let mut vec: Vec<_> = iter.into_iter().map(|t| t.inner_as_tinstant()).collect();
+
+        let result = unsafe {
+            meos_sys::tsequence_make(
+                vec.as_mut_ptr(),
+                vec.len() as i32,
+                true,
+                true,
+                TInterpolation::Stepwise as u32,
+                true,
+            )
+        };
+        TIntSequence::from_inner(result)
     }
 }
 
-impl<Tz: TimeZone> FromIterator<(i32, DateTime<Tz>)> for TInt {
+impl<Tz: TimeZone> FromIterator<(i32, DateTime<Tz>)> for TIntSequence {
     fn from_iter<T: IntoIterator<Item = (i32, DateTime<Tz>)>>(iter: T) -> Self {
-        let mut iter = iter.into_iter();
-        let first: TIntInstant = iter.next().unwrap().into();
-        let result = iter.fold(
-            TInt::from_sequence(first.to_sequence(TInterpolation::None).inner_as_tsequence()),
-            |acc, item| match acc {
-                TInt::Sequence(value) => value.append_instant(item.into(), None, None),
-                TInt::SequenceSet(value) => value.append_instant(item.into(), None, None),
-                TInt::Instant(_) => unreachable!(),
-            },
-        );
-        factory::<TInt>(result.inner())
+        iter.into_iter().map(Into::<TIntInstant>::into).collect()
     }
 }
 
@@ -233,19 +225,13 @@ impl TSequenceSet for TIntSequenceSet {
     }
 }
 
-impl FromIterator<TIntSequence> for TInt {
+impl FromIterator<TIntSequence> for TIntSequenceSet {
     fn from_iter<T: IntoIterator<Item = TIntSequence>>(iter: T) -> Self {
-        let mut iter = iter.into_iter();
-        let first: TIntSequence = iter.next().unwrap();
-        let result = iter.fold(
-            TInt::from_sequence(first.to_sequence(TInterpolation::None).inner_as_tsequence()),
-            |acc, item| match acc {
-                TInt::Sequence(value) => value.append_sequence(item),
-                TInt::SequenceSet(value) => value.append_sequence(item),
-                TInt::Instant(_) => unreachable!(),
-            },
-        );
-        factory::<TInt>(result.inner())
+        let mut vec: Vec<_> = iter.into_iter().map(|t| t.inner_as_tsequence()).collect();
+
+        let result =
+            unsafe { meos_sys::tsequenceset_make(vec.as_mut_ptr(), vec.len() as i32, true) };
+        TIntSequenceSet::from_inner(result)
     }
 }
 
@@ -254,7 +240,11 @@ impl FromIterator<TInt> for TInt {
         let mut iter = iter.into_iter();
         let first: TInt = iter.next().unwrap();
         let init_value = if let TInt::Instant(value) = first {
-            TInt::from_sequence(value.to_sequence(TInterpolation::None).inner_as_tsequence())
+            TInt::from_sequence(
+                value
+                    .to_sequence(TInterpolation::Stepwise)
+                    .inner_as_tsequence(),
+            )
         } else {
             first
         };

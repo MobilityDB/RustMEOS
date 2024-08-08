@@ -10,7 +10,7 @@ use meos::{
     },
     init,
     temporal::{
-        number::tint::{TInt, TIntInstant, TIntSequence},
+        number::tint::{TInt, TIntInstant, TIntSequence, TIntSequenceSet},
         tbool::TBoolSequence,
         ttext::TTextSequence,
     },
@@ -100,14 +100,15 @@ fn main() {
 
     let tinst = (4, Utc::now());
     let tinst2 = (6, Utc::now().checked_add_days(Days::new(1)).unwrap());
+
     let tinst3 = (8, Utc::now().checked_add_days(Days::new(2)).unwrap());
 
     let tinst4 = (9, Utc::now().checked_add_days(Days::new(3)).unwrap());
     let tinst5 = (10, Utc::now().checked_add_days(Days::new(4)).unwrap());
     let tinst6 = (11, Utc::now().checked_add_days(Days::new(5)).unwrap());
 
-    let vector: TInt = [tinst, tinst2, tinst3].into_iter().collect();
-    let vector2: TInt = [tinst4, tinst5, tinst6].into_iter().collect();
+    let vector: TIntSequence = [tinst, tinst2, tinst3].into_iter().collect();
+    let vector2: TIntSequence = [tinst4, tinst5, tinst6].into_iter().collect();
 
     unsafe {
         println!("{:?}", TIntInstant::from(tinst).inner().read());
@@ -123,7 +124,7 @@ fn main() {
     }
     println!("{vector:?}");
 
-    let ss: TInt = [vector, vector2].into_iter().collect();
+    let ss: TIntSequenceSet = [vector, vector2].into_iter().collect();
     println!("{:?}", ss);
 
     println!("{ttext:?}");

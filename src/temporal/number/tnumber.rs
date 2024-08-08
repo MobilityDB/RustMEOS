@@ -163,7 +163,6 @@ macro_rules! impl_temporal_for_tnumber {
             }
 
             impl OrderedTemporal for $type {
-                type TBoolType = [<TBool $temporal_type>];
                 fn min_value(&self) -> Self::Type {
                     unsafe { meos_sys::[<t $basic_type:lower _min_value>](self.inner()) }
                 }
@@ -180,6 +179,7 @@ macro_rules! impl_temporal_for_tnumber {
                 type TSS = [<T $basic_type SequenceSet>];
                 type TBB = TBox;
                 type Enum = [<T $basic_type>];
+                type TBoolType = [<TBool $temporal_type>];
 
                 fn from_inner_as_temporal(inner: *const meos_sys::Temporal) -> Self {
                     Self {
@@ -268,6 +268,18 @@ macro_rules! impl_temporal_for_tnumber {
                     Self::from_inner_as_temporal(unsafe {
                         let set = meos_sys::[<$basic_type:lower set_make>](values.as_ptr(), values.len() as i32);
                         meos_sys::temporal_minus_values(self.inner(), set)
+                    })
+                }
+
+                fn temporal_equal_value(&self, value: &Self::Type) -> Self::TBoolType {
+                    Self::TBoolType::from_inner_as_temporal(unsafe {
+                        meos_sys::[<teq_t $basic_type:lower _ $basic_type:lower>](self.inner(), *value)
+                    })
+                }
+
+                fn temporal_not_equal_value(&self, value: &Self::Type) -> Self::TBoolType {
+                    Self::TBoolType::from_inner_as_temporal(unsafe {
+                        meos_sys::[<tne_t $basic_type:lower _ $basic_type:lower>](self.inner(), *value)
                     })
                 }
 

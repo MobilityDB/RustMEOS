@@ -5,6 +5,7 @@ use std::{
     ptr,
 };
 
+use crate::MeosEnum;
 use chrono::{DateTime, TimeDelta, TimeZone, Utc};
 
 use crate::{
@@ -17,6 +18,7 @@ use crate::{
         number::{float_span::FloatSpan, int_span::IntSpan, number_span::NumberSpan},
     },
     errors::ParseError,
+    temporal::number::tfloat::TFloat,
     utils::{create_interval, from_meos_timestamp, to_meos_timestamp},
     WKBVariant,
 };
@@ -649,10 +651,10 @@ impl TBox {
 }
 
 impl Collection for TBox {
-    impl_collection!(tbox, TBox);
+    impl_collection!(tbox, TFloat);
 
     fn contains(&self, content: &Self::Type) -> bool {
-        unsafe { meos_sys::contains_tbox_tbox(self.inner(), content.inner()) }
+        unsafe { meos_sys::contains_tbox_tnumber(self.inner(), content.inner()) }
     }
 }
 

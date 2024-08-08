@@ -18,6 +18,7 @@ use crate::{
         datetime::tstz_span::TsTzSpan,
     },
     errors::ParseError,
+    temporal::number::tnumber::TNumber,
     utils::{create_interval, from_meos_timestamp, to_meos_timestamp},
     WKBVariant,
 };
@@ -251,16 +252,17 @@ impl STBox {
         Self::from_wkb(&v)
     }
 
-    // pub fn from_tnumber(temporal: TNumber) -> Self {
+    // pub fn from_tpoint(temporal: TPoint) -> Self {
     //     unsafe {
-    //         let inner = tnumber_to_meos_sys::stbox(temporal.inner);
+    //         let inner = meos_sys::tpoint_to_stbox(temporal.inner());
     //         Self::from_inner(inner)
     //     }
     // }
 
     #[cfg(feature = "geos")]
-    pub fn geos_geometry(&self) -> Geometry {
-        Geometry::new_from_wkb(self.as_wkb(WKBVariant::none())).unwrap()
+    pub fn geos_geometry(&self) -> Option<Geometry> {
+        // meos_sys::geo_as_ewkb(meos_sys::stbox_to_geo(box_))
+        Geometry::new_from_wkb(self.as_wkb(WKBVariant::none())).ok()
     }
 
     // ------------------------- Transformation --------------------------------

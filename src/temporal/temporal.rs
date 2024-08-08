@@ -26,6 +26,8 @@ pub trait Temporal: Collection + Hash {
     type TSS: TSequenceSet;
     type TBB: BoundingBox;
     type Enum: MeosEnum;
+    type TBoolType: TBoolTrait;
+
     fn from_inner_as_temporal(inner: *const meos_sys::Temporal) -> Self;
 
     /// Creates a temporal object from an MF-JSON string.
@@ -72,9 +74,9 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Returns
     /// A merged temporal object.
-    fn from_merge(temporals: &[Self]) -> Self {
-        let mut t_list: Vec<_> = temporals.iter().map(Self::inner).collect();
-        Self::from_inner_as_temporal(unsafe {
+    fn from_merge(temporals: &[Self::Enum]) -> Self::Enum {
+        let mut t_list: Vec<_> = temporals.iter().map(Self::Enum::inner).collect();
+        factory::<Self::Enum>(unsafe {
             meos_sys::temporal_merge_array(t_list.as_mut_ptr(), temporals.len() as i32)
         })
     }
@@ -1123,10 +1125,61 @@ pub trait Temporal: Collection + Hash {
     ///
     /// `true` if the values of `self` are ever not equal to `value`, `false` otherwise.
     fn ever_not_equal_than_value(&self, value: Self::Type) -> Option<bool>;
+
+    /// Returns a `TBool` representing whether `self` is equal to `other` accross time.
+    ///
+    /// ## Arguments
+    ///
+    /// * `other` - A reference to another temporal object to compare with.
+    ///
+    /// ## Returns
+    ///
+    /// A temporal boolean indicating if `self` is equal to `other`.
+    fn temporal_equal(&self, other: &Self) -> Self::TBoolType {
+        Self::TBoolType::from_inner_as_temporal(unsafe {
+            meos_sys::teq_temporal_temporal(self.inner(), other.inner())
+        })
+    }
+
+    /// Returns a `TBool` representing whether `self` is not equal to `other` accross time.
+    ///
+    /// ## Arguments
+    ///
+    /// * `other` - A reference to another temporal object to compare with.
+    ///
+    /// ## Returns
+    ///
+    /// A temporal boolean indicating if `self` is not equal to `other`.
+    fn temporal_not_equal(&self, other: &Self) -> Self::TBoolType {
+        Self::TBoolType::from_inner_as_temporal(unsafe {
+            meos_sys::tne_temporal_temporal(self.inner(), other.inner())
+        })
+    }
+
+    /// Returns a `TBool` representing whether `self` is equal to the given value accross time.
+    ///
+    /// ## Arguments
+    ///
+    /// * `other` - A reference to a value to compare with.
+    ///
+    /// ## Returns
+    ///
+    /// A temporal boolean indicating if `self` is equal to the given value.
+    fn temporal_equal_value(&self, other: &Self::Type) -> Self::TBoolType;
+
+    /// Returns a `TBool` representing whether `self` is not equal to the given value accross time.
+    ///
+    /// ## Arguments
+    ///
+    /// * `other` - A reference to a value to compare with.
+    ///
+    /// ## Returns
+    ///
+    /// A temporal boolean indicating if `self` is not equal to the given value.
+    fn temporal_not_equal_value(&self, other: &Self::Type) -> Self::TBoolType;
 }
 
 pub trait OrderedTemporal: Temporal {
-    type TBoolType: TBoolTrait;
     /// Returns the minimum value of the temporal object.
     ///
     /// ## Returns
@@ -1230,36 +1283,6 @@ pub trait OrderedTemporal: Temporal {
         })
     }
 
-    /// Returns a `TBool` representing whether `self` is equal to `other` accross time.
-    ///
-    /// ## Arguments
-    ///
-    /// * `other` - A reference to another temporal object to compare with.
-    ///
-    /// ## Returns
-    ///
-    /// A temporal boolean indicating if `self` is equal to `other`.
-    fn temporal_equal(&self, other: &Self) -> Self::TBoolType {
-        Self::TBoolType::from_inner_as_temporal(unsafe {
-            meos_sys::teq_temporal_temporal(self.inner(), other.inner())
-        })
-    }
-
-    /// Returns a `TBool` representing whether `self` is not equal to `other` accross time.
-    ///
-    /// ## Arguments
-    ///
-    /// * `other` - A reference to another temporal object to compare with.
-    ///
-    /// ## Returns
-    ///
-    /// A temporal boolean indicating if `self` is not equal to `other`.
-    fn temporal_not_equal(&self, other: &Self) -> Self::TBoolType {
-        Self::TBoolType::from_inner_as_temporal(unsafe {
-            meos_sys::tne_temporal_temporal(self.inner(), other.inner())
-        })
-    }
-
     /// Returns a `TBool` representing whether `self` is greater than the given value accross time.
     ///
     /// ## Arguments
@@ -1303,28 +1326,6 @@ pub trait OrderedTemporal: Temporal {
     ///
     /// A temporal boolean indicating if `self` is less than or equal to the given value.
     fn temporal_lower_or_equal_than_value(&self, other: &Self::Type) -> Self::TBoolType;
-
-    /// Returns a `TBool` representing whether `self` is equal to the given value accross time.
-    ///
-    /// ## Arguments
-    ///
-    /// * `other` - A reference to a value to compare with.
-    ///
-    /// ## Returns
-    ///
-    /// A temporal boolean indicating if `self` is equal to the given value.
-    fn temporal_equal_value(&self, other: &Self::Type) -> Self::TBoolType;
-
-    /// Returns a `TBool` representing whether `self` is not equal to the given value accross time.
-    ///
-    /// ## Arguments
-    ///
-    /// * `other` - A reference to a value to compare with.
-    ///
-    /// ## Returns
-    ///
-    /// A temporal boolean indicating if `self` is not equal to the given value.
-    fn temporal_not_equal_value(&self, other: &Self::Type) -> Self::TBoolType;
 
     /// Returns whether the values of `self` are always less than `other`.
     ///
@@ -1730,16 +1731,6 @@ macro_rules! impl_ordered_temporal_functions {
             fn temporal_lower_or_equal_than_value(&self, other: &Self::Type) -> Self::TBoolType {
                 Self::TBoolType::from_inner_as_temporal(unsafe {
                     meos_sys::[<tle_t $type _ $type>](self.inner(), $transform_function(other))
-                })
-            }
-            fn temporal_equal_value(&self, other: &Self::Type) -> Self::TBoolType {
-                Self::TBoolType::from_inner_as_temporal(unsafe {
-                    meos_sys::[<teq_t $type _ $type>](self.inner(), $transform_function(other))
-                })
-            }
-            fn temporal_not_equal_value(&self, other: &Self::Type) -> Self::TBoolType {
-                Self::TBoolType::from_inner_as_temporal(unsafe {
-                    meos_sys::[<tne_t $type _ $type>](self.inner(), $transform_function(other))
                 })
             }
         }

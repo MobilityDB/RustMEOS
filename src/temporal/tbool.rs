@@ -51,7 +51,7 @@ macro_rules! impl_tbool_traits {
                 type TSS = TBoolSequenceSet;
                 type TBB = TsTzSpan;
                 type Enum = TBool;
-
+                type TBoolType = $type;
 
                 impl_always_and_ever_value_equality_functions!(bool);
                 fn from_inner_as_temporal(inner: *const meos_sys::Temporal) -> Self {
@@ -128,6 +128,18 @@ macro_rules! impl_tbool_traits {
                 }
                 /// Not implemented for `tbool` types
                 fn minus_values(&self, _: &[<Self as Collection>::Type]) -> Self { unimplemented!("Not implemented for `tbool` types") }
+
+                fn temporal_equal_value(&self, value: &Self::Type) -> Self {
+                    Self::from_inner_as_temporal(unsafe {
+                        meos_sys::teq_tbool_bool(self.inner(), *value)
+                    })
+                }
+
+                fn temporal_not_equal_value(&self, value: &Self::Type) -> Self {
+                    Self::from_inner_as_temporal(unsafe {
+                        meos_sys::tne_tbool_bool(self.inner(), *value)
+                    })
+                }
             }
             impl BitAnd for $type {
                 type Output = Self;

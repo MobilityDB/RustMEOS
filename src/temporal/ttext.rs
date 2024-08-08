@@ -88,7 +88,6 @@ macro_rules! impl_ttext_traits {
             impl_simple_traits_for_temporal!($type, ttext);
 
             impl OrderedTemporal for $type {
-                type TBoolType = [<TBool $temporal_type>];
                 fn min_value(&self) -> Self::Type {
                     from_ctext(unsafe { meos_sys::ttext_min_value(self.inner()) })
                 }
@@ -106,6 +105,7 @@ macro_rules! impl_ttext_traits {
                 type TSS = TTextSequenceSet;
                 type TBB = TsTzSpan;
                 type Enum = TText;
+                type TBoolType = [<TBool $temporal_type>];
 
                 impl_always_and_ever_value_equality_functions!(text, to_ctext);
                 fn from_inner_as_temporal(inner: *const meos_sys::Temporal) -> Self {
@@ -195,6 +195,18 @@ macro_rules! impl_ttext_traits {
                         let ctexts: Vec<_> = values.into_iter().map(|text| to_ctext(&text)).collect();
                         let set = meos_sys::textset_make(ctexts.as_ptr() as *mut *const _, values.len() as i32);
                         meos_sys::temporal_minus_values(self.inner(), set)
+                    })
+                }
+
+                fn temporal_equal_value(&self, value: &Self::Type) -> Self::TBoolType {
+                    Self::TBoolType::from_inner_as_temporal(unsafe {
+                        meos_sys::teq_ttext_text(self.inner(), to_ctext(value))
+                    })
+                }
+
+                fn temporal_not_equal_value(&self, value: &Self::Type) -> Self::TBoolType {
+                    Self::TBoolType::from_inner_as_temporal(unsafe {
+                        meos_sys::tne_ttext_text(self.inner(), to_ctext(value))
                     })
                 }
             }
