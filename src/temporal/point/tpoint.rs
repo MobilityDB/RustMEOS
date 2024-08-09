@@ -1,24 +1,21 @@
+use std::ptr;
+
 use chrono::{DateTime, TimeZone};
-use geos::Geometry;
+use geos::{Geom, Geometry};
 
 use crate::{
     boxes::stbox::STBox,
-    temporal::number::tfloat::{TFloat, TFloatSequenceSet},
+    factory,
+    temporal::{
+        number::tfloat::{TFloat, TFloatSequenceSet},
+        temporal::Temporal,
+    },
+    MeosEnum,
 };
 
-pub struct Point(isize, isize, isize);
-pub trait TPoint {
-    /// Returns the string representation of the temporal point.
-    ///
-    /// ## Returns
-    ///
-    /// A `String` representing the temporal point.
-    ///
-    /// ## MEOS Functions
-    ///
-    /// tpoint_out
-    fn to_string(&self) -> String;
+pub struct Point(f64, f64, Option<f64>);
 
+pub trait TPointTrait: Temporal {
     /// Returns the temporal point as a WKT string.
     ///
     /// ## Arguments
@@ -66,7 +63,6 @@ pub trait TPoint {
     /// gserialized_as_geojson
     fn as_geojson(&self, option: i32, precision: i32, srs: Option<String>) -> String;
 
-    #[cfg(feature = "geos")]
     /// Returns the trajectory of the temporal point as a geos geometry.
     ///
     /// ## Arguments
@@ -81,93 +77,6 @@ pub trait TPoint {
     ///
     /// gserialized_to_geos_geometry
     fn to_geos_geometry(&self, precision: i32) -> Geometry;
-
-    /// Returns the bounding box of the temporal point.
-    ///
-    /// ## Returns
-    ///
-    /// An `STBox` representing the bounding box.
-    ///
-    /// ## MEOS Functions
-    ///
-    /// tpoint_to_stbox
-    fn bounding_box(&self) -> STBox;
-
-    /// Returns the values of the temporal point.
-    ///
-    /// ## Arguments
-    ///
-    /// * `precision` - The precision of the returned values.
-    ///
-    /// ## Returns
-    ///
-    /// A `Vec<Point>` with the values.
-    ///
-    /// ## MEOS Functions
-    ///
-    /// temporal_instants
-    fn values(&self, precision: i32) -> Vec<Point>;
-
-    /// Returns the start value of the temporal point.
-    ///
-    /// ## Arguments
-    ///
-    /// * `precision` - The precision of the returned value.
-    ///
-    /// ## Returns
-    ///
-    /// A `Point` with the start value.
-    ///
-    /// ## MEOS Functions
-    ///
-    /// tpoint_start_value
-    fn start_value(&self, precision: i32) -> Point;
-
-    /// Returns the end value of the temporal point.
-    ///
-    /// ## Arguments
-    ///
-    /// * `precision` - The precision of the returned value.
-    ///
-    /// ## Returns
-    ///
-    /// A `Point` with the end value.
-    ///
-    /// ## MEOS Functions
-    ///
-    /// tpoint_end_value
-    fn end_value(&self, precision: i32) -> Point;
-
-    /// Returns the set of values of the temporal point.
-    ///
-    /// ## Arguments
-    ///
-    /// * `precision` - The precision of the returned values.
-    ///
-    /// ## Returns
-    ///
-    /// A `HashSet<Point>` with the values.
-    ///
-    /// ## MEOS Functions
-    ///
-    /// tpoint_values
-    //fn value_set(&self, precision: i32) -> HashSet<Point>;
-
-    /// Returns the value of the temporal point at the given timestamp.
-    ///
-    /// ## Arguments
-    ///
-    /// * `timestamp` - A `DateTime` representing the timestamp.
-    /// * `precision` - The precision of the returned value.
-    ///
-    /// ## Returns
-    ///
-    /// A `Point` with the value.
-    ///
-    /// ## MEOS Functions
-    ///
-    /// tpoint_value_at_timestamp
-    fn value_at_timestamp<Tz: TimeZone>(&self, timestamp: DateTime<Tz>, precision: i32) -> Point;
 
     /// Returns the length of the trajectory.
     ///
@@ -281,7 +190,22 @@ pub trait TPoint {
     /// ## MEOS Functions
     ///
     /// bearing_tpoint_point, bearing_tpoint_tpoint
-    fn bearing(&self, other: &dyn Any) -> TFloat;
+    fn bearing(&self, other: Self::Enum) -> TFloat;
+
+    /// Returns the temporal bearing between the temporal point and another point.
+    ///
+    /// ## Arguments
+    ///
+    /// * `other` - A `BaseGeometry` or `TPoint` to check the bearing to.
+    ///
+    /// ## Returns
+    ///
+    /// A `TFloat` indicating the temporal bearing between the temporal point and `other`.
+    ///
+    /// ## MEOS Functions
+    ///
+    /// bearing_tpoint_point, bearing_tpoint_tpoint
+    fn bearing_geometry(&self, other: Geometry) -> TFloat;
 
     /// Returns the azimuth of the temporal point between the start and end locations.
     ///
@@ -316,7 +240,6 @@ pub trait TPoint {
     /// tpoint_angular_difference
     fn angular_difference(&self) -> TFloatSequenceSet;
 
-    #[cfg(feature = "geos")]
     /// Returns the time-weighted centroid of the temporal point.
     ///
     /// ## Arguments
@@ -339,15 +262,15 @@ pub trait TPoint {
     /// MEOS Functions:
     ///     tpoint_srid
     fn srid(&self) -> i32 {
-        // Function implementation
+        unsafe { meos_sys::tpoint_srid(self.inner()) }
     }
 
     /// Returns a new TPoint with the given SRID.
     ///
     /// MEOS Functions:
     ///     tpoint_set_srid
-    fn set_srid(&self, srid: i32) -> Self {
-        // Function implementation
+    fn with_srid(&self, srid: i32) -> Self {
+        Self::from_inner_as_temporal(unsafe { meos_sys::tpoint_set_srid(self.inner(), srid) })
     }
 
     // ------------------------- Transformations -------------------------------
@@ -358,19 +281,27 @@ pub trait TPoint {
     ///
     /// MEOS Functions:
     ///     tpoint_round
-    fn round(&self, max_decimals: u32) -> TPoint {
-        // Function implementation
+    fn round(&self, max_decimals: i32) -> Self {
+        Self::from_inner_as_temporal(unsafe { meos_sys::tpoint_round(self.inner(), max_decimals) })
     }
 
     /// Split the temporal point into a collection of simple temporal points.
     ///
     /// Returns:
-    ///     A `Vec<TPoint>`.
+    ///     A `Vec<Self::Enum>`.
     ///
     /// MEOS Functions:
     ///     tpoint_make_simple
-    fn make_simple(&self) -> Vec<TPoint> {
-        // Function implementation
+    fn make_simple(&self) -> Vec<Self::Enum> {
+        let mut count = 0;
+        let result =
+            unsafe { meos_sys::tpoint_make_simple(self.inner(), ptr::addr_of_mut!(count)) };
+        unsafe {
+            Vec::from_raw_parts(result, count, count)
+                .iter()
+                .map(factory::<Self::Enum>)
+                .collect()
+        }
     }
 
     /// Expands `self` with `other`.
@@ -385,8 +316,8 @@ pub trait TPoint {
     ///
     /// MEOS Functions:
     ///     tpoint_expand_space
-    fn expand(&self, other: f64) -> STBox {
-        // Function implementation
+    fn expand(&self, distance: f64) -> STBox {
+        STBox::from_inner(unsafe { meos_sys::tpoint_expand_space(self.inner(), distance) })
     }
 
     /// Returns a new `TPoint` of the same subclass of `self` transformed to another SRID.
@@ -400,7 +331,7 @@ pub trait TPoint {
     /// MEOS Functions:
     ///     tpoint_transform
     fn transform(&self, srid: i32) -> Self {
-        // Function implementation
+        Self::from_inner_as_temporal(unsafe { meos_sys::tpoint_transform(self.inner(), srid) })
     }
 
     // ------------------------- Restrictions ----------------------------------
@@ -415,7 +346,38 @@ pub trait TPoint {
     /// MEOS Functions:
     ///     tpoint_at_value, tpoint_at_stbox, temporal_at_values,
     ///     temporal_at_timestamp, temporal_at_tstzset, temporal_at_tstzspan, temporal_at_tstzspanset
-    fn at(&self, other: impl Into<RestrictionType>) -> TPoint {
+    fn at_point(&self, point: Point) -> Self::Enum {
+        meos_sys::bstring2bytea
+        Self::from_inner_as_temporal(unsafe { meos_sys::tpoint_at_value(self.inner(), srid) })
+    }
+
+    /// Returns a new temporal object with the values of `self` restricted to `other`.
+    ///
+    /// Args:
+    ///     other: An object to restrict the values of `self` to.
+    ///
+    /// Returns:
+    ///     A new `TPoint` with the values of `self` restricted to `other`.
+    ///
+    /// MEOS Functions:
+    ///     tpoint_at_value, tpoint_at_stbox, temporal_at_values,
+    ///     temporal_at_timestamp, temporal_at_tstzset, temporal_at_tstzspan, temporal_at_tstzspanset
+    fn at_geometry(&self, geometry: Geometry) -> Self::Enum {
+        // Function implementation
+    }
+
+    /// Returns a new temporal object with the values of `self` restricted to `other`.
+    ///
+    /// Args:
+    ///     other: An object to restrict the values of `self` to.
+    ///
+    /// Returns:
+    ///     A new `TPoint` with the values of `self` restricted to `other`.
+    ///
+    /// MEOS Functions:
+    ///     tpoint_at_value, tpoint_at_stbox, temporal_at_values,
+    ///     temporal_at_timestamp, temporal_at_tstzset, temporal_at_tstzspan, temporal_at_tstzspanset
+    fn at_geometries(&self, geometries: &[Geometry]) -> Self::Enum {
         // Function implementation
     }
 
@@ -430,7 +392,37 @@ pub trait TPoint {
     /// MEOS Functions:
     ///     tpoint_minus_value, tpoint_minus_stbox, temporal_minus_values,
     ///     temporal_minus_timestamp, temporal_minus_tstzset, temporal_minus_tstzspan, temporal_minus_tstzspanset
-    fn minus(&self, other: impl Into<RestrictionType>) -> TPoint {
+    fn minus_point(&self, point: Point) -> Self::Enum {
+        // Function implementation
+    }
+
+    /// Returns a new temporal object with the values of `self` restricted to the complement of `other`.
+    ///
+    /// Args:
+    ///     other: An object to restrict the values of `self` to the complement of.
+    ///
+    /// Returns:
+    ///     A new `TPoint` with the values of `self` restricted to the complement of `other`.
+    ///
+    /// MEOS Functions:
+    ///     tpoint_minus_value, tpoint_minus_stbox, temporal_minus_values,
+    ///     temporal_minus_timestamp, temporal_minus_tstzset, temporal_minus_tstzspan, temporal_minus_tstzspanset
+    fn minus_geometry(&self, geometry: Geometry) -> Self::Enum {
+        // Function implementation
+    }
+
+    /// Returns a new temporal object with the values of `self` restricted to the complement of `other`.
+    ///
+    /// Args:
+    ///     other: An object to restrict the values of `self` to the complement of.
+    ///
+    /// Returns:
+    ///     A new `TPoint` with the values of `self` restricted to the complement of `other`.
+    ///
+    /// MEOS Functions:
+    ///     tpoint_minus_value, tpoint_minus_stbox, temporal_minus_values,
+    ///     temporal_minus_timestamp, temporal_minus_tstzset, temporal_minus_tstzspan, temporal_minus_tstzspanset
+    fn minus_geometries(&self, geometries: &[Geometry]) -> Self::Enum {
         // Function implementation
     }
 
@@ -445,7 +437,7 @@ pub trait TPoint {
     ///
     /// See Also:
     ///     `TsTzSpan::is_before`
-    fn is_left(&self, other: impl Into<BoxType>) -> bool {
+    fn is_left(&self, other: Self::Enum) -> bool {
         // Function implementation
     }
 
@@ -459,7 +451,7 @@ pub trait TPoint {
     ///
     /// See Also:
     ///     `TsTzSpan::is_over_or_before`
-    fn is_over_or_left(&self, other: impl Into<BoxType>) -> bool {
+    fn is_over_or_left(&self, other: Self::Enum) -> bool {
         // Function implementation
     }
 
@@ -473,7 +465,7 @@ pub trait TPoint {
     ///
     /// See Also:
     ///     `TsTzSpan::is_after`
-    fn is_right(&self, other: impl Into<BoxType>) -> bool {
+    fn is_right(&self, other: Self::Enum) -> bool {
         // Function implementation
     }
 
@@ -487,7 +479,7 @@ pub trait TPoint {
     ///
     /// See Also:
     ///     `TsTzSpan::is_over_or_before`
-    fn is_over_or_right(&self, other: impl Into<BoxType>) -> bool {
+    fn is_over_or_right(&self, other: Self::Enum) -> bool {
         // Function implementation
     }
 
@@ -501,7 +493,7 @@ pub trait TPoint {
     ///
     /// See Also:
     ///     `TsTzSpan::is_before`
-    fn is_below(&self, other: impl Into<BoxType>) -> bool {
+    fn is_below(&self, other: Self::Enum) -> bool {
         // Function implementation
     }
 
@@ -515,7 +507,7 @@ pub trait TPoint {
     ///
     /// See Also:
     ///     `TsTzSpan::is_over_or_before`
-    fn is_over_or_below(&self, other: impl Into<BoxType>) -> bool {
+    fn is_over_or_below(&self, other: Self::Enum) -> bool {
         // Function implementation
     }
 
@@ -529,7 +521,7 @@ pub trait TPoint {
     ///
     /// See Also:
     ///     `TsTzSpan::is_after`
-    fn is_above(&self, other: impl Into<BoxType>) -> bool {
+    fn is_above(&self, other: Self::Enum) -> bool {
         // Function implementation
     }
 
@@ -543,7 +535,7 @@ pub trait TPoint {
     ///
     /// See Also:
     ///     `TsTzSpan::is_over_or_before`
-    fn is_over_or_above(&self, other: impl Into<BoxType>) -> bool {
+    fn is_over_or_above(&self, other: Self::Enum) -> bool {
         // Function implementation
     }
 
@@ -557,7 +549,7 @@ pub trait TPoint {
     ///
     /// See Also:
     ///     `TsTzSpan::is_before`
-    fn is_front(&self, other: impl Into<BoxType>) -> bool {
+    fn is_front(&self, other: Self::Enum) -> bool {
         // Function implementation
     }
 
@@ -571,7 +563,7 @@ pub trait TPoint {
     ///
     /// See Also:
     ///     `TsTzSpan::is_over_or_before`
-    fn is_over_or_front(&self, other: impl Into<BoxType>) -> bool {
+    fn is_over_or_front(&self, other: Self::Enum) -> bool {
         // Function implementation
     }
 
@@ -585,7 +577,7 @@ pub trait TPoint {
     ///
     /// See Also:
     ///     `TsTzSpan::is_after`
-    fn is_behind(&self, other: impl Into<BoxType>) -> bool {
+    fn is_behind(&self, other: Self::Enum) -> bool {
         // Function implementation
     }
 
@@ -599,7 +591,7 @@ pub trait TPoint {
     ///
     /// See Also:
     ///     `TsTzSpan::is_over_or_before`
-    fn is_over_or_behind(&self, other: impl Into<BoxType>) -> bool {
+    fn is_over_or_behind(&self, other: Self::Enum) -> bool {
         // Function implementation
     }
 
@@ -613,7 +605,7 @@ pub trait TPoint {
     ///
     /// See Also:
     ///     `TsTzSpan::is_over_or_before`
-    fn is_same(&self, other: impl Into<BoxType>) -> bool {
+    fn is_same(&self, other: Self::Enum) -> bool {
         // Function implementation
     }
 
@@ -627,7 +619,7 @@ pub trait TPoint {
     ///
     /// See Also:
     ///     `TsTzSpan::is_over_or_before`
-    fn is_over(&self, other: impl Into<BoxType>) -> bool {
+    fn is_over(&self, other: Self::Enum) -> bool {
         // Function implementation
     }
 
@@ -644,27 +636,27 @@ pub trait TPoint {
     /// # MEOS Functions
     ///
     /// * `tcontains_geo_tpoint`
-    pub fn is_spatially_contained_in(&self, container: &impl Geometry) -> TBool {
+    fn is_spatially_contained_in_geometry(&self, container: Geometry) -> TBool {
         let gs = geo_to_gserialized(container, self.is_geog_point());
         let result = tcontains_geo_tpoint(gs, self.inner(), false, false);
         TBool::new(result)
     }
 
-    /// Returns a new temporal boolean indicating whether the temporal point intersects `other`.
+    /// Returns a new temporal boolean indicating whether the temporal point intersects `geometry`.
     ///
     /// # Arguments
     ///
-    /// * `other` - An object to check for intersection with.
+    /// * `geometry` - An object to check for intersection with.
     ///
     /// # Returns
     ///
-    /// A new `TBool` indicating whether the temporal point intersects `other`.
+    /// A new `TBool` indicating whether the temporal point intersects `geometry`.
     ///
     /// # MEOS Functions
     ///
     /// * `tintersects_tpoint_geo`
-    pub fn disjoint(&self, other: &impl Geometry) -> TBool {
-        let gs = geo_to_gserialized(other, self.is_geog_point());
+    fn disjoint_geometry(&self, geometry: Geometry) -> TBool {
+        let gs = geo_to_gserialized(geometry, self.is_geog_point());
         let result = tdisjoint_tpoint_geo(self.inner(), gs, false, false);
         TBool::new(result)
     }
@@ -683,27 +675,47 @@ pub trait TPoint {
     /// # MEOS Functions
     ///
     /// * `tdwithin_tpoint_geo`, `tdwithin_tpoint_tpoint`
-    pub fn within_distance(&self, other: &impl Geometry, distance: f64) -> TBool {
+    fn within_distance(&self, other: Self::Enum, distance: f64) -> TBool {
         let gs = geo_to_gserialized(other, self.is_geog_point());
         let result = tdwithin_tpoint_geo(self.inner(), gs, distance, false, false);
         TBool::new(result)
     }
 
-    /// Returns a new temporal boolean indicating whether the temporal point intersects `other`.
+    /// Returns a new temporal boolean indicating whether the temporal point is within `distance` of `geometry`.
     ///
     /// # Arguments
     ///
-    /// * `other` - An object to check for intersection with.
+    /// * `geometry` - An object to check the distance to.
+    /// * `distance` - The distance to check in units of the spatial reference system.
     ///
     /// # Returns
     ///
-    /// A new `TBool` indicating whether the temporal point intersects `other`.
+    /// A new `TBool` indicating whether the temporal point is within `distance` of `geometry`.
+    ///
+    /// # MEOS Functions
+    ///
+    /// * `tdwithin_tpoint_geo`, `tdwithin_tpoint_tpoint`
+    fn within_distance_of_geometry(&self, geometry: Geometry, distance: f64) -> TBool {
+        let gs = geo_to_gserialized(geometry, self.is_geog_point());
+        let result = tdwithin_tpoint_geo(self.inner(), gs, distance, false, false);
+        TBool::new(result)
+    }
+
+    /// Returns a new temporal boolean indicating whether the temporal point intersects `geometry`.
+    ///
+    /// # Arguments
+    ///
+    /// * `geometry` - An object to check for intersection with.
+    ///
+    /// # Returns
+    ///
+    /// A new `TBool` indicating whether the temporal point intersects `geometry`.
     ///
     /// # MEOS Functions
     ///
     /// * `tintersects_tpoint_geo`
-    pub fn intersects(&self, other: &impl Geometry) -> TBool {
-        let gs = geo_to_gserialized(other, self.is_geog_point());
+    fn intersects_geometry(&self, geometry: Geometry) -> TBool {
+        let gs = geo_to_gserialized(geometry, self.is_geog_point());
         let result = tintersects_tpoint_geo(self.inner(), gs, false, false);
         TBool::new(result)
     }
@@ -721,14 +733,12 @@ pub trait TPoint {
     /// # MEOS Functions
     ///
     /// * `ttouches_tpoint_geo`
-    pub fn touches(&self, other: &impl Geometry) -> TBool {
+    fn touches_geometry(&self, other: Geometry) -> TBool {
         let gs = geo_to_gserialized(other, self.is_geog_point());
         let result = ttouches_tpoint_geo(self.inner(), gs, false, false);
         TBool::new(result)
     }
-}
 
-impl TPoint {
     /// Returns the temporal distance between the temporal point and `other`.
     ///
     /// # Arguments
@@ -742,8 +752,27 @@ impl TPoint {
     /// # MEOS Functions
     ///
     /// * `distance_tpoint_point`, `distance_tpoint_tpoint`
-    pub fn distance(&self, other: &impl Geometry) -> TFloat {
+    fn distance(&self, other: Self::Enum) -> TFloat {
         let gs = geo_to_gserialized(other, self.is_geog_point());
+        let result = distance_tpoint_point(self.inner(), gs);
+        TFloat::new(result)
+    }
+
+    /// Returns the temporal distance between the temporal point and `other`.
+    ///
+    /// # Arguments
+    ///
+    /// * `geometry` - An object to check the distance to.
+    ///
+    /// # Returns
+    ///
+    /// A new `TFloat` indicating the temporal distance between the temporal point and `geometry`.
+    ///
+    /// # MEOS Functions
+    ///
+    /// * `distance_tpoint_point`, `distance_tpoint_tpoint`
+    fn distance_to_geometry(&self, geometry: Geometry) -> TFloat {
+        let gs = geo_to_gserialized(geometry, self.is_geog_point());
         let result = distance_tpoint_point(self.inner(), gs);
         TFloat::new(result)
     }
@@ -761,8 +790,26 @@ impl TPoint {
     /// # MEOS Functions
     ///
     /// * `nad_tpoint_geo`, `nad_tpoint_stbox`, `nad_tpoint_tpoint`
-    pub fn nearest_approach_distance(&self, other: &impl Geometry) -> f64 {
+    fn nearest_approach_distance(&self, other: Self::Enum) -> f64 {
         let gs = geo_to_gserialized(other, self.is_geog_point());
+        nad_tpoint_geo(self.inner(), gs)
+    }
+
+    /// Returns the nearest approach distance between the temporal point and `other`.
+    ///
+    /// # Arguments
+    ///
+    /// * `geometry` - An object to check the nearest approach distance to.
+    ///
+    /// # Returns
+    ///
+    /// A `f64` indicating the nearest approach distance between the temporal point and `geometry`.
+    ///
+    /// # MEOS Functions
+    ///
+    /// * `nad_tpoint_geo`, `nad_tpoint_stbox`, `nad_tpoint_tpoint`
+    fn nearest_approach_distance_to_geometry(&self, geometry: Geometry) -> f64 {
+        let gs = geo_to_gserialized(geometry, self.is_geog_point());
         nad_tpoint_geo(self.inner(), gs)
     }
 
@@ -779,8 +826,27 @@ impl TPoint {
     /// # MEOS Functions
     ///
     /// * `nai_tpoint_geo`, `nai_tpoint_tpoint`
-    pub fn nearest_approach_instant(&self, other: &impl Geometry) -> TI {
+    fn nearest_approach_instant(&self, other: Self::Enum) -> TI {
         let gs = geo_to_gserialized(other, self.is_geog_point());
+        let result = nai_tpoint_geo(self.inner(), gs);
+        TI::new(result)
+    }
+
+    /// Returns the nearest approach instant between the temporal point and `other`.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - An object to check the nearest approach instant to.
+    ///
+    /// # Returns
+    ///
+    /// A new temporal instant indicating the nearest approach instant between the temporal point and `other`.
+    ///
+    /// # MEOS Functions
+    ///
+    /// * `nai_tpoint_geo`, `nai_tpoint_tpoint`
+    fn nearest_approach_instant_to_geometry(&self, geometry: Geometry) -> TI {
+        let gs = geo_to_gserialized(geometry, self.is_geog_point());
         let result = nai_tpoint_geo(self.inner(), gs);
         TI::new(result)
     }
@@ -798,14 +864,31 @@ impl TPoint {
     /// # MEOS Functions
     ///
     /// * `shortestline_tpoint_geo`, `shortestline_tpoint_tpoint`
-    pub fn shortest_line(&self, other: &impl Geometry) -> BaseGeometry {
+    fn shortest_line(&self, other: Self::Enum) -> BaseGeometry {
         let gs = geo_to_gserialized(other, self.is_geog_point());
         let result = shortestline_tpoint_geo(self.inner(), gs);
         gserialized_to_shapely_geometry(result, 10)
     }
-}
 
-impl TPoint {
+    /// Returns the shortest line between the temporal point and `other`.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - An object to check the shortest line to.
+    ///
+    /// # Returns
+    ///
+    /// A new `BaseGeometry` indicating the shortest line between the temporal point and `other`.
+    ///
+    /// # MEOS Functions
+    ///
+    /// * `shortestline_tpoint_geo`, `shortestline_tpoint_tpoint`
+    fn shortest_line_to_geometry(&self, geometry: Geometry) -> BaseGeometry {
+        let gs = geo_to_gserialized(geometry, self.is_geog_point());
+        let result = shortestline_tpoint_geo(self.inner(), gs);
+        gserialized_to_shapely_geometry(result, 10)
+    }
+
     /// Split the temporal point into segments following the tiling of the bounding box.
     ///
     /// # Arguments
@@ -823,14 +906,14 @@ impl TPoint {
     /// # See Also
     ///
     /// `STBox::tile`
-    pub fn tile(
+    fn tile(
         &self,
         size: f64,
         duration: Option<&str>,
         origin: Option<&impl Geometry>,
         start: Option<&str>,
         remove_empty: bool,
-    ) -> Vec<TPoint> {
+    ) -> Vec<Self::Enum> {
         let bbox = STBox::from_tpoint(self);
         let tiles = bbox.tile(size, duration, origin, start);
         if remove_empty {
@@ -858,7 +941,7 @@ impl TPoint {
     /// # MEOS Functions
     ///
     /// * `tpoint_value_split`
-    pub fn space_split(
+    fn space_split(
         &self,
         xsize: f64,
         ysize: Option<f64>,
@@ -904,7 +987,7 @@ impl TPoint {
     /// # MEOS Functions
     ///
     /// * `tfloat_value_time_split`
-    pub fn space_time_split(
+    fn space_time_split(
         &self,
         xsize: f64,
         duration: &str,

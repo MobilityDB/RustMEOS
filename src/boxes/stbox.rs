@@ -18,7 +18,6 @@ use crate::{
         datetime::tstz_span::TsTzSpan,
     },
     errors::ParseError,
-    temporal::number::tnumber::TNumber,
     utils::{create_interval, from_meos_timestamp, to_meos_timestamp},
     WKBVariant,
 };
@@ -242,7 +241,7 @@ impl STBox {
         self._inner
     }
 
-    fn from_inner(inner: *const meos_sys::STBox) -> Self {
+    pub fn from_inner(inner: *const meos_sys::STBox) -> Self {
         Self { _inner: inner }
     }
 
