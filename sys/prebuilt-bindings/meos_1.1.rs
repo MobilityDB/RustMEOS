@@ -5223,7 +5223,7 @@ extern "C" {
     ) -> *mut ::std::os::raw::c_char;
 }
 extern "C" {
-    pub fn geo_from_ewkb(bytea_wkb: *const bytea, srid: int32) -> *mut GSERIALIZED;
+    pub fn geo_from_ewkb(wkb: *const u8, wkb_size: usize, srid: int32) -> *mut GSERIALIZED;
 }
 extern "C" {
     pub fn geo_from_geojson(geojson: *const ::std::os::raw::c_char) -> *mut GSERIALIZED;
@@ -6051,9 +6051,16 @@ extern "C" {
     pub fn set_spans(s: *const Set) -> *mut Span;
 }
 extern "C" {
-    pub fn set_spans_merge(
+    pub fn set_split_each_n_spans(
         s: *const Set,
-        max_count: ::std::os::raw::c_int,
+        elem_count: ::std::os::raw::c_int,
+        count: *mut ::std::os::raw::c_int,
+    ) -> *mut Span;
+}
+extern "C" {
+    pub fn set_split_n_spans(
+        s: *const Set,
+        span_count: ::std::os::raw::c_int,
         count: *mut ::std::os::raw::c_int,
     ) -> *mut Span;
 }
@@ -6061,9 +6068,16 @@ extern "C" {
     pub fn spanset_spans(ss: *const SpanSet) -> *mut Span;
 }
 extern "C" {
-    pub fn spanset_spans_merge(
+    pub fn spanset_split_each_n_spans(
         ss: *const SpanSet,
-        max_count: ::std::os::raw::c_int,
+        elem_count: ::std::os::raw::c_int,
+        count: *mut ::std::os::raw::c_int,
+    ) -> *mut Span;
+}
+extern "C" {
+    pub fn spanset_split_n_spans(
+        ss: *const SpanSet,
+        span_count: ::std::os::raw::c_int,
         count: *mut ::std::os::raw::c_int,
     ) -> *mut Span;
 }
@@ -9216,9 +9230,16 @@ extern "C" {
     pub fn temporal_spans(temp: *const Temporal, count: *mut ::std::os::raw::c_int) -> *mut Span;
 }
 extern "C" {
-    pub fn temporal_spans_merge(
+    pub fn temporal_split_each_n_spans(
         temp: *const Temporal,
-        max_count: ::std::os::raw::c_int,
+        elem_count: ::std::os::raw::c_int,
+        count: *mut ::std::os::raw::c_int,
+    ) -> *mut Span;
+}
+extern "C" {
+    pub fn temporal_split_n_spans(
+        temp: *const Temporal,
+        span_count: ::std::os::raw::c_int,
         count: *mut ::std::os::raw::c_int,
     ) -> *mut Span;
 }
@@ -9226,9 +9247,16 @@ extern "C" {
     pub fn tnumber_tboxes(temp: *const Temporal, count: *mut ::std::os::raw::c_int) -> *mut TBox;
 }
 extern "C" {
-    pub fn tnumber_tboxes_merge(
+    pub fn tnumber_split_each_n_tboxes(
         temp: *const Temporal,
-        max_count: ::std::os::raw::c_int,
+        elem_count: ::std::os::raw::c_int,
+        count: *mut ::std::os::raw::c_int,
+    ) -> *mut TBox;
+}
+extern "C" {
+    pub fn tnumber_split_n_tboxes(
+        temp: *const Temporal,
+        box_count: ::std::os::raw::c_int,
         count: *mut ::std::os::raw::c_int,
     ) -> *mut TBox;
 }
@@ -9236,11 +9264,32 @@ extern "C" {
     pub fn tpoint_stboxes(temp: *const Temporal, count: *mut ::std::os::raw::c_int) -> *mut STBox;
 }
 extern "C" {
-    pub fn tpoint_stboxes_merge(
+    pub fn tpoint_split_each_n_stboxes(
         temp: *const Temporal,
-        max_count: ::std::os::raw::c_int,
+        elem_count: ::std::os::raw::c_int,
         count: *mut ::std::os::raw::c_int,
     ) -> *mut STBox;
+}
+extern "C" {
+    pub fn tpoint_split_n_stboxes(
+        temp: *const Temporal,
+        box_count: ::std::os::raw::c_int,
+        count: *mut ::std::os::raw::c_int,
+    ) -> *mut STBox;
+}
+extern "C" {
+    pub fn geo_split_each_n_gboxes(
+        gs: *const GSERIALIZED,
+        elem_count: ::std::os::raw::c_int,
+        count: *mut ::std::os::raw::c_int,
+    ) -> *mut GBOX;
+}
+extern "C" {
+    pub fn geo_split_n_gboxes(
+        gs: *const GSERIALIZED,
+        box_count: ::std::os::raw::c_int,
+        count: *mut ::std::os::raw::c_int,
+    ) -> *mut GBOX;
 }
 extern "C" {
     pub fn adjacent_numspan_tnumber(s: *const Span, temp: *const Temporal) -> bool;
@@ -9903,13 +9952,6 @@ extern "C" {
 }
 extern "C" {
     pub fn geo_gboxes(gs: *const GSERIALIZED, count: *mut ::std::os::raw::c_int) -> *mut GBOX;
-}
-extern "C" {
-    pub fn geo_gboxes_merge(
-        gs: *const GSERIALIZED,
-        max_count: ::std::os::raw::c_int,
-        count: *mut ::std::os::raw::c_int,
-    ) -> *mut GBOX;
 }
 extern "C" {
     pub fn tpoint_angular_difference(temp: *const Temporal) -> *mut Temporal;
