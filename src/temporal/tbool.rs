@@ -19,6 +19,7 @@ use crate::{
         datetime::{tstz_span::TsTzSpan, tstz_span_set::TsTzSpanSet},
     },
     errors::ParseError,
+    factory,
     temporal::{
         temporal::{
             impl_always_and_ever_value_equality_functions, impl_simple_traits_for_temporal,
@@ -58,11 +59,6 @@ macro_rules! impl_tbool_traits {
                     Self {
                         _inner: inner as *const $temporal_type,
                     }
-                }
-
-                fn from_mfjson(mfjson: &str) -> Self {
-                    let cstr = CString::new(mfjson).unwrap();
-                    Self::from_inner_as_temporal(unsafe { meos_sys::tbool_from_mfjson(cstr.as_ptr()) })
                 }
 
                 fn inner(&self) -> *const meos_sys::Temporal {
@@ -110,24 +106,24 @@ macro_rules! impl_tbool_traits {
                     }
                 }
 
-                fn at_value(&self, value: &Self::Type) -> Option<Self> {
+                fn at_value(&self, value: &Self::Type) -> Option<Self::Enum> {
                     let result = unsafe { meos_sys::tbool_at_value(self.inner(), *value) };
                     if !result.is_null() {
-                        Some(Self::from_inner_as_temporal(result))
+                        Some(factory::<Self::Enum>(result))
                     } else {
                         None
                     }
                 }
                 /// Not implemented for `tbool` types
-                fn at_values(&self, _: &[<Self as Collection>::Type]) -> Option<Self> { unimplemented!("Not implemented for `tbool` types") }
+                fn at_values(&self, _: &[<Self as Collection>::Type]) -> Option<Self::Enum> { unimplemented!("Not implemented for `tbool` types") }
 
-                fn minus_value(&self, value: Self::Type) -> Self {
-                    Self::from_inner_as_temporal(unsafe {
+                fn minus_value(&self, value: Self::Type) -> Self::Enum {
+                    factory::<Self::Enum>(unsafe {
                         meos_sys::tbool_minus_value(self.inner(), value)
                     })
                 }
                 /// Not implemented for `tbool` types
-                fn minus_values(&self, _: &[<Self as Collection>::Type]) -> Self { unimplemented!("Not implemented for `tbool` types") }
+                fn minus_values(&self, _: &[<Self as Collection>::Type]) -> Self::Enum { unimplemented!("Not implemented for `tbool` types") }
 
                 fn temporal_equal_value(&self, value: &Self::Type) -> Self {
                     Self::from_inner_as_temporal(unsafe {
@@ -197,6 +193,11 @@ impl MeosEnum for TBool {
         Self::SequenceSet(TBoolSequenceSet::from_inner(inner))
     }
 
+    fn from_mfjson(mfjson: &str) -> Self {
+        let cstr = CString::new(mfjson).unwrap();
+        factory::<Self>(unsafe { meos_sys::tbool_from_mfjson(cstr.as_ptr()) })
+    }
+
     fn inner(&self) -> *const meos_sys::Temporal {
         match self {
             TBool::Instant(value) => value.inner(),
@@ -232,11 +233,11 @@ pub trait TBoolTrait:
         Self::from_inner_as_temporal(unsafe { meos_sys::tnot_tbool(self.inner()) })
     }
 
-    fn at_true(&self) -> Option<Self> {
+    fn at_true(&self) -> Option<Self::Enum> {
         self.at_value(&true)
     }
 
-    fn at_false(&self) -> Option<Self> {
+    fn at_false(&self) -> Option<Self::Enum> {
         self.at_value(&false)
     }
 }
@@ -343,3 +344,54 @@ impl TBoolTrait for TBoolSequenceSet {}
 
 impl_tbool_traits!(TBoolSequenceSet, meos_sys::TSequenceSet);
 impl_debug!(TBoolSequenceSet);
+
+impl From<TBoolInstant> for TBool {
+    fn from(value: TBoolInstant) -> Self {
+        TBool::Instant(value)
+    }
+}
+
+impl From<TBoolSequence> for TBool {
+    fn from(value: TBoolSequence) -> Self {
+        TBool::Sequence(value)
+    }
+}
+
+impl From<TBoolSequenceSet> for TBool {
+    fn from(value: TBoolSequenceSet) -> Self {
+        TBool::SequenceSet(value)
+    }
+}
+
+impl TryFrom<TBool> for TBoolInstant {
+    type Error = ParseError;
+    fn try_from(value: TBool) -> Result<Self, Self::Error> {
+        if let TBool::Instant(new_value) = value {
+            Ok(new_value)
+        } else {
+            Err(ParseError)
+        }
+    }
+}
+
+impl TryFrom<TBool> for TBoolSequence {
+    type Error = ParseError;
+    fn try_from(value: TBool) -> Result<Self, Self::Error> {
+        if let TBool::Sequence(new_value) = value {
+            Ok(new_value)
+        } else {
+            Err(ParseError)
+        }
+    }
+}
+
+impl TryFrom<TBool> for TBoolSequenceSet {
+    type Error = ParseError;
+    fn try_from(value: TBool) -> Result<Self, Self::Error> {
+        if let TBool::SequenceSet(new_value) = value {
+            Ok(new_value)
+        } else {
+            Err(ParseError)
+        }
+    }
+}

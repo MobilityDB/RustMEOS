@@ -11,7 +11,7 @@ use meos::{
     init,
     temporal::{
         number::tint::{TInt, TIntInstant, TIntSequence, TIntSequenceSet},
-        tbool::TBoolSequence,
+        tbool::{TBoolSequence},
         ttext::TTextSequence,
     },
     WKBVariant,
@@ -63,7 +63,7 @@ fn main() {
         .parse()
         .unwrap();
 
-    let yatint = TIntSequence::from_mfjson(
+    let yatint = TInt::from_mfjson(
         r#"{"type":"MovingInteger","bbox":[10,25],"period":{"begin":"2001-01-01T18:00:00+01","end":"2001-01-01T18:10:00+01"},"values":[10,25],"datetimes":["2001-01-01T18:00:00+01",
 "2001-01-01T18:10:00+01"],"lowerInc":true,"upperInc":true,
 "interpolation":"Discrete"}"#,
@@ -84,11 +84,12 @@ fn main() {
 
     println!("{:?}", tint2.at_value(&111));
 
-    println!("{}", tint2.always_greater(&tint).unwrap());
+    println!("{}", tint2.always_greater(&tint.into()).unwrap());
 
     let tbool: TBoolSequence = "[true@2001-01-01 08:00:00, false@2001-01-03 08:00:00]"
         .parse()
         .unwrap();
+
     let tbool2: TBoolSequence = "[false@2001-01-01 08:00:00, true@2001-01-03 08:00:00]"
         .parse()
         .unwrap();

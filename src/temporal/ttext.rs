@@ -14,6 +14,7 @@ use crate::{
         datetime::{tstz_span::TsTzSpan, tstz_span_set::TsTzSpanSet},
     },
     errors::ParseError,
+    factory,
     temporal::{
         tbool::{TBoolInstant, TBoolSequence, TBoolSequenceSet},
         temporal::{
@@ -114,11 +115,6 @@ macro_rules! impl_ttext_traits {
                     }
                 }
 
-                fn from_mfjson(mfjson: &str) -> Self {
-                    let cstr = CString::new(mfjson).unwrap();
-                    Self::from_inner_as_temporal(unsafe { meos_sys::ttext_from_mfjson(cstr.as_ptr()) })
-                }
-
                 fn inner(&self) -> *const meos_sys::Temporal {
                     self._inner as *const meos_sys::Temporal
                 }
@@ -164,34 +160,35 @@ macro_rules! impl_ttext_traits {
                     }
                 }
 
-                fn at_value(&self, value: &Self::Type) -> Option<Self> {
+                fn at_value(&self, value: &Self::Type) -> Option<Self::Enum> {
                     let result = unsafe { meos_sys::ttext_at_value(self.inner(), to_ctext(value)) };
                     if !result.is_null() {
-                        Some(Self::from_inner_as_temporal(result))
+                        Some(factory::<Self::Enum>(result))
                     } else {
                         None
                     }
                 }
-                fn at_values(&self, values: &[Self::Type]) -> Option<Self> {
+                fn at_values(&self, values: &[Self::Type]) -> Option<Self::Enum> {
                     unsafe {
                         let ctexts: Vec<_> = values.into_iter().map(|text| to_ctext(&text)).collect();
                         let set = meos_sys::textset_make(ctexts.as_ptr() as *mut *const _, values.len() as i32);
                         let result = meos_sys::temporal_at_values(self.inner(), set);
                         if !result.is_null() {
-                            Some(Self::from_inner_as_temporal(result))
+                            Some(factory::<Self::Enum>(result))
                         } else {
                             None
                         }
                     }
                 }
 
-                fn minus_value(&self, value: Self::Type) -> Self {
-                    Self::from_inner_as_temporal(unsafe {
+                fn minus_value(&self, value: Self::Type) -> Self::Enum {
+                    factory::<Self::Enum>(unsafe {
                         meos_sys::ttext_minus_value(self.inner(), to_ctext(&value))
                     })
                 }
-                fn minus_values(&self, values: &[Self::Type]) -> Self {
-                    Self::from_inner_as_temporal(unsafe {
+
+                fn minus_values(&self, values: &[Self::Type]) -> Self::Enum {
+                    factory::<Self::Enum>(unsafe {
                         let ctexts: Vec<_> = values.into_iter().map(|text| to_ctext(&text)).collect();
                         let set = meos_sys::textset_make(ctexts.as_ptr() as *mut *const _, values.len() as i32);
                         meos_sys::temporal_minus_values(self.inner(), set)
@@ -232,6 +229,11 @@ impl MeosEnum for TText {
 
     fn from_sequence_set(inner: *const meos_sys::TSequenceSet) -> Self {
         Self::SequenceSet(TTextSequenceSet::from_inner(inner))
+    }
+
+    fn from_mfjson(mfjson: &str) -> Self {
+        let cstr = CString::new(mfjson).unwrap();
+        factory::<Self>(unsafe { meos_sys::ttext_from_mfjson(cstr.as_ptr()) })
     }
 
     fn inner(&self) -> *const meos_sys::Temporal {
@@ -373,3 +375,54 @@ impl TTextTrait for TTextSequenceSet {}
 
 impl_ttext_traits!(TTextSequenceSet, SequenceSet);
 impl_debug!(TTextSequenceSet);
+
+impl From<TTextInstant> for TText {
+    fn from(value: TTextInstant) -> Self {
+        TText::Instant(value)
+    }
+}
+
+impl From<TTextSequence> for TText {
+    fn from(value: TTextSequence) -> Self {
+        TText::Sequence(value)
+    }
+}
+
+impl From<TTextSequenceSet> for TText {
+    fn from(value: TTextSequenceSet) -> Self {
+        TText::SequenceSet(value)
+    }
+}
+
+impl TryFrom<TText> for TTextInstant {
+    type Error = ParseError;
+    fn try_from(value: TText) -> Result<Self, Self::Error> {
+        if let TText::Instant(new_value) = value {
+            Ok(new_value)
+        } else {
+            Err(ParseError)
+        }
+    }
+}
+
+impl TryFrom<TText> for TTextSequence {
+    type Error = ParseError;
+    fn try_from(value: TText) -> Result<Self, Self::Error> {
+        if let TText::Sequence(new_value) = value {
+            Ok(new_value)
+        } else {
+            Err(ParseError)
+        }
+    }
+}
+
+impl TryFrom<TText> for TTextSequenceSet {
+    type Error = ParseError;
+    fn try_from(value: TText) -> Result<Self, Self::Error> {
+        if let TText::SequenceSet(new_value) = value {
+            Ok(new_value)
+        } else {
+            Err(ParseError)
+        }
+    }
+}

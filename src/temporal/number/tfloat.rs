@@ -21,6 +21,7 @@ use crate::{
         number::float_span_set::FloatSpanSet,
     },
     errors::ParseError,
+    factory,
     temporal::{
         interpolation::TInterpolation,
         tbool::{TBoolInstant, TBoolSequence, TBoolSequenceSet},
@@ -69,6 +70,11 @@ impl MeosEnum for TFloat {
 
     fn from_sequence_set(inner: *const meos_sys::TSequenceSet) -> Self {
         Self::SequenceSet(TFloatSequenceSet { _inner: inner })
+    }
+
+    fn from_mfjson(mfjson: &str) -> Self {
+        let cstr = CString::new(mfjson).unwrap();
+        factory::<Self>(unsafe { meos_sys::tfloat_from_mfjson(cstr.as_ptr()) })
     }
 
     fn inner(&self) -> *const meos_sys::Temporal {
@@ -201,3 +207,54 @@ impl TFloatTrait for TFloatSequenceSet {}
 
 impl_temporal_for_tnumber!(TFloatSequenceSet, SequenceSet, f64, Float);
 impl_debug!(TFloatSequenceSet);
+
+impl From<TFloatInstant> for TFloat {
+    fn from(value: TFloatInstant) -> Self {
+        TFloat::Instant(value)
+    }
+}
+
+impl From<TFloatSequence> for TFloat {
+    fn from(value: TFloatSequence) -> Self {
+        TFloat::Sequence(value)
+    }
+}
+
+impl From<TFloatSequenceSet> for TFloat {
+    fn from(value: TFloatSequenceSet) -> Self {
+        TFloat::SequenceSet(value)
+    }
+}
+
+impl TryFrom<TFloat> for TFloatInstant {
+    type Error = ParseError;
+    fn try_from(value: TFloat) -> Result<Self, Self::Error> {
+        if let TFloat::Instant(new_value) = value {
+            Ok(new_value)
+        } else {
+            Err(ParseError)
+        }
+    }
+}
+
+impl TryFrom<TFloat> for TFloatSequence {
+    type Error = ParseError;
+    fn try_from(value: TFloat) -> Result<Self, Self::Error> {
+        if let TFloat::Sequence(new_value) = value {
+            Ok(new_value)
+        } else {
+            Err(ParseError)
+        }
+    }
+}
+
+impl TryFrom<TFloat> for TFloatSequenceSet {
+    type Error = ParseError;
+    fn try_from(value: TFloat) -> Result<Self, Self::Error> {
+        if let TFloat::SequenceSet(new_value) = value {
+            Ok(new_value)
+        } else {
+            Err(ParseError)
+        }
+    }
+}

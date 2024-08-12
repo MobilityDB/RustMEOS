@@ -1,5 +1,5 @@
 use std::{
-    ffi::{c_void, CStr, CString},
+    ffi::{CStr, CString},
     hash::Hash,
     ptr,
 };
@@ -11,13 +11,13 @@ use crate::{
     },
     factory,
     utils::{create_interval, from_interval, from_meos_timestamp, to_meos_timestamp},
-    BoundingBox, MeosEnum, WKBVariant,
+    BoundingBox, MeosEnum,
 };
 use chrono::{DateTime, TimeDelta, TimeZone, Utc};
 
 use super::{
     interpolation::TInterpolation, tbool::TBoolTrait, tinstant::TInstant, tsequence::TSequence,
-    tsequence_set::TSequenceSet, JSONCVariant,
+    tsequence_set::TSequenceSet,
 };
 
 pub trait Temporal: Collection + Hash {
@@ -30,116 +30,7 @@ pub trait Temporal: Collection + Hash {
 
     fn from_inner_as_temporal(inner: *const meos_sys::Temporal) -> Self;
 
-    /// Creates a temporal object from an MF-JSON string.
-    ///
-    /// ## Arguments
-    /// * `mfjson` - The MF-JSON string.
-    ///
-    /// ## Returns
-    /// A temporal object.
-    fn from_mfjson(mfjson: &str) -> Self;
-
-    /// Creates a temporal object from Well-Known Binary (WKB) bytes.
-    ///
-    /// ## Arguments
-    /// * `wkb` - The WKB bytes.
-    ///
-    /// ## Returns
-    /// A temporal object.
-    fn from_wkb(wkb: &[u8]) -> Self {
-        unsafe {
-            Self::from_inner_as_temporal(meos_sys::temporal_from_wkb(wkb.as_ptr(), wkb.len()))
-        }
-    }
-
-    /// Creates a temporal object from a hex-encoded WKB string.
-    ///
-    /// ## Arguments
-    /// * `hexwkb` - The hex-encoded WKB string.
-    ///
-    /// ## Returns
-    /// A temporal object.
-    fn from_hexwkb(hexwkb: &[u8]) -> Self {
-        let c_hexwkb = CString::new(hexwkb).unwrap();
-        unsafe {
-            let inner = meos_sys::temporal_from_hexwkb(c_hexwkb.as_ptr());
-            Self::from_inner_as_temporal(inner)
-        }
-    }
-
-    /// Creates a temporal object by merging multiple temporal objects.
-    ///
-    /// ## Arguments
-    /// * `temporals` - The temporal objects to merge.
-    ///
-    /// ## Returns
-    /// A merged temporal object.
-    fn from_merge(temporals: &[Self::Enum]) -> Self::Enum {
-        let mut t_list: Vec<_> = temporals.iter().map(Self::Enum::inner).collect();
-        factory::<Self::Enum>(unsafe {
-            meos_sys::temporal_merge_array(t_list.as_mut_ptr(), temporals.len() as i32)
-        })
-    }
-
     fn inner(&self) -> *const meos_sys::Temporal;
-
-    /// Returns the temporal object as an MF-JSON string.
-    ///
-    /// ## Arguments
-    /// * `with_bbox` - Whether to include the bounding box in the output.
-    /// * `flags` - The flags to use for the output.
-    /// * `precision` - The precision to use for the output.
-    /// * `srs` - The spatial reference system (SRS) to use for the output.
-    ///
-    /// ## Returns
-    /// The temporal object as an MF-JSON string.
-    fn as_mfjson(
-        &self,
-        with_bbox: bool,
-        variant: JSONCVariant,
-        precision: i32,
-        srs: &str,
-    ) -> String {
-        let srs = CString::new(srs).unwrap();
-        let out_str = unsafe {
-            meos_sys::temporal_as_mfjson(
-                self.inner(),
-                with_bbox,
-                variant as i32,
-                precision,
-                srs.as_ptr(),
-            )
-        };
-        let c_str = unsafe { CStr::from_ptr(out_str) };
-        let str = c_str.to_str().unwrap().to_owned();
-        unsafe { libc::free(out_str as *mut c_void) };
-        str
-    }
-
-    /// Returns the temporal object as Well-Known Binary (WKB) bytes.
-    ///
-    /// ## Returns
-    /// The temporal object as WKB bytes.
-    fn as_wkb(&self, variant: WKBVariant) -> &[u8] {
-        unsafe {
-            let mut size: usize = 0;
-            let ptr = meos_sys::temporal_as_wkb(self.inner(), variant.into(), &mut size);
-            std::slice::from_raw_parts(ptr, size)
-        }
-    }
-
-    /// Returns the temporal object as a hex-encoded WKB string.
-    ///
-    /// ## Returns
-    /// The temporal object as a hex-encoded WKB bytes.
-    fn as_hexwkb(&self, variant: WKBVariant) -> &[u8] {
-        unsafe {
-            let mut size: usize = 0;
-            let hexwkb_ptr = meos_sys::temporal_as_hexwkb(self.inner(), variant.into(), &mut size);
-
-            CStr::from_ptr(hexwkb_ptr).to_bytes()
-        }
-    }
 
     /// Returns the bounding box of the temporal object.
     ///
@@ -571,10 +462,8 @@ pub trait Temporal: Collection + Hash {
     ///
     /// MEOS Functions:
     ///     `temporal_merge`
-    fn merge_other(&self, other: Self) -> Self {
-        Self::from_inner_as_temporal(unsafe {
-            meos_sys::temporal_merge(self.inner(), other.inner())
-        })
+    fn merge_other(&self, other: Self::Enum) -> Self::Enum {
+        factory::<Self::Enum>(unsafe { meos_sys::temporal_merge(self.inner(), other.inner()) })
     }
 
     /// Inserts `other` into `self`.
@@ -585,8 +474,8 @@ pub trait Temporal: Collection + Hash {
     ///
     /// MEOS Functions:
     ///     `temporal_insert`
-    fn insert(&self, other: Self, connect: bool) -> Self {
-        Self::from_inner_as_temporal(unsafe {
+    fn insert(&self, other: Self::Enum, connect: bool) -> Self::Enum {
+        factory::<Self::Enum>(unsafe {
             meos_sys::temporal_insert(self.inner(), other.inner(), connect)
         })
     }
@@ -599,8 +488,8 @@ pub trait Temporal: Collection + Hash {
     ///
     /// MEOS Functions:
     ///     `temporal_update`
-    fn update(&self, other: Self, connect: bool) -> Self {
-        Self::from_inner_as_temporal(unsafe {
+    fn update(&self, other: Self::Enum, connect: bool) -> Self::Enum {
+        factory::<Self::Enum>(unsafe {
             meos_sys::temporal_update(self.inner(), other.inner(), connect)
         })
     }
@@ -613,8 +502,8 @@ pub trait Temporal: Collection + Hash {
     ///
     /// MEOS Functions:
     ///     `temporal_delete`
-    fn delete_at_timestamp<Tz: TimeZone>(&self, other: DateTime<Tz>, connect: bool) -> Self {
-        Self::from_inner_as_temporal(unsafe {
+    fn delete_at_timestamp<Tz: TimeZone>(&self, other: DateTime<Tz>, connect: bool) -> Self::Enum {
+        factory::<Self::Enum>(unsafe {
             meos_sys::temporal_delete_timestamptz(self.inner(), to_meos_timestamp(&other), connect)
         })
     }
@@ -624,8 +513,8 @@ pub trait Temporal: Collection + Hash {
     /// ## Arguments
     /// * `time_span` - Time span object specifying the elements to delete.
     /// * `connect` - Whether to connect the potential gaps generated by the deletions.
-    fn delete_at_tstz_span(&self, time_span: TsTzSpan, connect: bool) -> Self {
-        Self::from_inner_as_temporal(unsafe {
+    fn delete_at_tstz_span(&self, time_span: TsTzSpan, connect: bool) -> Self::Enum {
+        factory::<Self::Enum>(unsafe {
             meos_sys::temporal_delete_tstzspan(self.inner(), time_span.inner(), connect)
         })
     }
@@ -635,8 +524,8 @@ pub trait Temporal: Collection + Hash {
     /// ## Arguments
     /// * `time_span_set` - Time span set object specifying the elements to delete.
     /// * `connect` - Whether to connect the potential gaps generated by the deletions.
-    fn delete_at_tstz_span_set(&self, time_span_set: TsTzSpanSet, connect: bool) -> Self {
-        Self::from_inner_as_temporal(unsafe {
+    fn delete_at_tstz_span_set(&self, time_span_set: TsTzSpanSet, connect: bool) -> Self::Enum {
+        factory::<Self::Enum>(unsafe {
             meos_sys::temporal_delete_tstzspanset(self.inner(), time_span_set.inner(), connect)
         })
     }
@@ -650,13 +539,10 @@ pub trait Temporal: Collection + Hash {
     ///
     /// MEOS Functions:
     ///     `temporal_at_temporal_at_timestamptz`
-    fn at_timestamp<Tz: TimeZone>(&self, other: DateTime<Tz>) -> Self {
-        unsafe {
-            Self::from_inner_as_temporal(meos_sys::temporal_at_timestamptz(
-                self.inner(),
-                to_meos_timestamp(&other),
-            ))
-        }
+    fn at_timestamp<Tz: TimeZone>(&self, other: DateTime<Tz>) -> Self::TI {
+        <Self::TI as Temporal>::from_inner_as_temporal(unsafe {
+            meos_sys::temporal_at_timestamptz(self.inner(), to_meos_timestamp(&other))
+        })
     }
 
     /// Returns a new temporal object with values restricted to the time `time_span`.
@@ -689,13 +575,13 @@ pub trait Temporal: Collection + Hash {
     ///
     /// MEOS Functions:
     ///     `temporal_at_value`
-    fn at_value(&self, value: &Self::Type) -> Option<Self>;
+    fn at_value(&self, value: &Self::Type) -> Option<Self::Enum>;
 
     /// Returns a new temporal object containing the times `self` is in any of the values of `values`.
     ///
     /// MEOS Functions:
     ///     `temporal_at_values`
-    fn at_values(&self, values: &[Self::Type]) -> Option<Self>;
+    fn at_values(&self, values: &[Self::Type]) -> Option<Self::Enum>;
 
     /// Returns a new temporal object with values at `timestamp` removed.
     ///
@@ -704,8 +590,8 @@ pub trait Temporal: Collection + Hash {
     ///
     /// MEOS Functions:
     ///     `temporal_minus_*`
-    fn minus_timestamp<Tz: TimeZone>(&self, timestamp: DateTime<Tz>) -> Self {
-        Self::from_inner_as_temporal(unsafe {
+    fn minus_timestamp<Tz: TimeZone>(&self, timestamp: DateTime<Tz>) -> Self::Enum {
+        factory::<Self::Enum>(unsafe {
             meos_sys::temporal_minus_timestamptz(self.inner(), to_meos_timestamp(&timestamp))
         })
     }
@@ -717,18 +603,18 @@ pub trait Temporal: Collection + Hash {
     ///
     /// MEOS Functions:
     ///     `temporal_minus_*`
-    fn minus_timestamp_set<Tz: TimeZone>(&self, timestamps: &[DateTime<Tz>]) -> Self {
+    fn minus_timestamp_set<Tz: TimeZone>(&self, timestamps: &[DateTime<Tz>]) -> Self::Enum {
         let timestamps: Vec<_> = timestamps.iter().map(to_meos_timestamp).collect();
         let set = unsafe { meos_sys::tstzset_make(timestamps.as_ptr(), timestamps.len() as i32) };
-        Self::from_inner_as_temporal(unsafe { meos_sys::temporal_minus_tstzset(self.inner(), set) })
+        factory::<Self::Enum>(unsafe { meos_sys::temporal_minus_tstzset(self.inner(), set) })
     }
 
     /// Returns a new temporal object with values at `time_span` removed.
     ///
     /// ## Arguments
     /// * `time_span` - A time span specifying the values to remove.
-    fn minus_tstz_span(&self, time_span: TsTzSpan) -> Self {
-        Self::from_inner_as_temporal(unsafe {
+    fn minus_tstz_span(&self, time_span: TsTzSpan) -> Self::Enum {
+        factory::<Self::Enum>(unsafe {
             meos_sys::temporal_minus_tstzspan(self.inner(), time_span.inner())
         })
     }
@@ -737,8 +623,8 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Arguments
     /// * `time_span_set` - A time span set specifying the values to remove.
-    fn minus_tstz_span_set(&self, time_span_set: TsTzSpanSet) -> Self {
-        Self::from_inner_as_temporal(unsafe {
+    fn minus_tstz_span_set(&self, time_span_set: TsTzSpanSet) -> Self::Enum {
+        factory::<Self::Enum>(unsafe {
             meos_sys::temporal_minus_tstzspanset(self.inner(), time_span_set.inner())
         })
     }
@@ -747,13 +633,13 @@ pub trait Temporal: Collection + Hash {
     ///
     /// MEOS Functions:
     ///     `temporal_minus_value`
-    fn minus_value(&self, value: Self::Type) -> Self;
+    fn minus_value(&self, value: Self::Type) -> Self::Enum;
 
     /// Returns a new temporal object containing the times `self` is not at `values`.
     ///
     /// MEOS Functions:
     ///     `temporal_minus_values`
-    fn minus_values(&self, values: &[Self::Type]) -> Self;
+    fn minus_values(&self, values: &[Self::Type]) -> Self::Enum;
 
     // ------------------------- Topological Operations ------------------------
 
@@ -764,8 +650,8 @@ pub trait Temporal: Collection + Hash {
     ///
     /// See also:
     ///     `Collection.is_adjacent`
-    fn is_adjacent(&self, other: Self) -> bool {
-        self.bounding_box().is_adjacent(&other.bounding_box())
+    fn is_adjacent(&self, other: Self::Enum) -> bool {
+        unsafe { meos_sys::adjacent_temporal_temporal(self.inner(), other.inner()) }
     }
 
     /// Returns a `TBool` representing whether the bounding timespan of `self` is temporally adjacent to the bounding timespan of `other` accross time.
@@ -786,8 +672,8 @@ pub trait Temporal: Collection + Hash {
     ///
     /// See also:
     ///     `Collection.is_contained_in`
-    fn is_contained_in(&self, other: Self) -> bool {
-        self.bounding_box().is_contained_in(&other.bounding_box())
+    fn is_contained_in(&self, other: Self::Enum) -> bool {
+        unsafe { meos_sys::contained_temporal_temporal(self.inner(), other.inner()) }
     }
 
     /// Returns a `TBool` representing whether the bounding timespan of `self` is contained in the bounding timespan of `container` accross time.
@@ -805,8 +691,8 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Arguments
     /// * `other` - A time or temporal object to compare.
-    fn contains(&self, other: Self) -> bool {
-        other.bounding_box().is_contained_in(&self.bounding_box())
+    fn contains(&self, other: Self::Enum) -> bool {
+        unsafe { meos_sys::contains_temporal_temporal(self.inner(), other.inner()) }
     }
 
     /// Returns a `TBool` representing whether the bounding timespan of `self` temporally contains the bounding timespan of `other` accross time.
@@ -825,7 +711,7 @@ pub trait Temporal: Collection + Hash {
     /// See also:
     ///     `Collection.overlaps`
     fn overlaps(&self, other: Self) -> bool {
-        self.bounding_box().overlaps(&other.bounding_box())
+        unsafe { meos_sys::overlaps_temporal_temporal(self.inner(), other.inner()) }
     }
 
     /// Returns a `TBool` representing whether the bounding timespan of `self` temporally overlaps with the bounding timespan of `other` accross time.
@@ -850,8 +736,8 @@ pub trait Temporal: Collection + Hash {
     ///
     /// See also:
     ///     `TsTzSpan.is_left`
-    fn is_before(&self, other: Self) -> bool {
-        self.timespan().is_left(&other.timespan())
+    fn is_before(&self, other: Self::Enum) -> bool {
+        unsafe { meos_sys::before_temporal_temporal(self.inner(), other.inner()) }
     }
 
     /// Returns whether `self` is before `other` allowing overlap.
@@ -864,8 +750,8 @@ pub trait Temporal: Collection + Hash {
     ///
     /// See also:
     ///     `TsTzSpan.is_over_or_left`
-    fn is_over_or_before(&self, other: Self) -> bool {
-        self.timespan().is_over_or_left(&other.timespan())
+    fn is_over_or_before(&self, other: Self::Enum) -> bool {
+        unsafe { meos_sys::overbefore_temporal_temporal(self.inner(), other.inner()) }
     }
 
     /// Returns whether `self` is after `other`.
@@ -878,8 +764,8 @@ pub trait Temporal: Collection + Hash {
     ///
     /// See also:
     ///     `TsTzSpan.is_right`
-    fn is_after(&self, other: Self) -> bool {
-        self.timespan().is_right(&other.timespan())
+    fn is_after(&self, other: Self::Enum) -> bool {
+        unsafe { meos_sys::after_temporal_temporal(self.inner(), other.inner()) }
     }
 
     /// Returns whether `self` is after `other` allowing overlap.
@@ -892,8 +778,8 @@ pub trait Temporal: Collection + Hash {
     ///
     /// See also:
     ///     `TsTzSpan.is_over_or_right`
-    fn is_over_or_after(&self, other: Self) -> bool {
-        self.timespan().is_over_or_right(&other.timespan())
+    fn is_over_or_after(&self, other: Self::Enum) -> bool {
+        unsafe { meos_sys::overafter_temporal_temporal(self.inner(), other.inner()) }
     }
 
     // ------------------------- Similarity Operations -------------------------
@@ -1336,7 +1222,7 @@ pub trait OrderedTemporal: Temporal {
     /// ## Returns
     ///
     /// `true` if the values of `self` are always less than `other`, `false` otherwise.
-    fn always_less(&self, other: &Self) -> Option<bool> {
+    fn always_less(&self, other: &Self::Enum) -> Option<bool> {
         let result = unsafe { meos_sys::always_lt_temporal_temporal(self.inner(), other.inner()) };
         if result != -1 {
             Some(result == 1)
@@ -1354,7 +1240,7 @@ pub trait OrderedTemporal: Temporal {
     /// ## Returns
     ///
     /// `true` if the values of `self` are always less than or equal to `other`, `false` otherwise.
-    fn always_less_or_equal(&self, other: &Self) -> Option<bool> {
+    fn always_less_or_equal(&self, other: &Self::Enum) -> Option<bool> {
         let result = unsafe { meos_sys::always_le_temporal_temporal(self.inner(), other.inner()) };
         if result != -1 {
             Some(result == 1)
@@ -1372,7 +1258,7 @@ pub trait OrderedTemporal: Temporal {
     /// ## Returns
     ///
     /// `true` if the values of `self` are always greater than or equal to `other`, `false` otherwise.
-    fn always_greater_or_equal(&self, other: &Self) -> Option<bool> {
+    fn always_greater_or_equal(&self, other: &Self::Enum) -> Option<bool> {
         let result = unsafe { meos_sys::always_ge_temporal_temporal(self.inner(), other.inner()) };
         if result != -1 {
             Some(result == 1)
@@ -1390,7 +1276,7 @@ pub trait OrderedTemporal: Temporal {
     /// ## Returns
     ///
     /// `true` if the values of `self` are always greater than `other`, `false` otherwise.
-    fn always_greater(&self, other: &Self) -> Option<bool> {
+    fn always_greater(&self, other: &Self::Enum) -> Option<bool> {
         let result = unsafe { meos_sys::always_gt_temporal_temporal(self.inner(), other.inner()) };
         if result != -1 {
             Some(result == 1)
@@ -1412,7 +1298,7 @@ pub trait OrderedTemporal: Temporal {
     /// ## Returns
     ///
     /// `true` if the values of `self` are ever less than `other`, `false` otherwise.
-    fn ever_less(&self, other: &Self) -> Option<bool> {
+    fn ever_less(&self, other: &Self::Enum) -> Option<bool> {
         let result = unsafe { meos_sys::ever_lt_temporal_temporal(self.inner(), other.inner()) };
         if result != -1 {
             Some(result == 1)
@@ -1429,7 +1315,7 @@ pub trait OrderedTemporal: Temporal {
     /// ## Returns
     ///
     /// `true` if the values of `self` are ever less than or equal to `other`, `false` otherwise.
-    fn ever_less_or_equal(&self, other: &Self) -> Option<bool> {
+    fn ever_less_or_equal(&self, other: &Self::Enum) -> Option<bool> {
         let result = unsafe { meos_sys::ever_le_temporal_temporal(self.inner(), other.inner()) };
         if result != -1 {
             Some(result == 1)
@@ -1447,7 +1333,7 @@ pub trait OrderedTemporal: Temporal {
     /// ## Returns
     ///
     /// `true` if the values of `self` are ever greater than or equal to `other`, `false` otherwise.
-    fn ever_greater_or_equal(&self, other: &Self) -> Option<bool> {
+    fn ever_greater_or_equal(&self, other: &Self::Enum) -> Option<bool> {
         let result = unsafe { meos_sys::ever_ge_temporal_temporal(self.inner(), other.inner()) };
         if result != -1 {
             Some(result == 1)
@@ -1465,7 +1351,7 @@ pub trait OrderedTemporal: Temporal {
     /// ## Returns
     ///
     /// `true` if the values of `self` are ever greater than `other`, `false` otherwise.
-    fn ever_greater(&self, other: &Self) -> Option<bool> {
+    fn ever_greater(&self, other: &Self::Enum) -> Option<bool> {
         let result = unsafe { meos_sys::ever_gt_temporal_temporal(self.inner(), other.inner()) };
         if result != -1 {
             Some(result == 1)

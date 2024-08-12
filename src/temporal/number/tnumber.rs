@@ -141,7 +141,7 @@ pub trait TNumber: Temporal<TBB = TBox> {
 ///    - `type`: The actual Rust type to implement the traits to
 ///    - `temporal_type`: Whether it's Instant, Sequence, or SequenceSet
 ///    - `base_type`: The base Rust type, i32 or f64.
-///    - `basic_type`: Whether it's int or float.
+///    - `basic_type`: Whether it's Int or Float.
 macro_rules! impl_temporal_for_tnumber {
     ($type:ty, $temporal_type:ident, $base_type:ty, $basic_type:ident) => {
         paste::paste! {
@@ -185,11 +185,6 @@ macro_rules! impl_temporal_for_tnumber {
                     Self {
                         _inner: inner as *const meos_sys::[<T $temporal_type>],
                     }
-                }
-
-                fn from_mfjson(mfjson: &str) -> Self {
-                    let cstr = CString::new(mfjson).unwrap();
-                    Self::from_inner_as_temporal(unsafe { meos_sys::[<t $basic_type:lower _from_mfjson>](cstr.as_ptr()) })
                 }
 
                 fn inner(&self) -> *const meos_sys::Temporal {
@@ -237,35 +232,35 @@ macro_rules! impl_temporal_for_tnumber {
                     }
                 }
 
-                fn at_value(&self, value: &Self::Type) -> Option<Self> {
+                fn at_value(&self, value: &Self::Type) -> Option<Self::Enum> {
                     let result = unsafe { meos_sys::[<t $basic_type:lower _at_value>](self.inner(), *value) };
                     if !result.is_null() {
-                        Some(Self::from_inner_as_temporal(result))
+                        Some(factory::<Self::Enum>(result))
                     } else {
                         None
                     }
                 }
 
-                fn at_values(&self, values: &[Self::Type]) -> Option<Self> {
+                fn at_values(&self, values: &[Self::Type]) -> Option<Self::Enum> {
                     unsafe {
                         let set = meos_sys::[<$basic_type:lower set_make>](values.as_ptr(), values.len() as i32);
                         let result = meos_sys::temporal_at_values(self.inner(), set);
                         if !result.is_null() {
-                            Some(Self::from_inner_as_temporal(result))
+                            Some(factory::<Self::Enum>(result))
                         } else {
                             None
                         }
                     }
                 }
 
-                fn minus_value(&self, value: Self::Type) -> Self {
-                    Self::from_inner_as_temporal(unsafe {
+                fn minus_value(&self, value: Self::Type) -> Self::Enum {
+                    factory::<Self::Enum>(unsafe {
                         meos_sys::[<t $basic_type:lower _minus_value>](self.inner(), value)
                     })
                 }
 
-                fn minus_values(&self, values: &[Self::Type]) -> Self {
-                    Self::from_inner_as_temporal(unsafe {
+                fn minus_values(&self, values: &[Self::Type]) -> Self::Enum {
+                    factory::<Self::Enum>(unsafe {
                         let set = meos_sys::[<$basic_type:lower set_make>](values.as_ptr(), values.len() as i32);
                         meos_sys::temporal_minus_values(self.inner(), set)
                     })

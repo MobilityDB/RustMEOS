@@ -1,6 +1,6 @@
 #![allow(refining_impl_trait)]
 use std::{
-    ffi::{CStr, CString},
+    ffi::{c_void, CStr, CString},
     fmt::Debug,
     sync::Once,
 };
@@ -9,6 +9,7 @@ use bitmask_enum::bitmask;
 use boxes::r#box::Box as MeosBox;
 use collections::base::collection::Collection;
 pub use meos_sys;
+use temporal::JSONCVariant;
 
 pub mod boxes;
 pub mod collections;
@@ -81,10 +82,117 @@ impl From<u32> for TemporalSubtype {
     }
 }
 
-pub trait MeosEnum: Debug {
+pub trait MeosEnum: Debug + Sized {
     fn from_instant(inner: *const meos_sys::TInstant) -> Self;
     fn from_sequence(inner: *const meos_sys::TSequence) -> Self;
     fn from_sequence_set(inner: *const meos_sys::TSequenceSet) -> Self;
+
+    /// Creates a temporal object from an MF-JSON string.
+    ///
+    /// ## Arguments
+    /// * `mfjson` - The MF-JSON string.
+    ///
+    /// ## Returns
+    /// A temporal object.
+    fn from_mfjson(mfjson: &str) -> Self;
+
+    /// Creates a temporal object from Well-Known Binary (WKB) bytes.
+    ///
+    /// ## Arguments
+    /// * `wkb` - The WKB bytes.
+    ///
+    /// ## Returns
+    /// A temporal object.
+    fn from_wkb(wkb: &[u8]) -> Self {
+        factory::<Self>(unsafe { meos_sys::temporal_from_wkb(wkb.as_ptr(), wkb.len()) })
+    }
+
+    /// Creates a temporal object from a hex-encoded WKB string.
+    ///
+    /// ## Arguments
+    /// * `hexwkb` - The hex-encoded WKB string.
+    ///
+    /// ## Returns
+    /// A temporal object.
+    fn from_hexwkb(hexwkb: &[u8]) -> Self {
+        let c_hexwkb = CString::new(hexwkb).unwrap();
+        unsafe {
+            let inner = meos_sys::temporal_from_hexwkb(c_hexwkb.as_ptr());
+            factory::<Self>(inner)
+        }
+    }
+
+    /// Creates a temporal object by merging multiple temporal objects.
+    ///
+    /// ## Arguments
+    /// * `temporals` - The temporal objects to merge.
+    ///
+    /// ## Returns
+    /// A merged temporal object.
+    fn from_merge(temporals: &[Self]) -> Self {
+        let mut t_list: Vec<_> = temporals.iter().map(Self::inner).collect();
+        factory::<Self>(unsafe {
+            meos_sys::temporal_merge_array(t_list.as_mut_ptr(), temporals.len() as i32)
+        })
+    }
+
+    /// Returns the temporal object as an MF-JSON string.
+    ///
+    /// ## Arguments
+    /// * `with_bbox` - Whether to include the bounding box in the output.
+    /// * `flags` - The flags to use for the output.
+    /// * `precision` - The precision to use for the output.
+    /// * `srs` - The spatial reference system (SRS) to use for the output.
+    ///
+    /// ## Returns
+    /// The temporal object as an MF-JSON string.
+    fn as_mfjson(
+        &self,
+        with_bbox: bool,
+        variant: JSONCVariant,
+        precision: i32,
+        srs: &str,
+    ) -> String {
+        let srs = CString::new(srs).unwrap();
+        let out_str = unsafe {
+            meos_sys::temporal_as_mfjson(
+                self.inner(),
+                with_bbox,
+                variant as i32,
+                precision,
+                srs.as_ptr(),
+            )
+        };
+        let c_str = unsafe { CStr::from_ptr(out_str) };
+        let str = c_str.to_str().unwrap().to_owned();
+        unsafe { libc::free(out_str as *mut c_void) };
+        str
+    }
+
+    /// Returns the temporal object as Well-Known Binary (WKB) bytes.
+    ///
+    /// ## Returns
+    /// The temporal object as WKB bytes.
+    fn as_wkb(&self, variant: WKBVariant) -> &[u8] {
+        unsafe {
+            let mut size: usize = 0;
+            let ptr = meos_sys::temporal_as_wkb(self.inner(), variant.into(), &mut size);
+            std::slice::from_raw_parts(ptr, size)
+        }
+    }
+
+    /// Returns the temporal object as a hex-encoded WKB string.
+    ///
+    /// ## Returns
+    /// The temporal object as a hex-encoded WKB bytes.
+    fn as_hexwkb(&self, variant: WKBVariant) -> &[u8] {
+        unsafe {
+            let mut size: usize = 0;
+            let hexwkb_ptr = meos_sys::temporal_as_hexwkb(self.inner(), variant.into(), &mut size);
+
+            CStr::from_ptr(hexwkb_ptr).to_bytes()
+        }
+    }
 
     fn inner(&self) -> *const meos_sys::Temporal;
 }

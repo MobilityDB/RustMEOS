@@ -58,6 +58,11 @@ impl MeosEnum for TInt {
         Self::SequenceSet(TIntSequenceSet::from_inner(inner))
     }
 
+    fn from_mfjson(mfjson: &str) -> Self {
+        let cstr = CString::new(mfjson).unwrap();
+        factory::<Self>(unsafe { meos_sys::tint_from_mfjson(cstr.as_ptr()) })
+    }
+
     fn inner(&self) -> *const meos_sys::Temporal {
         match self {
             TInt::Instant(value) => value.inner(),
@@ -272,3 +277,54 @@ impl TIntTrait for TIntSequenceSet {}
 
 impl_temporal_for_tnumber!(TIntSequenceSet, SequenceSet, i32, Int);
 impl_debug!(TIntSequenceSet);
+
+impl From<TIntInstant> for TInt {
+    fn from(value: TIntInstant) -> Self {
+        TInt::Instant(value)
+    }
+}
+
+impl From<TIntSequence> for TInt {
+    fn from(value: TIntSequence) -> Self {
+        TInt::Sequence(value)
+    }
+}
+
+impl From<TIntSequenceSet> for TInt {
+    fn from(value: TIntSequenceSet) -> Self {
+        TInt::SequenceSet(value)
+    }
+}
+
+impl TryFrom<TInt> for TIntInstant {
+    type Error = ParseError;
+    fn try_from(value: TInt) -> Result<Self, Self::Error> {
+        if let TInt::Instant(new_value) = value {
+            Ok(new_value)
+        } else {
+            Err(ParseError)
+        }
+    }
+}
+
+impl TryFrom<TInt> for TIntSequence {
+    type Error = ParseError;
+    fn try_from(value: TInt) -> Result<Self, Self::Error> {
+        if let TInt::Sequence(new_value) = value {
+            Ok(new_value)
+        } else {
+            Err(ParseError)
+        }
+    }
+}
+
+impl TryFrom<TInt> for TIntSequenceSet {
+    type Error = ParseError;
+    fn try_from(value: TInt) -> Result<Self, Self::Error> {
+        if let TInt::SequenceSet(new_value) = value {
+            Ok(new_value)
+        } else {
+            Err(ParseError)
+        }
+    }
+}
