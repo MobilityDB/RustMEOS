@@ -1452,6 +1452,14 @@ pub trait OrderedTemporal: Temporal {
 macro_rules! impl_simple_traits_for_temporal {
     ($type:ty, $meos_type:ident) => {
         paste::paste! {
+            impl Drop for $type {
+                fn drop(&mut self) {
+                    unsafe {
+                        libc::free(self._inner.as_ptr() as *mut c_void);
+                    }
+                }
+            }
+
             impl Clone for $type {
                 fn clone(&self) -> Self {
                     Temporal::from_inner_as_temporal(unsafe { meos_sys::temporal_copy(self.inner()) })
