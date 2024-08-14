@@ -843,8 +843,12 @@ pub trait TPointTrait<const IsGeodetic: bool>: Temporal {
     /// # MEOS Functions
     ///
     /// * `shortestline_tpoint_geo`, `shortestline_tpoint_tpoint`
-    fn shortest_line(&self, other: Self::Enum) -> BaseGeometry {
-        Geometry::unsafe {meos_sys::shortestline_tpoint_tpoint(self.inner(), other.inner())}
+    fn shortest_line(&self, other: Self::Enum) -> Result<Geometry, geos::Error> {
+        let gs = unsafe { meos_sys::shortestline_tpoint_tpoint(self.inner(), other.inner()) };
+        let mut size = 0;
+        let bytes = unsafe { meos_sys::geo_as_ewkb(gs, "xdr".into(), ptr::addr_of_mut!(size)) };
+
+        Geometry::new_from_wkb(bytes)
     }
 
     /// Returns the shortest line between the temporal point and `other`.
@@ -860,10 +864,14 @@ pub trait TPointTrait<const IsGeodetic: bool>: Temporal {
     /// # MEOS Functions
     ///
     /// * `shortestline_tpoint_geo`, `shortestline_tpoint_tpoint`
-    fn shortest_line_to_geometry(&self, geometry: Geometry) -> BaseGeometry {
-        let gs = geo_to_gserialized(geometry, self.is_geog_point());
-        let result = shortestline_tpoint_geo(self.inner(), gs);
-        gserialized_to_shapely_geometry(result, 10)
+    fn shortest_line_to_geometry(&self, geometry: Geometry) -> Result<Geometry, geos::Error> {
+        let wkb = geometry.to_wkb().unwrap();
+        let geo = unsafe { meos_sys::geo_from_ewkb(wkb, wkb.len(), geometry.get_srid()) };
+        let gs = unsafe { meos_sys::shortestline_tpoint_tpoint(self.inner(), geo) };
+        let mut size = 0;
+        let bytes = unsafe { meos_sys::geo_as_ewkb(gs, "xdr".into(), ptr::addr_of_mut!(size)) };
+
+        Geometry::new_from_wkb(bytes)
     }
 
     /// Split the temporal point into segments following the tiling of the bounding box.

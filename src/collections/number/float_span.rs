@@ -4,6 +4,7 @@ use std::{
     fmt::Debug,
     hash::Hash,
     ops::{BitAnd, Range, RangeInclusive},
+    ptr,
 };
 
 use collection::{impl_collection, Collection};
@@ -14,13 +15,13 @@ use crate::{collections::base::*, errors::ParseError};
 use super::number_span::NumberSpan;
 
 pub struct FloatSpan {
-    _inner: *const meos_sys::Span,
+    _inner: ptr::NonNull<meos_sys::Span>,
 }
 
 impl Drop for FloatSpan {
     fn drop(&mut self) {
         unsafe {
-            libc::free(self._inner as *mut c_void);
+            libc::free(self._inner.as_ptr() as *mut c_void);
         }
     }
 }
@@ -35,7 +36,7 @@ impl Collection for FloatSpan {
 impl span::Span for FloatSpan {
     type SubsetType = Self::Type;
     fn inner(&self) -> *const meos_sys::Span {
-        self._inner
+        self._inner.as_ptr()
     }
 
     /// Creates a new `FloatSpan` from an inner pointer to a `meos_sys::Span`.
@@ -45,8 +46,10 @@ impl span::Span for FloatSpan {
     ///
     /// ## Returns
     /// * A new `FloatSpan` instance.
-    fn from_inner(inner: *const meos_sys::Span) -> Self {
-        Self { _inner: inner }
+    fn from_inner(inner: *mut meos_sys::Span) -> Self {
+        Self {
+            _inner: ptr::NonNull::new(inner).expect("Null pointers not allowed"),
+        }
     }
 
     /// Returns the lower bound of the span.
@@ -151,7 +154,7 @@ impl span::Span for FloatSpan {
         let d = delta.unwrap_or(0.0);
         let w = width.unwrap_or(0.0);
         let modified = unsafe {
-            meos_sys::floatspan_shift_scale(self._inner, d, w, delta.is_some(), width.is_some())
+            meos_sys::floatspan_shift_scale(self.inner(), d, w, delta.is_some(), width.is_some())
         };
         FloatSpan::from_inner(modified)
     }
@@ -169,13 +172,13 @@ impl NumberSpan for FloatSpan {}
 
 impl Clone for FloatSpan {
     fn clone(&self) -> Self {
-        unsafe { Self::from_inner(meos_sys::span_copy(self._inner)) }
+        unsafe { Self::from_inner(meos_sys::span_copy(self.inner())) }
     }
 }
 
 impl Hash for FloatSpan {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        let hash = unsafe { meos_sys::span_hash(self._inner) };
+        let hash = unsafe { meos_sys::span_hash(self.inner()) };
         state.write_u32(hash);
 
         state.finish();
@@ -233,7 +236,7 @@ impl cmp::PartialEq for FloatSpan {
     /// assert_eq!(span1, span2);
     /// ```
     fn eq(&self, other: &Self) -> bool {
-        unsafe { meos_sys::span_eq(self._inner, other._inner) }
+        unsafe { meos_sys::span_eq(self.inner(), other.inner()) }
     }
 }
 
@@ -271,7 +274,7 @@ impl From<RangeInclusive<f32>> for FloatSpan {
 
 impl Debug for FloatSpan {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let out_str = unsafe { meos_sys::floatspan_out(self._inner, 3) };
+        let out_str = unsafe { meos_sys::floatspan_out(self.inner(), 3) };
         // Default of 3 decimal digits
         let c_str = unsafe { CStr::from_ptr(out_str) };
         let str = c_str.to_str().map_err(|_| std::fmt::Error)?;
@@ -311,7 +314,7 @@ impl BitAnd for FloatSpan {
 
 impl PartialOrd for FloatSpan {
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
-        let cmp = unsafe { meos_sys::span_cmp(self._inner, other._inner) };
+        let cmp = unsafe { meos_sys::span_cmp(self.inner(), other.inner()) };
         match cmp {
             -1 => Some(cmp::Ordering::Less),
             0 => Some(cmp::Ordering::Equal),

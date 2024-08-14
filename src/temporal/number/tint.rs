@@ -46,15 +46,15 @@ pub enum TInt {
 }
 
 impl MeosEnum for TInt {
-    fn from_instant(inner: *const meos_sys::TInstant) -> Self {
+    fn from_instant(inner: *mut meos_sys::TInstant) -> Self {
         Self::Instant(TIntInstant::from_inner(inner))
     }
 
-    fn from_sequence(inner: *const meos_sys::TSequence) -> Self {
+    fn from_sequence(inner: *mut meos_sys::TSequence) -> Self {
         Self::Sequence(TIntSequence::from_inner(inner))
     }
 
-    fn from_sequence_set(inner: *const meos_sys::TSequenceSet) -> Self {
+    fn from_sequence_set(inner: *mut meos_sys::TSequenceSet) -> Self {
         Self::SequenceSet(TIntSequenceSet::from_inner(inner))
     }
 
@@ -117,16 +117,18 @@ macro_rules! impl_debug {
 }
 
 pub struct TIntInstant {
-    _inner: *const meos_sys::TInstant,
+    _inner: ptr::NonNull<meos_sys::TInstant>,
 }
 
 impl TInstant for TIntInstant {
-    fn from_inner(inner: *const meos_sys::TInstant) -> Self {
-        Self { _inner: inner }
+    fn from_inner(inner: *mut meos_sys::TInstant) -> Self {
+        Self {
+            _inner: ptr::NonNull::new(inner).expect("Null pointers not allowed"),
+        }
     }
 
     fn inner_as_tinstant(&self) -> *const meos_sys::TInstant {
-        self._inner
+        self._inner.as_ptr()
     }
 
     fn from_value_and_timestamp<Tz: TimeZone>(value: Self::Type, timestamp: DateTime<Tz>) -> Self {
@@ -146,7 +148,7 @@ impl_temporal_for_tnumber!(TIntInstant, Instant, i32, Int);
 impl_debug!(TIntInstant);
 
 pub struct TIntSequence {
-    _inner: *const meos_sys::TSequence,
+    _inner: ptr::NonNull<meos_sys::TSequence>,
 }
 impl TIntSequence {
     /// Creates a temporal object from a value and a TsTz span.
@@ -163,12 +165,14 @@ impl TIntSequence {
 }
 
 impl TSequence for TIntSequence {
-    fn from_inner(inner: *const meos_sys::TSequence) -> Self {
-        Self { _inner: inner }
+    fn from_inner(inner: *mut meos_sys::TSequence) -> Self {
+        Self {
+            _inner: ptr::NonNull::new(inner).expect("Null pointers not allowed"),
+        }
     }
 
-    fn inner_as_tsequence(&self) -> *const meos_sys::TSequence {
-        self._inner
+    fn inner_mut_as_tsequence(&self) -> *mut meos_sys::TSequence {
+        self._inner.as_ptr()
     }
 }
 
@@ -202,7 +206,7 @@ impl_temporal_for_tnumber!(TIntSequence, Sequence, i32, Int);
 impl_debug!(TIntSequence);
 
 pub struct TIntSequenceSet {
-    _inner: *const meos_sys::TSequenceSet,
+    _inner: ptr::NonNull<meos_sys::TSequenceSet>,
 }
 
 impl TIntSequenceSet {
@@ -225,8 +229,10 @@ impl TIntSequenceSet {
 }
 
 impl TSequenceSet for TIntSequenceSet {
-    fn from_inner(inner: *const meos_sys::TSequenceSet) -> Self {
-        Self { _inner: inner }
+    fn from_inner(inner: *mut meos_sys::TSequenceSet) -> Self {
+        Self {
+            _inner: ptr::NonNull::new(inner).expect("Null pointers not allowed"),
+        }
     }
 }
 
@@ -248,7 +254,7 @@ impl FromIterator<TInt> for TInt {
             TInt::from_sequence(
                 value
                     .to_sequence(TInterpolation::Stepwise)
-                    .inner_as_tsequence(),
+                    .inner_mut_as_tsequence(),
             )
         } else {
             first
@@ -269,7 +275,7 @@ impl FromIterator<TInt> for TInt {
             (_, TInt::SequenceSet(_)) => unreachable!(),
             (TInt::Instant(_), _) => unreachable!(),
         });
-        factory::<TInt>(result.inner())
+        result
     }
 }
 

@@ -55,14 +55,14 @@ macro_rules! impl_tbool_traits {
                 type TBoolType = $type;
 
                 impl_always_and_ever_value_equality_functions!(bool);
-                fn from_inner_as_temporal(inner: *const meos_sys::Temporal) -> Self {
+                fn from_inner_as_temporal(inner: *mut meos_sys::Temporal) -> Self {
                     Self {
-                        _inner: inner as *const $temporal_type,
+                        _inner: ptr::NonNull::new(inner as *mut $temporal_type).expect("Null pointers not allowed"),
                     }
                 }
 
                 fn inner(&self) -> *const meos_sys::Temporal {
-                    self._inner as *const meos_sys::Temporal
+                    self._inner.as_ptr() as *const meos_sys::Temporal
                 }
 
                 fn bounding_box(&self) -> Self::TBB {
@@ -181,15 +181,15 @@ pub enum TBool {
 }
 
 impl MeosEnum for TBool {
-    fn from_instant(inner: *const meos_sys::TInstant) -> Self {
+    fn from_instant(inner: *mut meos_sys::TInstant) -> Self {
         Self::Instant(TBoolInstant::from_inner(inner))
     }
 
-    fn from_sequence(inner: *const meos_sys::TSequence) -> Self {
+    fn from_sequence(inner: *mut meos_sys::TSequence) -> Self {
         Self::Sequence(TBoolSequence::from_inner(inner))
     }
 
-    fn from_sequence_set(inner: *const meos_sys::TSequenceSet) -> Self {
+    fn from_sequence_set(inner: *mut meos_sys::TSequenceSet) -> Self {
         Self::SequenceSet(TBoolSequenceSet::from_inner(inner))
     }
 
@@ -258,16 +258,18 @@ macro_rules! impl_debug {
 }
 
 pub struct TBoolInstant {
-    _inner: *const meos_sys::TInstant,
+    _inner: ptr::NonNull<meos_sys::TInstant>,
 }
 
 impl TInstant for TBoolInstant {
-    fn from_inner(inner: *const meos_sys::TInstant) -> Self {
-        Self { _inner: inner }
+    fn from_inner(inner: *mut meos_sys::TInstant) -> Self {
+        Self {
+            _inner: ptr::NonNull::new(inner).expect("Null pointers not allowed"),
+        }
     }
 
     fn inner_as_tinstant(&self) -> *const meos_sys::TInstant {
-        self._inner
+        self._inner.as_ptr()
     }
 
     fn from_value_and_timestamp<Tz: TimeZone>(value: Self::Type, timestamp: DateTime<Tz>) -> Self {
@@ -281,7 +283,7 @@ impl_tbool_traits!(TBoolInstant, meos_sys::TInstant);
 impl_debug!(TBoolInstant);
 
 pub struct TBoolSequence {
-    _inner: *const meos_sys::TSequence,
+    _inner: ptr::NonNull<meos_sys::TSequence>,
 }
 impl TBoolSequence {
     /// Creates a temporal object from a value and a TsTz span.
@@ -298,12 +300,14 @@ impl TBoolSequence {
 }
 
 impl TSequence for TBoolSequence {
-    fn from_inner(inner: *const meos_sys::TSequence) -> Self {
-        Self { _inner: inner }
+    fn from_inner(inner: *mut meos_sys::TSequence) -> Self {
+        Self {
+            _inner: ptr::NonNull::new(inner).expect("Null pointers not allowed"),
+        }
     }
 
-    fn inner_as_tsequence(&self) -> *const meos_sys::TSequence {
-        self._inner
+    fn inner_mut_as_tsequence(&self) -> *mut meos_sys::TSequence {
+        self._inner.as_ptr()
     }
 }
 
@@ -313,7 +317,7 @@ impl_debug!(TBoolSequence);
 impl TBoolTrait for TBoolSequence {}
 
 pub struct TBoolSequenceSet {
-    _inner: *const meos_sys::TSequenceSet,
+    _inner: ptr::NonNull<meos_sys::TSequenceSet>,
 }
 
 impl TBoolSequenceSet {
@@ -336,8 +340,10 @@ impl TBoolSequenceSet {
 }
 
 impl TSequenceSet for TBoolSequenceSet {
-    fn from_inner(inner: *const meos_sys::TSequenceSet) -> Self {
-        Self { _inner: inner }
+    fn from_inner(inner: *mut meos_sys::TSequenceSet) -> Self {
+        Self {
+            _inner: ptr::NonNull::new(inner).expect("Null pointers not allowed"),
+        }
     }
 }
 impl TBoolTrait for TBoolSequenceSet {}

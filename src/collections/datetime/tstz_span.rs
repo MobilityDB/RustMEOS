@@ -4,6 +4,7 @@ use std::{
     fmt::Debug,
     hash::Hash,
     ops::{BitAnd, Range, RangeInclusive},
+    ptr,
 };
 
 use chrono::{DateTime, Datelike, TimeDelta, TimeZone, Utc};
@@ -18,13 +19,13 @@ use crate::{
 };
 
 pub struct TsTzSpan {
-    _inner: *const meos_sys::Span,
+    _inner: ptr::NonNull<meos_sys::Span>,
 }
 
 impl Drop for TsTzSpan {
     fn drop(&mut self) {
         unsafe {
-            libc::free(self._inner as *mut c_void);
+            libc::free(self._inner.as_ptr() as *mut c_void);
         }
     }
 }
@@ -40,7 +41,7 @@ impl Collection for TsTzSpan {
 impl span::Span for TsTzSpan {
     type SubsetType = TimeDelta;
     fn inner(&self) -> *const meos_sys::Span {
-        self._inner
+        self._inner.as_ptr()
     }
 
     /// Creates a new `TsTzSpan` from an inner podateer to a `meos_sys::Span`.
@@ -50,8 +51,10 @@ impl span::Span for TsTzSpan {
     ///
     /// ## Returns
     /// * A new `TsTzSpan` instance.
-    fn from_inner(inner: *const meos_sys::Span) -> Self {
-        Self { _inner: inner }
+    fn from_inner(inner: *mut meos_sys::Span) -> Self {
+        Self {
+            _inner: ptr::NonNull::new(inner).expect("Null pointers not allowed"),
+        }
     }
 
     /// Returns the lower bound of the span.
@@ -205,7 +208,7 @@ impl span::Span for TsTzSpan {
             }
         };
 
-        let modified = unsafe { meos_sys::tstzspan_shift_scale(self._inner, d, w) };
+        let modified = unsafe { meos_sys::tstzspan_shift_scale(self.inner(), d, w) };
         TsTzSpan::from_inner(modified)
     }
     /// Calculates the distance between this `TsTzSpan` and a specific timestamp (`value`).
@@ -269,7 +272,7 @@ impl span::Span for TsTzSpan {
 
 impl TsTzSpan {
     pub fn duration(&self) -> TimeDelta {
-        from_interval(unsafe { meos_sys::tstzspan_duration(self._inner).read() })
+        from_interval(unsafe { meos_sys::tstzspan_duration(self.inner()).read() })
     }
 }
 
@@ -277,13 +280,13 @@ impl BoundingBox for TsTzSpan {}
 
 impl Clone for TsTzSpan {
     fn clone(&self) -> Self {
-        unsafe { Self::from_inner(meos_sys::span_copy(self._inner)) }
+        unsafe { Self::from_inner(meos_sys::span_copy(self.inner())) }
     }
 }
 
 impl Hash for TsTzSpan {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        let hash = unsafe { meos_sys::span_hash(self._inner) };
+        let hash = unsafe { meos_sys::span_hash(self.inner()) };
         state.write_u32(hash);
 
         state.finish();
@@ -351,7 +354,7 @@ impl cmp::PartialEq for TsTzSpan {
     /// assert_eq!(span1, span2);
     /// ```
     fn eq(&self, other: &Self) -> bool {
-        unsafe { meos_sys::span_eq(self._inner, other._inner) }
+        unsafe { meos_sys::span_eq(self.inner(), other.inner()) }
     }
 }
 
@@ -387,7 +390,7 @@ impl<Tz: TimeZone> From<RangeInclusive<DateTime<Tz>>> for TsTzSpan {
 
 impl Debug for TsTzSpan {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let out_str = unsafe { meos_sys::tstzspan_out(self._inner) };
+        let out_str = unsafe { meos_sys::tstzspan_out(self.inner()) };
         let c_str = unsafe { CStr::from_ptr(out_str) };
         let str = c_str.to_str().map_err(|_| std::fmt::Error)?;
         let result = f.write_str(str);
@@ -426,7 +429,7 @@ impl BitAnd for TsTzSpan {
     /// ```
     fn bitand(self, other: Self) -> Self::Output {
         // Replace with actual function call or logic
-        let result = unsafe { meos_sys::intersection_span_span(self._inner, other._inner) };
+        let result = unsafe { meos_sys::intersection_span_span(self.inner(), other.inner()) };
         if !result.is_null() {
             Some(TsTzSpan::from_inner(result))
         } else {
@@ -437,7 +440,7 @@ impl BitAnd for TsTzSpan {
 
 impl PartialOrd for TsTzSpan {
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
-        let cmp = unsafe { meos_sys::span_cmp(self._inner, other._inner) };
+        let cmp = unsafe { meos_sys::span_cmp(self.inner(), other.inner()) };
         match cmp {
             -1 => Some(cmp::Ordering::Less),
             0 => Some(cmp::Ordering::Equal),

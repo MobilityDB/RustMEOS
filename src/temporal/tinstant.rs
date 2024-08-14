@@ -3,7 +3,7 @@ use chrono::{DateTime, TimeZone, Utc};
 use super::temporal::Temporal;
 
 pub trait TInstant: Temporal {
-    fn from_inner(inner: *const meos_sys::TInstant) -> Self;
+    fn from_inner(inner: *mut meos_sys::TInstant) -> Self;
     fn inner_as_tinstant(&self) -> *const meos_sys::TInstant;
 
     /// ## Returns

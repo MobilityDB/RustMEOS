@@ -181,14 +181,14 @@ macro_rules! impl_temporal_for_tnumber {
                 type Enum = [<T $basic_type>];
                 type TBoolType = [<TBool $temporal_type>];
 
-                fn from_inner_as_temporal(inner: *const meos_sys::Temporal) -> Self {
+                fn from_inner_as_temporal(inner: *mut meos_sys::Temporal) -> Self {
                     Self {
-                        _inner: inner as *const meos_sys::[<T $temporal_type>],
+                        _inner: ptr::NonNull::new(inner as *mut meos_sys::[<T $temporal_type>]).expect("Null pointers not allowed"),
                     }
                 }
 
                 fn inner(&self) -> *const meos_sys::Temporal {
-                    self._inner as *const meos_sys::Temporal
+                    self._inner.as_ptr() as *const meos_sys::Temporal
                 }
 
                 fn bounding_box(&self) -> Self::TBB {

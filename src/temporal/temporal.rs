@@ -28,7 +28,7 @@ pub trait Temporal: Collection + Hash {
     type Enum: MeosEnum;
     type TBoolType: TBoolTrait;
 
-    fn from_inner_as_temporal(inner: *const meos_sys::Temporal) -> Self;
+    fn from_inner_as_temporal(inner: *mut meos_sys::Temporal) -> Self;
 
     fn inner(&self) -> *const meos_sys::Temporal;
 

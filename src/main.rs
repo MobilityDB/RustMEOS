@@ -1,6 +1,7 @@
 use std::str::FromStr;
 
 use chrono::{Days, TimeDelta, Utc};
+use geos::{Geom, Geometry};
 use meos::{
     boxes::{r#box::Box as MeosBox, stbox::STBox, tbox::TBox},
     collections::{
@@ -11,7 +12,7 @@ use meos::{
     init,
     temporal::{
         number::tint::{TInt, TIntInstant, TIntSequence, TIntSequenceSet},
-        tbool::{TBoolSequence},
+        tbool::TBoolSequence,
         ttext::TTextSequence,
     },
     WKBVariant,
@@ -98,6 +99,19 @@ fn main() {
     let ttext: TTextSequence = "{AAA@2001-01-01 08:00:00, BBB@2001-01-03 08:00:00}"
         .parse()
         .unwrap();
+
+    let bytes = [
+        0u8, 128, 0, 0, 1, 63, 240, 0, 0, 0, 0, 0, 0, 63, 240, 0, 0, 0, 0, 0, 0, 63, 240, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 113, 151, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    ];
+
+    println!(
+        "{:?}",
+        Geometry::new_from_wkb(&bytes).unwrap().to_wkt().unwrap()
+    );
 
     let tinst = (4, Utc::now());
     let tinst2 = (6, Utc::now().checked_add_days(Days::new(1)).unwrap());

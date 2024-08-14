@@ -25,7 +25,7 @@ use crate::{
 use super::r#box::Box as MeosBox;
 
 pub struct STBox {
-    _inner: *const meos_sys::STBox,
+    _inner: ptr::NonNull<meos_sys::STBox>,
 }
 
 impl MeosBox for STBox {
@@ -69,13 +69,13 @@ impl MeosBox for STBox {
     }
 
     fn tstzspan(&self) -> TsTzSpan {
-        unsafe { TsTzSpan::from_inner(meos_sys::stbox_to_tstzspan(self._inner)) }
+        unsafe { TsTzSpan::from_inner(meos_sys::stbox_to_tstzspan(self.inner())) }
     }
 
     fn as_wkb(&self, variant: WKBVariant) -> &[u8] {
         unsafe {
             let mut size: usize = 0;
-            let ptr = meos_sys::stbox_as_wkb(self._inner, variant.into(), &mut size);
+            let ptr = meos_sys::stbox_as_wkb(self.inner(), variant.into(), &mut size);
             std::slice::from_raw_parts(ptr, size)
         }
     }
@@ -200,7 +200,7 @@ impl MeosBox for STBox {
             }
         };
 
-        let modified = unsafe { meos_sys::stbox_shift_scale_time(self._inner, d, w) };
+        let modified = unsafe { meos_sys::stbox_shift_scale_time(self.inner(), d, w) };
         STBox::from_inner(modified)
     }
 
@@ -238,11 +238,13 @@ impl MeosBox for STBox {
 
 impl STBox {
     fn inner(&self) -> *const meos_sys::STBox {
-        self._inner
+        self._inner.as_ptr()
     }
 
-    pub fn from_inner(inner: *const meos_sys::STBox) -> Self {
-        Self { _inner: inner }
+    pub fn from_inner(inner: *mut meos_sys::STBox) -> Self {
+        Self {
+            _inner: ptr::NonNull::new(inner).expect("Null pointers not allowed"),
+        }
     }
 
     #[cfg(feature = "geos")]
@@ -299,7 +301,7 @@ impl cmp::PartialEq for STBox {
     /// assert_eq!(span1, span2);
     /// ```
     fn eq(&self, other: &Self) -> bool {
-        unsafe { meos_sys::stbox_eq(self._inner, other._inner) }
+        unsafe { meos_sys::stbox_eq(self.inner(), other.inner()) }
     }
 }
 
@@ -307,7 +309,7 @@ impl cmp::Eq for STBox {}
 
 impl Debug for STBox {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let out_str = unsafe { meos_sys::stbox_out(self._inner, 3) };
+        let out_str = unsafe { meos_sys::stbox_out(self.inner(), 3) };
         let c_str = unsafe { CStr::from_ptr(out_str) };
         let str = c_str.to_str().map_err(|_| std::fmt::Error)?;
         let result = f.write_str(str);
@@ -318,7 +320,7 @@ impl Debug for STBox {
 
 impl Clone for STBox {
     fn clone(&self) -> Self {
-        unsafe { Self::from_inner(meos_sys::stbox_copy(self._inner)) }
+        unsafe { Self::from_inner(meos_sys::stbox_copy(self.inner())) }
     }
 }
 

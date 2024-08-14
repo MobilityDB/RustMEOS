@@ -109,14 +109,14 @@ macro_rules! impl_ttext_traits {
                 type TBoolType = [<TBool $temporal_type>];
 
                 impl_always_and_ever_value_equality_functions!(text, to_ctext);
-                fn from_inner_as_temporal(inner: *const meos_sys::Temporal) -> Self {
+                fn from_inner_as_temporal(inner: *mut meos_sys::Temporal) -> Self {
                     Self {
-                        _inner: inner as *const meos_sys::[<T $temporal_type>],
+                        _inner: ptr::NonNull::new(inner as *mut meos_sys::[<T $temporal_type>]).expect("Null pointers not allowed"),
                     }
                 }
 
                 fn inner(&self) -> *const meos_sys::Temporal {
-                    self._inner as *const meos_sys::Temporal
+                    self._inner.as_ptr() as *const meos_sys::Temporal
                 }
 
                 fn bounding_box(&self) -> Self::TBB {
@@ -219,15 +219,15 @@ pub enum TText {
 }
 
 impl MeosEnum for TText {
-    fn from_instant(inner: *const meos_sys::TInstant) -> Self {
+    fn from_instant(inner: *mut meos_sys::TInstant) -> Self {
         Self::Instant(TTextInstant::from_inner(inner))
     }
 
-    fn from_sequence(inner: *const meos_sys::TSequence) -> Self {
+    fn from_sequence(inner: *mut meos_sys::TSequence) -> Self {
         Self::Sequence(TTextSequence::from_inner(inner))
     }
 
-    fn from_sequence_set(inner: *const meos_sys::TSequenceSet) -> Self {
+    fn from_sequence_set(inner: *mut meos_sys::TSequenceSet) -> Self {
         Self::SequenceSet(TTextSequenceSet::from_inner(inner))
     }
 
@@ -285,16 +285,18 @@ macro_rules! impl_debug {
 }
 
 pub struct TTextInstant {
-    _inner: *const meos_sys::TInstant,
+    _inner: ptr::NonNull<meos_sys::TInstant>,
 }
 
 impl TInstant for TTextInstant {
-    fn from_inner(inner: *const meos_sys::TInstant) -> Self {
-        Self { _inner: inner }
+    fn from_inner(inner: *mut meos_sys::TInstant) -> Self {
+        Self {
+            _inner: ptr::NonNull::new(inner).expect("Null pointers not allowed"),
+        }
     }
 
     fn inner_as_tinstant(&self) -> *const meos_sys::TInstant {
-        self._inner
+        self._inner.as_ptr()
     }
 
     fn from_value_and_timestamp<Tz: TimeZone>(value: Self::Type, timestamp: DateTime<Tz>) -> Self {
@@ -310,7 +312,7 @@ impl_ttext_traits!(TTextInstant, Instant);
 impl_debug!(TTextInstant);
 
 pub struct TTextSequence {
-    _inner: *const meos_sys::TSequence,
+    _inner: ptr::NonNull<meos_sys::TSequence>,
 }
 impl TTextSequence {
     /// Creates a temporal object from a value and a TsTz span.
@@ -329,12 +331,14 @@ impl TTextSequence {
 }
 
 impl TSequence for TTextSequence {
-    fn from_inner(inner: *const meos_sys::TSequence) -> Self {
-        Self { _inner: inner }
+    fn from_inner(inner: *mut meos_sys::TSequence) -> Self {
+        Self {
+            _inner: ptr::NonNull::new(inner).expect("Null pointers not allowed"),
+        }
     }
 
-    fn inner_as_tsequence(&self) -> *const meos_sys::TSequence {
-        self._inner
+    fn inner_mut_as_tsequence(&self) -> *mut meos_sys::TSequence {
+        self._inner.as_ptr()
     }
 }
 
@@ -344,7 +348,7 @@ impl_ttext_traits!(TTextSequence, Sequence);
 impl_debug!(TTextSequence);
 
 pub struct TTextSequenceSet {
-    _inner: *const meos_sys::TSequenceSet,
+    _inner: ptr::NonNull<meos_sys::TSequenceSet>,
 }
 
 impl TTextSequenceSet {
@@ -367,8 +371,10 @@ impl TTextSequenceSet {
 }
 
 impl TSequenceSet for TTextSequenceSet {
-    fn from_inner(inner: *const meos_sys::TSequenceSet) -> Self {
-        Self { _inner: inner }
+    fn from_inner(inner: *mut meos_sys::TSequenceSet) -> Self {
+        Self {
+            _inner: ptr::NonNull::new(inner).expect("Null pointers not allowed"),
+        }
     }
 }
 impl TTextTrait for TTextSequenceSet {}

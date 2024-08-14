@@ -42,12 +42,12 @@ pub fn init() {
     });
 }
 
-fn factory<T: MeosEnum>(temporal: *const meos_sys::Temporal) -> T {
+fn factory<T: MeosEnum>(temporal: *mut meos_sys::Temporal) -> T {
     let temporal_type: TemporalSubtype = unsafe { (temporal.read().subtype as u32).into() };
     match temporal_type {
-        TemporalSubtype::Instant => T::from_instant(temporal as *const _),
-        TemporalSubtype::Sequence => T::from_sequence(temporal as *const _),
-        TemporalSubtype::SequenceSet => T::from_sequence_set(temporal as *const _),
+        TemporalSubtype::Instant => T::from_instant(temporal as *mut _),
+        TemporalSubtype::Sequence => T::from_sequence(temporal as *mut _),
+        TemporalSubtype::SequenceSet => T::from_sequence_set(temporal as *mut _),
         _ => unreachable!(),
     }
 }
@@ -83,9 +83,9 @@ impl From<u32> for TemporalSubtype {
 }
 
 pub trait MeosEnum: Debug + Sized {
-    fn from_instant(inner: *const meos_sys::TInstant) -> Self;
-    fn from_sequence(inner: *const meos_sys::TSequence) -> Self;
-    fn from_sequence_set(inner: *const meos_sys::TSequenceSet) -> Self;
+    fn from_instant(inner: *mut meos_sys::TInstant) -> Self;
+    fn from_sequence(inner: *mut meos_sys::TSequence) -> Self;
+    fn from_sequence_set(inner: *mut meos_sys::TSequenceSet) -> Self;
 
     /// Creates a temporal object from an MF-JSON string.
     ///

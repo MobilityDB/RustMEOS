@@ -43,7 +43,7 @@ pub trait SpanSet: Collection + FromIterator<Self::SpanType> {
         Self::from_inner(inner)
     }
 
-    fn from_inner(inner: *const meos_sys::SpanSet) -> Self;
+    fn from_inner(inner: *mut meos_sys::SpanSet) -> Self;
 
     fn as_wkb(&self, variant: WKBVariant) -> &[u8] {
         unsafe {

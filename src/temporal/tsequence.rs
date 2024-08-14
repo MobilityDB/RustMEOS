@@ -30,8 +30,11 @@ pub trait TSequence: Temporal {
         })
     }
 
-    fn from_inner(inner: *const meos_sys::TSequence) -> Self;
-    fn inner_as_tsequence(&self) -> *const meos_sys::TSequence;
+    fn from_inner(inner: *mut meos_sys::TSequence) -> Self;
+    fn inner_mut_as_tsequence(&self) -> *mut meos_sys::TSequence;
+    fn inner_as_tsequence(&self) -> *const meos_sys::TSequence {
+        self.inner_mut_as_tsequence() as *const _
+    }
 
     fn is_lower_inclusive(&self) -> bool {
         unsafe { meos_sys::temporal_lower_inc(self.inner()) }

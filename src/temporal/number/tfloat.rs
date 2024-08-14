@@ -60,16 +60,22 @@ pub enum TFloat {
 }
 
 impl MeosEnum for TFloat {
-    fn from_instant(inner: *const meos_sys::TInstant) -> Self {
-        Self::Instant(TFloatInstant { _inner: inner })
+    fn from_instant(inner: *mut meos_sys::TInstant) -> Self {
+        Self::Instant(TFloatInstant {
+            _inner: ptr::NonNull::new(inner).expect("Null pointers not allowed"),
+        })
     }
 
-    fn from_sequence(inner: *const meos_sys::TSequence) -> Self {
-        Self::Sequence(TFloatSequence { _inner: inner })
+    fn from_sequence(inner: *mut meos_sys::TSequence) -> Self {
+        Self::Sequence(TFloatSequence {
+            _inner: ptr::NonNull::new(inner).expect("Null pointers not allowed"),
+        })
     }
 
-    fn from_sequence_set(inner: *const meos_sys::TSequenceSet) -> Self {
-        Self::SequenceSet(TFloatSequenceSet { _inner: inner })
+    fn from_sequence_set(inner: *mut meos_sys::TSequenceSet) -> Self {
+        Self::SequenceSet(TFloatSequenceSet {
+            _inner: ptr::NonNull::new(inner).expect("Null pointers not allowed"),
+        })
     }
 
     fn from_mfjson(mfjson: &str) -> Self {
@@ -109,16 +115,18 @@ pub trait TFloatTrait:
 }
 
 pub struct TFloatInstant {
-    _inner: *const meos_sys::TInstant,
+    _inner: ptr::NonNull<meos_sys::TInstant>,
 }
 
 impl TInstant for TFloatInstant {
-    fn from_inner(inner: *const meos_sys::TInstant) -> Self {
-        Self { _inner: inner }
+    fn from_inner(inner: *mut meos_sys::TInstant) -> Self {
+        Self {
+            _inner: ptr::NonNull::new(inner).expect("Null pointers not allowed"),
+        }
     }
 
     fn inner_as_tinstant(&self) -> *const meos_sys::TInstant {
-        self._inner
+        self._inner.as_ptr()
     }
 
     fn from_value_and_timestamp<Tz: TimeZone>(value: Self::Type, timestamp: DateTime<Tz>) -> Self {
@@ -132,7 +140,7 @@ impl_temporal_for_tnumber!(TFloatInstant, Instant, f64, Float);
 impl_debug!(TFloatInstant);
 
 pub struct TFloatSequence {
-    _inner: *const meos_sys::TSequence,
+    _inner: ptr::NonNull<meos_sys::TSequence>,
 }
 
 impl TFloatSequence {
@@ -156,12 +164,14 @@ impl TFloatSequence {
 }
 
 impl TSequence for TFloatSequence {
-    fn from_inner(inner: *const meos_sys::TSequence) -> Self {
-        Self { _inner: inner }
+    fn from_inner(inner: *mut meos_sys::TSequence) -> Self {
+        Self {
+            _inner: ptr::NonNull::new(inner).expect("Null pointers not allowed"),
+        }
     }
 
-    fn inner_as_tsequence(&self) -> *const meos_sys::TSequence {
-        self._inner
+    fn inner_mut_as_tsequence(&self) -> *mut meos_sys::TSequence {
+        self._inner.as_ptr()
     }
 }
 
@@ -171,7 +181,7 @@ impl_temporal_for_tnumber!(TFloatSequence, Sequence, f64, Float);
 impl_debug!(TFloatSequence);
 
 pub struct TFloatSequenceSet {
-    _inner: *const meos_sys::TSequenceSet,
+    _inner: ptr::NonNull<meos_sys::TSequenceSet>,
 }
 
 impl TFloatSequenceSet {
@@ -199,8 +209,10 @@ impl TFloatSequenceSet {
 }
 
 impl TSequenceSet for TFloatSequenceSet {
-    fn from_inner(inner: *const meos_sys::TSequenceSet) -> Self {
-        Self { _inner: inner }
+    fn from_inner(inner: *mut meos_sys::TSequenceSet) -> Self {
+        Self {
+            _inner: ptr::NonNull::new(inner).expect("Null pointers not allowed"),
+        }
     }
 }
 impl TFloatTrait for TFloatSequenceSet {}

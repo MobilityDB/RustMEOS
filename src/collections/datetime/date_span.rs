@@ -4,6 +4,7 @@ use std::{
     fmt::Debug,
     hash::Hash,
     ops::{BitAnd, Range, RangeInclusive},
+    ptr,
 };
 
 use chrono::{Datelike, NaiveDate, TimeDelta};
@@ -17,13 +18,13 @@ use crate::{
 };
 
 pub struct DateSpan {
-    _inner: *const meos_sys::Span,
+    _inner: ptr::NonNull<meos_sys::Span>,
 }
 
 impl Drop for DateSpan {
     fn drop(&mut self) {
         unsafe {
-            libc::free(self._inner as *mut c_void);
+            libc::free(self._inner.as_ptr() as *mut c_void);
         }
     }
 }
@@ -39,7 +40,7 @@ impl Collection for DateSpan {
 impl span::Span for DateSpan {
     type SubsetType = TimeDelta;
     fn inner(&self) -> *const meos_sys::Span {
-        self._inner
+        self._inner.as_ptr()
     }
 
     /// Creates a new `DateSpan` from an inner podateer to a `meos_sys::Span`.
@@ -49,8 +50,10 @@ impl span::Span for DateSpan {
     ///
     /// ## Returns
     /// * A new `DateSpan` instance.
-    fn from_inner(inner: *const meos_sys::Span) -> Self {
-        Self { _inner: inner }
+    fn from_inner(inner: *mut meos_sys::Span) -> Self {
+        Self {
+            _inner: ptr::NonNull::new(inner).expect("No null pointers allowed"),
+        }
     }
 
     /// Returns the lower bound of the span.
@@ -190,7 +193,13 @@ impl span::Span for DateSpan {
             .try_into()
             .expect("Number too big");
         let modified = unsafe {
-            meos_sys::datespan_shift_scale(self._inner, d, w, delta.is_some(), width.is_some())
+            meos_sys::datespan_shift_scale(
+                self._inner.as_ptr(),
+                d,
+                w,
+                delta.is_some(),
+                width.is_some(),
+            )
         };
         DateSpan::from_inner(modified)
     }
@@ -263,19 +272,19 @@ impl span::Span for DateSpan {
 
 impl DateSpan {
     pub fn duration(&self) -> TimeDelta {
-        from_interval(unsafe { meos_sys::datespan_duration(self._inner).read() })
+        from_interval(unsafe { meos_sys::datespan_duration(self._inner.as_ptr()).read() })
     }
 }
 
 impl Clone for DateSpan {
     fn clone(&self) -> Self {
-        unsafe { Self::from_inner(meos_sys::span_copy(self._inner)) }
+        unsafe { Self::from_inner(meos_sys::span_copy(self._inner.as_ptr())) }
     }
 }
 
 impl Hash for DateSpan {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        let hash = unsafe { meos_sys::span_hash(self._inner) };
+        let hash = unsafe { meos_sys::span_hash(self._inner.as_ptr()) };
         state.write_u32(hash);
 
         state.finish();
@@ -339,7 +348,7 @@ impl cmp::PartialEq for DateSpan {
     /// assert_eq!(span1, span2);
     /// ```
     fn eq(&self, other: &Self) -> bool {
-        unsafe { meos_sys::span_eq(self._inner, other._inner) }
+        unsafe { meos_sys::span_eq(self._inner.as_ptr(), other._inner.as_ptr()) }
     }
 }
 
@@ -388,7 +397,7 @@ impl From<RangeInclusive<NaiveDate>> for DateSpan {
 
 impl Debug for DateSpan {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let out_str = unsafe { meos_sys::datespan_out(self._inner) };
+        let out_str = unsafe { meos_sys::datespan_out(self._inner.as_ptr()) };
         let c_str = unsafe { CStr::from_ptr(out_str) };
         let str = c_str.to_str().map_err(|_| std::fmt::Error)?;
         let result = f.write_str(str);
@@ -425,7 +434,9 @@ impl BitAnd for DateSpan {
     /// ```
     fn bitand(self, other: Self) -> Self::Output {
         // Replace with actual function call or logic
-        let result = unsafe { meos_sys::intersection_span_span(self._inner, other._inner) };
+        let result = unsafe {
+            meos_sys::intersection_span_span(self._inner.as_ptr(), other._inner.as_ptr())
+        };
         if !result.is_null() {
             Some(DateSpan::from_inner(result))
         } else {
@@ -436,7 +447,7 @@ impl BitAnd for DateSpan {
 
 impl PartialOrd for DateSpan {
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
-        let cmp = unsafe { meos_sys::span_cmp(self._inner, other._inner) };
+        let cmp = unsafe { meos_sys::span_cmp(self._inner.as_ptr(), other._inner.as_ptr()) };
         match cmp {
             -1 => Some(cmp::Ordering::Less),
             0 => Some(cmp::Ordering::Equal),

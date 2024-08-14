@@ -26,7 +26,7 @@ use crate::{
 use super::r#box::Box as MeosBox;
 
 pub struct TBox {
-    _inner: *const meos_sys::TBox,
+    _inner: ptr::NonNull<meos_sys::TBox>,
 }
 
 impl MeosBox for TBox {
@@ -88,13 +88,13 @@ impl MeosBox for TBox {
     /// assert_eq!(tstzspan, (datetime..=datetime).into()); // Assuming `TsTzSpan` has a `to_string` method
     /// ```
     fn tstzspan(&self) -> TsTzSpan {
-        unsafe { TsTzSpan::from_inner(meos_sys::tbox_to_tstzspan(self._inner)) }
+        unsafe { TsTzSpan::from_inner(meos_sys::tbox_to_tstzspan(self.inner())) }
     }
 
     fn as_wkb(&self, variant: WKBVariant) -> &[u8] {
         unsafe {
             let mut size: usize = 0;
-            let ptr = meos_sys::tbox_as_wkb(self._inner, variant.into(), &mut size);
+            let ptr = meos_sys::tbox_as_wkb(self.inner(), variant.into(), &mut size);
             std::slice::from_raw_parts(ptr, size)
         }
     }
@@ -102,7 +102,7 @@ impl MeosBox for TBox {
     fn as_hexwkb(&self, variant: WKBVariant) -> &[u8] {
         unsafe {
             let mut size: usize = 0;
-            let ptr = meos_sys::tbox_as_hexwkb(self._inner, variant.into(), &mut size);
+            let ptr = meos_sys::tbox_as_hexwkb(self.inner(), variant.into(), &mut size);
             CStr::from_ptr(ptr).to_bytes()
         }
     }
@@ -404,7 +404,7 @@ impl MeosBox for TBox {
             }
         };
 
-        let modified = unsafe { meos_sys::tbox_shift_scale_time(self._inner, d, w) };
+        let modified = unsafe { meos_sys::tbox_shift_scale_time(self.inner(), d, w) };
         TBox::from_inner(modified)
     }
 
@@ -429,11 +429,13 @@ impl MeosBox for TBox {
 
 impl TBox {
     fn inner(&self) -> *const meos_sys::TBox {
-        self._inner
+        self._inner.as_ptr()
     }
 
-    pub fn from_inner(inner: *const meos_sys::TBox) -> Self {
-        Self { _inner: inner }
+    pub fn from_inner(inner: *mut meos_sys::TBox) -> Self {
+        Self {
+            _inner: ptr::NonNull::new(inner).expect("Null pointers not allowed"),
+        }
     }
 
     /// Creates a new `TBox` instance from an integer value.
@@ -524,7 +526,7 @@ impl TBox {
     /// assert_eq!(intspan, (5..6).into());
     /// ```
     pub fn intspan(&self) -> IntSpan {
-        unsafe { IntSpan::from_inner(meos_sys::tbox_to_intspan(self._inner)) }
+        unsafe { IntSpan::from_inner(meos_sys::tbox_to_intspan(self.inner())) }
     }
 
     /// Converts the `TBox` into an `FloatSpan` representing the float span.
@@ -543,7 +545,7 @@ impl TBox {
     /// assert_eq!(floatspan, (5.0..=5.0).into());
     /// ```
     pub fn floatspan(&self) -> FloatSpan {
-        unsafe { FloatSpan::from_inner(meos_sys::tbox_to_floatspan(self._inner)) }
+        unsafe { FloatSpan::from_inner(meos_sys::tbox_to_floatspan(self.inner())) }
     }
 
     // ------------------------- Accessors -------------------------------------
@@ -644,7 +646,7 @@ impl TBox {
         let d = delta.unwrap_or_default();
         let w = width.unwrap_or_default();
         let modified = unsafe {
-            meos_sys::tbox_shift_scale_float(self._inner, d, w, delta.is_some(), width.is_some())
+            meos_sys::tbox_shift_scale_float(self.inner(), d, w, delta.is_some(), width.is_some())
         };
         TBox::from_inner(modified)
     }
@@ -679,7 +681,7 @@ impl cmp::PartialEq for TBox {
     /// assert_eq!(span1, span2);
     /// ```
     fn eq(&self, other: &Self) -> bool {
-        unsafe { meos_sys::tbox_eq(self._inner, other._inner) }
+        unsafe { meos_sys::tbox_eq(self.inner(), other.inner()) }
     }
 }
 
@@ -687,7 +689,7 @@ impl cmp::Eq for TBox {}
 
 impl Debug for TBox {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let out_str = unsafe { meos_sys::tbox_out(self._inner, 3) };
+        let out_str = unsafe { meos_sys::tbox_out(self.inner(), 3) };
         let c_str = unsafe { CStr::from_ptr(out_str) };
         let str = c_str.to_str().map_err(|_| std::fmt::Error)?;
         let result = f.write_str(str);
@@ -698,7 +700,7 @@ impl Debug for TBox {
 
 impl Clone for TBox {
     fn clone(&self) -> Self {
-        unsafe { Self::from_inner(meos_sys::tbox_copy(self._inner)) }
+        unsafe { Self::from_inner(meos_sys::tbox_copy(self.inner())) }
     }
 }
 

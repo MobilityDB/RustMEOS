@@ -3,6 +3,7 @@ use std::ffi::{c_void, CStr, CString};
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::{BitAnd, BitOr};
+use std::ptr;
 
 use collection::{impl_collection, Collection};
 use span::Span;
@@ -16,13 +17,13 @@ use super::int_span::IntSpan;
 use super::number_span_set::NumberSpanSet;
 
 pub struct IntSpanSet {
-    _inner: *const meos_sys::SpanSet,
+    _inner: ptr::NonNull<meos_sys::SpanSet>,
 }
 
 impl Drop for IntSpanSet {
     fn drop(&mut self) {
         unsafe {
-            libc::free(self._inner as *mut c_void);
+            libc::free(self._inner.as_ptr() as *mut c_void);
         }
     }
 }
@@ -38,11 +39,13 @@ impl span_set::SpanSet for IntSpanSet {
     type SpanType = IntSpan;
     type SubsetType = <Self as Collection>::Type;
     fn inner(&self) -> *const meos_sys::SpanSet {
-        self._inner
+        self._inner.as_ptr()
     }
 
-    fn from_inner(inner: *const meos_sys::SpanSet) -> Self {
-        Self { _inner: inner }
+    fn from_inner(inner: *mut meos_sys::SpanSet) -> Self {
+        Self {
+            _inner: ptr::NonNull::new(inner).expect("Null pointers not allowed"),
+        }
     }
 
     fn width(&self, ignore_gaps: bool) -> Self::Type {
@@ -125,7 +128,7 @@ impl span_set::SpanSet for IntSpanSet {
         let d = delta.unwrap_or(0);
         let w = width.unwrap_or(0);
         let modified = unsafe {
-            meos_sys::intspanset_shift_scale(self._inner, d, w, delta.is_some(), width.is_some())
+            meos_sys::intspanset_shift_scale(self.inner(), d, w, delta.is_some(), width.is_some())
         };
         IntSpanSet::from_inner(modified)
     }
@@ -211,7 +214,7 @@ impl_iterator!(IntSpanSet);
 
 impl Hash for IntSpanSet {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        let hash = unsafe { meos_sys::spanset_hash(self._inner) };
+        let hash = unsafe { meos_sys::spanset_hash(self.inner()) };
         state.write_u32(hash);
 
         state.finish();
@@ -230,13 +233,13 @@ impl std::str::FromStr for IntSpanSet {
 
 impl std::cmp::PartialEq for IntSpanSet {
     fn eq(&self, other: &Self) -> bool {
-        unsafe { meos_sys::spanset_eq(self._inner, other._inner) }
+        unsafe { meos_sys::spanset_eq(self.inner(), other.inner()) }
     }
 }
 
 impl Debug for IntSpanSet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let out_str = unsafe { meos_sys::intspanset_out(self._inner) };
+        let out_str = unsafe { meos_sys::intspanset_out(self.inner()) };
         let c_str = unsafe { CStr::from_ptr(out_str) };
         let str = c_str.to_str().map_err(|_| std::fmt::Error)?;
         let result = f.write_str(str);
