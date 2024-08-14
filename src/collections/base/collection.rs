@@ -100,7 +100,7 @@ pub trait Collection: PartialEq + Debug + FromStr + Clone {
 // We can therefore just generate all of the collection functions with the kind of container (span, set, ect.), and the kind of element (int, float, etc.)
 
 // Parameters:
-//  $type: The type of the container: spanset, span, or set
+//  $type: The type of the container: spanset, span, set, etc.
 //  $subtype: The type of what is contained: float, int, geo, etc.
 macro_rules! impl_collection {
     ($type:ident, $subtype_type:ty) => {
