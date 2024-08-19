@@ -33,6 +33,21 @@ use crate::{
     MeosEnum,
 };
 
+macro_rules! impl_debug {
+    ($type:ty) => {
+        impl Debug for $type {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                let out_str = unsafe { meos_sys::tbool_out(self.inner()) };
+                let c_str = unsafe { CStr::from_ptr(out_str) };
+                let str = c_str.to_str().map_err(|_| std::fmt::Error)?;
+                let result = f.write_str(str);
+                unsafe { libc::free(out_str as *mut c_void) };
+                result
+            }
+        }
+    };
+}
+
 macro_rules! impl_tbool_traits {
     ($type:ty, $temporal_type:ty) => {
         paste::paste! {
@@ -45,6 +60,7 @@ macro_rules! impl_tbool_traits {
                 }
             }
             impl_simple_traits_for_temporal!($type, tbool);
+            impl_debug!($type);
 
             impl Temporal for $type {
                 type TI = TBoolInstant;
@@ -242,21 +258,6 @@ pub trait TBoolTrait:
     }
 }
 
-macro_rules! impl_debug {
-    ($type:ty) => {
-        impl Debug for $type {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                let out_str = unsafe { meos_sys::tbool_out(self.inner()) };
-                let c_str = unsafe { CStr::from_ptr(out_str) };
-                let str = c_str.to_str().map_err(|_| std::fmt::Error)?;
-                let result = f.write_str(str);
-                unsafe { libc::free(out_str as *mut c_void) };
-                result
-            }
-        }
-    };
-}
-
 pub struct TBoolInstant {
     _inner: ptr::NonNull<meos_sys::TInstant>,
 }
@@ -280,7 +281,6 @@ impl TInstant for TBoolInstant {
 impl TBoolTrait for TBoolInstant {}
 
 impl_tbool_traits!(TBoolInstant, meos_sys::TInstant);
-impl_debug!(TBoolInstant);
 
 pub struct TBoolSequence {
     _inner: ptr::NonNull<meos_sys::TSequence>,
@@ -312,7 +312,6 @@ impl TSequence for TBoolSequence {
 }
 
 impl_tbool_traits!(TBoolSequence, meos_sys::TSequence);
-impl_debug!(TBoolSequence);
 
 impl TBoolTrait for TBoolSequence {}
 
@@ -349,7 +348,6 @@ impl TSequenceSet for TBoolSequenceSet {
 impl TBoolTrait for TBoolSequenceSet {}
 
 impl_tbool_traits!(TBoolSequenceSet, meos_sys::TSequenceSet);
-impl_debug!(TBoolSequenceSet);
 
 impl From<TBoolInstant> for TBool {
     fn from(value: TBoolInstant) -> Self {

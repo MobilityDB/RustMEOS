@@ -139,6 +139,12 @@ impl TFloatTrait for TFloatInstant {}
 impl_temporal_for_tnumber!(TFloatInstant, Instant, f64, Float);
 impl_debug!(TFloatInstant);
 
+impl<Tz: TimeZone> From<(f64, DateTime<Tz>)> for TFloatInstant {
+    fn from((v, t): (f64, DateTime<Tz>)) -> Self {
+        Self::from_value_and_timestamp(v, t)
+    }
+}
+
 pub struct TFloatSequence {
     _inner: ptr::NonNull<meos_sys::TSequence>,
 }

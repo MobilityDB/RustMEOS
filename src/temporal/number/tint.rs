@@ -178,12 +178,12 @@ impl TSequence for TIntSequence {
 
 impl FromIterator<TIntInstant> for TIntSequence {
     fn from_iter<T: IntoIterator<Item = TIntInstant>>(iter: T) -> Self {
-        let mut vec: Vec<_> = iter.into_iter().map(|t| t.inner_as_tinstant()).collect();
-
+        let vec: Vec<TIntInstant> = iter.into_iter().collect();
+        let mut vec_ptr: Vec<_> = vec.iter().map(|t| t.inner_as_tinstant()).collect();
         let result = unsafe {
             meos_sys::tsequence_make(
-                vec.as_mut_ptr(),
-                vec.len() as i32,
+                vec_ptr.as_mut_ptr(),
+                vec_ptr.len() as i32,
                 true,
                 true,
                 TInterpolation::Stepwise as u32,
@@ -238,10 +238,12 @@ impl TSequenceSet for TIntSequenceSet {
 
 impl FromIterator<TIntSequence> for TIntSequenceSet {
     fn from_iter<T: IntoIterator<Item = TIntSequence>>(iter: T) -> Self {
-        let mut vec: Vec<_> = iter.into_iter().map(|t| t.inner_as_tsequence()).collect();
+        let vec: Vec<TIntSequence> = iter.into_iter().collect();
+        let mut vec_ptr: Vec<_> = vec.iter().map(|t| t.inner_as_tsequence()).collect();
 
-        let result =
-            unsafe { meos_sys::tsequenceset_make(vec.as_mut_ptr(), vec.len() as i32, true) };
+        let result = unsafe {
+            meos_sys::tsequenceset_make(vec_ptr.as_mut_ptr(), vec_ptr.len() as i32, true)
+        };
         TIntSequenceSet::from_inner(result)
     }
 }
@@ -259,7 +261,8 @@ impl FromIterator<TInt> for TInt {
         } else {
             first
         };
-        let result = iter.fold(init_value, |acc, item| match (acc, item) {
+        
+        iter.fold(init_value, |acc, item| match (acc, item) {
             (TInt::Sequence(acc_value), TInt::Sequence(item_value)) => {
                 acc_value.append_sequence(item_value)
             }
@@ -274,8 +277,7 @@ impl FromIterator<TInt> for TInt {
             }
             (_, TInt::SequenceSet(_)) => unreachable!(),
             (TInt::Instant(_), _) => unreachable!(),
-        });
-        result
+        })
     }
 }
 

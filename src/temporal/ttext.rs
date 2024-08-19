@@ -46,6 +46,21 @@ fn to_ctext(string: &str) -> *mut meos_sys::text {
     unsafe { meos_sys::cstring2text(cstr.as_ptr()) }
 }
 
+macro_rules! impl_debug {
+    ($type:ty) => {
+        impl Debug for $type {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                let out_str = unsafe { meos_sys::ttext_out(self.inner()) };
+                let c_str = unsafe { CStr::from_ptr(out_str) };
+                let str = c_str.to_str().map_err(|_| std::fmt::Error)?;
+                let result = f.write_str(str);
+                unsafe { libc::free(out_str as *mut c_void) };
+                result
+            }
+        }
+    };
+}
+
 macro_rules! impl_ttext_traits {
     ($type:ty, $temporal_type:ident) => {
         paste::paste! {
@@ -87,6 +102,7 @@ macro_rules! impl_ttext_traits {
             }
 
             impl_simple_traits_for_temporal!($type, ttext);
+            impl_debug!($type);
 
             impl OrderedTemporal for $type {
                 fn min_value(&self) -> Self::Type {
@@ -269,21 +285,6 @@ pub trait TTextTrait:
     }
 }
 
-macro_rules! impl_debug {
-    ($type:ty) => {
-        impl Debug for $type {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                let out_str = unsafe { meos_sys::ttext_out(self.inner()) };
-                let c_str = unsafe { CStr::from_ptr(out_str) };
-                let str = c_str.to_str().map_err(|_| std::fmt::Error)?;
-                let result = f.write_str(str);
-                unsafe { libc::free(out_str as *mut c_void) };
-                result
-            }
-        }
-    };
-}
-
 pub struct TTextInstant {
     _inner: ptr::NonNull<meos_sys::TInstant>,
 }
@@ -309,7 +310,6 @@ impl TInstant for TTextInstant {
 impl TTextTrait for TTextInstant {}
 
 impl_ttext_traits!(TTextInstant, Instant);
-impl_debug!(TTextInstant);
 
 pub struct TTextSequence {
     _inner: ptr::NonNull<meos_sys::TSequence>,
@@ -345,7 +345,6 @@ impl TSequence for TTextSequence {
 impl TTextTrait for TTextSequence {}
 
 impl_ttext_traits!(TTextSequence, Sequence);
-impl_debug!(TTextSequence);
 
 pub struct TTextSequenceSet {
     _inner: ptr::NonNull<meos_sys::TSequenceSet>,
@@ -380,7 +379,6 @@ impl TSequenceSet for TTextSequenceSet {
 impl TTextTrait for TTextSequenceSet {}
 
 impl_ttext_traits!(TTextSequenceSet, SequenceSet);
-impl_debug!(TTextSequenceSet);
 
 impl From<TTextInstant> for TText {
     fn from(value: TTextInstant) -> Self {

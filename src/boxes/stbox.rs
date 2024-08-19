@@ -237,7 +237,7 @@ impl MeosBox for STBox {
 }
 
 impl STBox {
-    fn inner(&self) -> *const meos_sys::STBox {
+    pub fn inner(&self) -> *const meos_sys::STBox {
         self._inner.as_ptr()
     }
 

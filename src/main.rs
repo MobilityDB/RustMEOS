@@ -12,7 +12,9 @@ use meos::{
     init,
     temporal::{
         number::tint::{TInt, TIntInstant, TIntSequence, TIntSequenceSet},
+        point::tpoint::TGeomPointSequence,
         tbool::TBoolSequence,
+        tinstant::TInstant,
         ttext::TTextSequence,
     },
     WKBVariant,
@@ -112,7 +114,10 @@ fn main() {
         "{:?}",
         Geometry::new_from_wkb(&bytes).unwrap().to_wkt().unwrap()
     );
-
+    let tinst: TIntInstant = (4, Utc::now()).into();
+    unsafe {
+        println!("{:?}", tinst.inner_as_tinstant().read());
+    }
     let tinst = (4, Utc::now());
     let tinst2 = (6, Utc::now().checked_add_days(Days::new(1)).unwrap());
 
@@ -145,4 +150,12 @@ fn main() {
     println!("{ttext:?}");
     println!("{:?}", ttext.at_value(&String::from("AAA")));
     println!("{:?}", ttext.concatenate_str("uwu"));
+
+    let tpoint: TGeomPointSequence = "[Point(1 1)@2001-01-01, Point(3 3)@2001-01-03]"
+        .parse()
+        .unwrap();
+    println!("{tpoint:?}");
+
+    println!("{:?}", tpoint.start_timestamp());
+    println!("{:?}", tpoint.start_value().to_wkt().unwrap());
 }
