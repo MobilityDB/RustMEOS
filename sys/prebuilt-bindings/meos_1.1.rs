@@ -5193,8 +5193,11 @@ extern "C" {
     pub fn timestamptz_to_date(t: TimestampTz) -> DateADT;
 }
 extern "C" {
-    pub fn geo_as_ewkb(gs: *const GSERIALIZED, endian: *const ::std::os::raw::c_char)
-        -> *mut bytea;
+    pub fn geo_as_ewkb(
+        gs: *const GSERIALIZED,
+        endian: *const ::std::os::raw::c_char,
+        size: *mut usize,
+    ) -> *mut u8;
 }
 extern "C" {
     pub fn geo_as_ewkt(
@@ -7626,6 +7629,13 @@ extern "C" {
     ) -> *mut STBox;
 }
 extern "C" {
+    pub fn stboxarr_round(
+        boxarr: *const STBox,
+        count: ::std::os::raw::c_int,
+        maxdd: ::std::os::raw::c_int,
+    ) -> *mut STBox;
+}
+extern "C" {
     pub fn tbox_expand_time(box_: *const TBox, interv: *const Interval) -> *mut TBox;
 }
 extern "C" {
@@ -9244,6 +9254,14 @@ extern "C" {
     ) -> *mut Span;
 }
 extern "C" {
+    pub fn temporal_time_spans(
+        temp: *const Temporal,
+        duration: *const Interval,
+        origin: TimestampTz,
+        count: *mut ::std::os::raw::c_int,
+    ) -> *mut Span;
+}
+extern "C" {
     pub fn tnumber_tboxes(temp: *const Temporal, count: *mut ::std::os::raw::c_int) -> *mut TBox;
 }
 extern "C" {
@@ -9261,7 +9279,41 @@ extern "C" {
     ) -> *mut TBox;
 }
 extern "C" {
+    pub fn tnumber_value_spans(
+        temp: *const Temporal,
+        size: Datum,
+        origin: Datum,
+        count: *mut ::std::os::raw::c_int,
+    ) -> *mut Span;
+}
+extern "C" {
     pub fn tpoint_stboxes(temp: *const Temporal, count: *mut ::std::os::raw::c_int) -> *mut STBox;
+}
+extern "C" {
+    pub fn tpoint_space_boxes(
+        temp: *const Temporal,
+        xsize: f64,
+        ysize: f64,
+        zsize: f64,
+        sorigin: *const GSERIALIZED,
+        bitmatrix: bool,
+        border_inc: bool,
+        count: *mut ::std::os::raw::c_int,
+    ) -> *mut STBox;
+}
+extern "C" {
+    pub fn tpoint_space_time_boxes(
+        temp: *const Temporal,
+        xsize: f64,
+        ysize: f64,
+        zsize: f64,
+        duration: *const Interval,
+        sorigin: *const GSERIALIZED,
+        torigin: TimestampTz,
+        bitmatrix: bool,
+        border_inc: bool,
+        count: *mut ::std::os::raw::c_int,
+    ) -> *mut STBox;
 }
 extern "C" {
     pub fn tpoint_split_each_n_stboxes(
@@ -10385,38 +10437,57 @@ extern "C" {
     pub fn temporal_hausdorff_distance(temp1: *const Temporal, temp2: *const Temporal) -> f64;
 }
 extern "C" {
-    pub fn float_bucket(value: f64, size: f64, origin: f64) -> f64;
+    pub fn float_get_bin(value: f64, vsize: f64, vorigin: f64) -> f64;
 }
 extern "C" {
-    pub fn floatspan_bucket_list(
+    pub fn floatspan_value_spans(
         bounds: *const Span,
-        size: f64,
-        origin: f64,
+        vsize: f64,
+        vorigin: f64,
         count: *mut ::std::os::raw::c_int,
     ) -> *mut Span;
 }
 extern "C" {
-    pub fn int_bucket(
+    pub fn int_get_bin(
         value: ::std::os::raw::c_int,
-        size: ::std::os::raw::c_int,
-        origin: ::std::os::raw::c_int,
+        vsize: ::std::os::raw::c_int,
+        vorigin: ::std::os::raw::c_int,
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
-    pub fn intspan_bucket_list(
+    pub fn intspan_value_spans(
         bounds: *const Span,
-        size: ::std::os::raw::c_int,
-        origin: ::std::os::raw::c_int,
+        vsize: ::std::os::raw::c_int,
+        vorigin: ::std::os::raw::c_int,
         count: *mut ::std::os::raw::c_int,
     ) -> *mut Span;
 }
 extern "C" {
-    pub fn stbox_space_tile(
+    pub fn stbox_get_space_tile(
         point: *const GSERIALIZED,
         xsize: f64,
         ysize: f64,
         zsize: f64,
         sorigin: *const GSERIALIZED,
+    ) -> *mut STBox;
+}
+extern "C" {
+    pub fn stbox_get_space_time_tile(
+        point: *const GSERIALIZED,
+        t: TimestampTz,
+        xsize: f64,
+        ysize: f64,
+        zsize: f64,
+        duration: *const Interval,
+        sorigin: *const GSERIALIZED,
+        torigin: TimestampTz,
+    ) -> *mut STBox;
+}
+extern "C" {
+    pub fn stbox_get_time_tile(
+        t: TimestampTz,
+        duration: *const Interval,
+        torigin: TimestampTz,
     ) -> *mut STBox;
 }
 extern "C" {
@@ -10428,18 +10499,6 @@ extern "C" {
         sorigin: *const GSERIALIZED,
         border_inc: bool,
         count: *mut ::std::os::raw::c_int,
-    ) -> *mut STBox;
-}
-extern "C" {
-    pub fn stbox_space_time_tile(
-        point: *const GSERIALIZED,
-        t: TimestampTz,
-        xsize: f64,
-        ysize: f64,
-        zsize: f64,
-        duration: *const Interval,
-        sorigin: *const GSERIALIZED,
-        torigin: TimestampTz,
     ) -> *mut STBox;
 }
 extern "C" {
@@ -10456,37 +10515,56 @@ extern "C" {
     ) -> *mut STBox;
 }
 extern "C" {
+    pub fn stbox_time_tiles(
+        bounds: *const STBox,
+        duration: *const Interval,
+        torigin: TimestampTz,
+        border_inc: bool,
+        count: *mut ::std::os::raw::c_int,
+    ) -> *mut STBox;
+}
+extern "C" {
     pub fn temporal_time_split(
         temp: *const Temporal,
         duration: *const Interval,
         torigin: TimestampTz,
-        time_buckets: *mut *mut TimestampTz,
+        time_bins: *mut *mut TimestampTz,
         count: *mut ::std::os::raw::c_int,
     ) -> *mut *mut Temporal;
 }
 extern "C" {
     pub fn tfloat_value_split(
         temp: *const Temporal,
-        size: f64,
-        origin: f64,
-        value_buckets: *mut *mut f64,
+        vsize: f64,
+        vorigin: f64,
+        value_bins: *mut *mut f64,
         count: *mut ::std::os::raw::c_int,
     ) -> *mut *mut Temporal;
 }
 extern "C" {
     pub fn tfloat_value_time_split(
         temp: *const Temporal,
-        size: f64,
+        vsize: f64,
         duration: *const Interval,
         vorigin: f64,
         torigin: TimestampTz,
-        value_buckets: *mut *mut f64,
-        time_buckets: *mut *mut TimestampTz,
+        value_bins: *mut *mut f64,
+        time_bins: *mut *mut TimestampTz,
         count: *mut ::std::os::raw::c_int,
     ) -> *mut *mut Temporal;
 }
 extern "C" {
-    pub fn tfloatbox_value_time_tile(
+    pub fn tfloatbox_get_time_tile(
+        t: TimestampTz,
+        duration: *const Interval,
+        torigin: TimestampTz,
+    ) -> *mut TBox;
+}
+extern "C" {
+    pub fn tfloatbox_get_value_tile(value: f64, vsize: f64, vorigin: f64) -> *mut TBox;
+}
+extern "C" {
+    pub fn tfloatbox_get_value_time_tile(
         value: f64,
         t: TimestampTz,
         vsize: f64,
@@ -10496,28 +10574,44 @@ extern "C" {
     ) -> *mut TBox;
 }
 extern "C" {
-    pub fn tfloatbox_value_time_tiles(
+    pub fn tfloatbox_time_tiles(
         box_: *const TBox,
-        xsize: f64,
         duration: *const Interval,
-        xorigin: f64,
         torigin: TimestampTz,
         count: *mut ::std::os::raw::c_int,
     ) -> *mut TBox;
 }
 extern "C" {
-    pub fn timestamptz_bucket(
+    pub fn tfloatbox_value_tiles(
+        box_: *const TBox,
+        vsize: f64,
+        vorigin: f64,
+        count: *mut ::std::os::raw::c_int,
+    ) -> *mut TBox;
+}
+extern "C" {
+    pub fn tfloatbox_value_time_tiles(
+        box_: *const TBox,
+        vsize: f64,
+        duration: *const Interval,
+        vorigin: f64,
+        torigin: TimestampTz,
+        count: *mut ::std::os::raw::c_int,
+    ) -> *mut TBox;
+}
+extern "C" {
+    pub fn timestamptz_get_bin(
         timestamp: TimestampTz,
         duration: *const Interval,
-        origin: TimestampTz,
+        torigin: TimestampTz,
     ) -> TimestampTz;
 }
 extern "C" {
     pub fn tint_value_split(
         temp: *const Temporal,
-        size: ::std::os::raw::c_int,
-        origin: ::std::os::raw::c_int,
-        value_buckets: *mut *mut ::std::os::raw::c_int,
+        vsize: ::std::os::raw::c_int,
+        vorigin: ::std::os::raw::c_int,
+        value_bins: *mut *mut ::std::os::raw::c_int,
         count: *mut ::std::os::raw::c_int,
     ) -> *mut *mut Temporal;
 }
@@ -10528,19 +10622,49 @@ extern "C" {
         duration: *const Interval,
         vorigin: ::std::os::raw::c_int,
         torigin: TimestampTz,
-        value_buckets: *mut *mut ::std::os::raw::c_int,
-        time_buckets: *mut *mut TimestampTz,
+        value_bins: *mut *mut ::std::os::raw::c_int,
+        time_bins: *mut *mut TimestampTz,
         count: *mut ::std::os::raw::c_int,
     ) -> *mut *mut Temporal;
 }
 extern "C" {
-    pub fn tintbox_value_time_tile(
+    pub fn tintbox_get_time_tile(
+        t: TimestampTz,
+        duration: *const Interval,
+        torigin: TimestampTz,
+    ) -> *mut TBox;
+}
+extern "C" {
+    pub fn tintbox_get_value_tile(
+        value: ::std::os::raw::c_int,
+        vsize: ::std::os::raw::c_int,
+        vorigin: ::std::os::raw::c_int,
+    ) -> *mut TBox;
+}
+extern "C" {
+    pub fn tintbox_get_value_time_tile(
         value: ::std::os::raw::c_int,
         t: TimestampTz,
         vsize: ::std::os::raw::c_int,
         duration: *const Interval,
         vorigin: ::std::os::raw::c_int,
         torigin: TimestampTz,
+    ) -> *mut TBox;
+}
+extern "C" {
+    pub fn tintbox_time_tiles(
+        box_: *const TBox,
+        duration: *const Interval,
+        torigin: TimestampTz,
+        count: *mut ::std::os::raw::c_int,
+    ) -> *mut TBox;
+}
+extern "C" {
+    pub fn tintbox_value_tiles(
+        box_: *const TBox,
+        xsize: ::std::os::raw::c_int,
+        xorigin: ::std::os::raw::c_int,
+        count: *mut ::std::os::raw::c_int,
     ) -> *mut TBox;
 }
 extern "C" {
@@ -10556,34 +10680,44 @@ extern "C" {
 extern "C" {
     pub fn tpoint_space_split(
         temp: *const Temporal,
-        xsize: f32,
-        ysize: f32,
-        zsize: f32,
+        xsize: f64,
+        ysize: f64,
+        zsize: f64,
         sorigin: *const GSERIALIZED,
         bitmatrix: bool,
         border_inc: bool,
-        space_buckets: *mut *mut *mut GSERIALIZED,
+        space_bins: *mut *mut *mut GSERIALIZED,
         count: *mut ::std::os::raw::c_int,
     ) -> *mut *mut Temporal;
 }
 extern "C" {
     pub fn tpoint_space_time_split(
         temp: *const Temporal,
-        xsize: f32,
-        ysize: f32,
-        zsize: f32,
+        xsize: f64,
+        ysize: f64,
+        zsize: f64,
         duration: *const Interval,
         sorigin: *const GSERIALIZED,
         torigin: TimestampTz,
         bitmatrix: bool,
         border_inc: bool,
-        space_buckets: *mut *mut *mut GSERIALIZED,
-        time_buckets: *mut *mut TimestampTz,
+        space_bins: *mut *mut *mut GSERIALIZED,
+        time_bins: *mut *mut TimestampTz,
         count: *mut ::std::os::raw::c_int,
     ) -> *mut *mut Temporal;
 }
 extern "C" {
-    pub fn tstzspan_bucket_list(
+    pub fn tpoint_time_split(
+        temp: *const Temporal,
+        duration: *const Interval,
+        torigin: TimestampTz,
+        border_inc: bool,
+        time_bins: *mut *mut TimestampTz,
+        count: *mut ::std::os::raw::c_int,
+    ) -> *mut *mut Temporal;
+}
+extern "C" {
+    pub fn tstzspan_time_spans(
         bounds: *const Span,
         duration: *const Interval,
         origin: TimestampTz,
