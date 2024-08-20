@@ -33,6 +33,8 @@ use crate::{
     MeosEnum,
 };
 
+use super::interpolation::TInterpolation;
+
 macro_rules! impl_debug {
     ($type:ty) => {
         impl Debug for $type {
@@ -314,6 +316,19 @@ impl TSequence for TBoolSequence {
 impl_tbool_traits!(TBoolSequence, meos_sys::TSequence);
 
 impl TBoolTrait for TBoolSequence {}
+
+impl FromIterator<TBoolInstant> for TBoolSequence {
+    fn from_iter<T: IntoIterator<Item = TBoolInstant>>(iter: T) -> Self {
+        iter.into_iter().collect()
+    }
+}
+
+impl<'a> FromIterator<&'a TBoolInstant> for TBoolSequence {
+    fn from_iter<T: IntoIterator<Item = &'a TBoolInstant>>(iter: T) -> Self {
+        let vec: Vec<&TBoolInstant> = iter.into_iter().collect();
+        Self::new(&vec, TInterpolation::Stepwise)
+    }
+}
 
 pub struct TBoolSequenceSet {
     _inner: ptr::NonNull<meos_sys::TSequenceSet>,

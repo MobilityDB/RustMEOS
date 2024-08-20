@@ -29,6 +29,8 @@ use crate::{
     MeosEnum,
 };
 
+use super::interpolation::TInterpolation;
+
 fn from_ctext(ctext: *mut meos_sys::text) -> String {
     unsafe {
         let cstr = meos_sys::text2cstring(ctext);
@@ -345,6 +347,19 @@ impl TSequence for TTextSequence {
 impl TTextTrait for TTextSequence {}
 
 impl_ttext_traits!(TTextSequence, Sequence);
+
+impl FromIterator<TTextInstant> for TTextSequence {
+    fn from_iter<T: IntoIterator<Item = TTextInstant>>(iter: T) -> Self {
+        iter.into_iter().collect()
+    }
+}
+
+impl<'a> FromIterator<&'a TTextInstant> for TTextSequence {
+    fn from_iter<T: IntoIterator<Item = &'a TTextInstant>>(iter: T) -> Self {
+        let vec: Vec<&TTextInstant> = iter.into_iter().collect();
+        Self::new(&vec, TInterpolation::Stepwise)
+    }
+}
 
 pub struct TTextSequenceSet {
     _inner: ptr::NonNull<meos_sys::TSequenceSet>,

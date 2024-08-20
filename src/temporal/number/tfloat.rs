@@ -186,6 +186,19 @@ impl TFloatTrait for TFloatSequence {}
 impl_temporal_for_tnumber!(TFloatSequence, Sequence, f64, Float);
 impl_debug!(TFloatSequence);
 
+impl FromIterator<TFloatInstant> for TFloatSequence {
+    fn from_iter<T: IntoIterator<Item = TFloatInstant>>(iter: T) -> Self {
+        iter.into_iter().collect()
+    }
+}
+
+impl<'a> FromIterator<&'a TFloatInstant> for TFloatSequence {
+    fn from_iter<T: IntoIterator<Item = &'a TFloatInstant>>(iter: T) -> Self {
+        let vec: Vec<&TFloatInstant> = iter.into_iter().collect();
+        Self::new(&vec, TInterpolation::Stepwise)
+    }
+}
+
 pub struct TFloatSequenceSet {
     _inner: ptr::NonNull<meos_sys::TSequenceSet>,
 }

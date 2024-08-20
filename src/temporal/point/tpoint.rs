@@ -1,3 +1,4 @@
+use crate::temporal::interpolation::TInterpolation;
 use crate::temporal::JSONCVariant;
 use crate::temporal::{tinstant::TInstant, tsequence::TSequence};
 use core::fmt;
@@ -1380,5 +1381,18 @@ impl MeosEnum for TGeomPoint {
             TGeomPoint::Sequence(value) => value.inner(),
             TGeomPoint::SequenceSet(value) => value.inner(),
         }
+    }
+}
+
+impl FromIterator<TGeomPointInstant> for TGeomPointSequence {
+    fn from_iter<T: IntoIterator<Item = TGeomPointInstant>>(iter: T) -> Self {
+        iter.into_iter().collect()
+    }
+}
+
+impl<'a> FromIterator<&'a TGeomPointInstant> for TGeomPointSequence {
+    fn from_iter<T: IntoIterator<Item = &'a TGeomPointInstant>>(iter: T) -> Self {
+        let vec: Vec<&TGeomPointInstant> = iter.into_iter().collect();
+        Self::new(&vec, TInterpolation::Stepwise)
     }
 }

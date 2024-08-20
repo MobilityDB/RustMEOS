@@ -178,19 +178,14 @@ impl TSequence for TIntSequence {
 
 impl FromIterator<TIntInstant> for TIntSequence {
     fn from_iter<T: IntoIterator<Item = TIntInstant>>(iter: T) -> Self {
-        let vec: Vec<TIntInstant> = iter.into_iter().collect();
-        let mut vec_ptr: Vec<_> = vec.iter().map(|t| t.inner_as_tinstant()).collect();
-        let result = unsafe {
-            meos_sys::tsequence_make(
-                vec_ptr.as_mut_ptr(),
-                vec_ptr.len() as i32,
-                true,
-                true,
-                TInterpolation::Stepwise as u32,
-                true,
-            )
-        };
-        TIntSequence::from_inner(result)
+        iter.into_iter().collect()
+    }
+}
+
+impl<'a> FromIterator<&'a TIntInstant> for TIntSequence {
+    fn from_iter<T: IntoIterator<Item = &'a TIntInstant>>(iter: T) -> Self {
+        let vec: Vec<&TIntInstant> = iter.into_iter().collect();
+        Self::new(&vec, TInterpolation::Stepwise)
     }
 }
 
@@ -261,7 +256,7 @@ impl FromIterator<TInt> for TInt {
         } else {
             first
         };
-        
+
         iter.fold(init_value, |acc, item| match (acc, item) {
             (TInt::Sequence(acc_value), TInt::Sequence(item_value)) => {
                 acc_value.append_sequence(item_value)
