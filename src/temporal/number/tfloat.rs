@@ -188,14 +188,15 @@ impl_debug!(TFloatSequence);
 
 impl FromIterator<TFloatInstant> for TFloatSequence {
     fn from_iter<T: IntoIterator<Item = TFloatInstant>>(iter: T) -> Self {
-        iter.into_iter().collect()
+        let vec: Vec<TFloatInstant> = iter.into_iter().collect();
+        Self::new(&vec, TInterpolation::Linear)
     }
 }
 
 impl<'a> FromIterator<&'a TFloatInstant> for TFloatSequence {
     fn from_iter<T: IntoIterator<Item = &'a TFloatInstant>>(iter: T) -> Self {
         let vec: Vec<&TFloatInstant> = iter.into_iter().collect();
-        Self::new(&vec, TInterpolation::Stepwise)
+        Self::new(&vec, TInterpolation::Linear)
     }
 }
 

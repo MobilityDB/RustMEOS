@@ -350,14 +350,15 @@ impl_ttext_traits!(TTextSequence, Sequence);
 
 impl FromIterator<TTextInstant> for TTextSequence {
     fn from_iter<T: IntoIterator<Item = TTextInstant>>(iter: T) -> Self {
-        iter.into_iter().collect()
+        let vec: Vec<TTextInstant> = iter.into_iter().collect();
+        Self::new(&vec, TInterpolation::Discrete)
     }
 }
 
 impl<'a> FromIterator<&'a TTextInstant> for TTextSequence {
     fn from_iter<T: IntoIterator<Item = &'a TTextInstant>>(iter: T) -> Self {
         let vec: Vec<&TTextInstant> = iter.into_iter().collect();
-        Self::new(&vec, TInterpolation::Stepwise)
+        Self::new(&vec, TInterpolation::Discrete)
     }
 }
 

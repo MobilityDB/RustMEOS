@@ -1386,13 +1386,14 @@ impl MeosEnum for TGeomPoint {
 
 impl FromIterator<TGeomPointInstant> for TGeomPointSequence {
     fn from_iter<T: IntoIterator<Item = TGeomPointInstant>>(iter: T) -> Self {
-        iter.into_iter().collect()
+        let vec: Vec<TGeomPointInstant> = iter.into_iter().collect();
+        Self::new(&vec, TInterpolation::Linear)
     }
 }
 
 impl<'a> FromIterator<&'a TGeomPointInstant> for TGeomPointSequence {
     fn from_iter<T: IntoIterator<Item = &'a TGeomPointInstant>>(iter: T) -> Self {
         let vec: Vec<&TGeomPointInstant> = iter.into_iter().collect();
-        Self::new(&vec, TInterpolation::Stepwise)
+        Self::new(&vec, TInterpolation::Linear)
     }
 }

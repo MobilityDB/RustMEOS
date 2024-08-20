@@ -178,7 +178,8 @@ impl TSequence for TIntSequence {
 
 impl FromIterator<TIntInstant> for TIntSequence {
     fn from_iter<T: IntoIterator<Item = TIntInstant>>(iter: T) -> Self {
-        iter.into_iter().collect()
+        let vec: Vec<TIntInstant> = iter.into_iter().collect();
+        Self::new(&vec, TInterpolation::Stepwise)
     }
 }
 

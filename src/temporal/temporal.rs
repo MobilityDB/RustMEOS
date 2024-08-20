@@ -1452,6 +1452,11 @@ pub trait OrderedTemporal: Temporal {
 macro_rules! impl_simple_traits_for_temporal {
     ($type:ty, $meos_type:ident) => {
         paste::paste! {
+            impl AsRef<$type> for $type {
+                fn as_ref(&self) -> &$type {
+                    self
+                }
+            }
             impl Drop for $type {
                 fn drop(&mut self) {
                     unsafe {

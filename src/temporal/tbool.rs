@@ -319,14 +319,15 @@ impl TBoolTrait for TBoolSequence {}
 
 impl FromIterator<TBoolInstant> for TBoolSequence {
     fn from_iter<T: IntoIterator<Item = TBoolInstant>>(iter: T) -> Self {
-        iter.into_iter().collect()
+        let vec: Vec<TBoolInstant> = iter.into_iter().collect();
+        Self::new(&vec, TInterpolation::Discrete)
     }
 }
 
 impl<'a> FromIterator<&'a TBoolInstant> for TBoolSequence {
     fn from_iter<T: IntoIterator<Item = &'a TBoolInstant>>(iter: T) -> Self {
         let vec: Vec<&TBoolInstant> = iter.into_iter().collect();
-        Self::new(&vec, TInterpolation::Stepwise)
+        Self::new(&vec, TInterpolation::Discrete)
     }
 }
 

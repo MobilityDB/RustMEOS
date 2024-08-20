@@ -11,11 +11,16 @@ pub trait TSequence: Temporal {
     /// ## Note
     /// We assume that the lower bound will be inclusive and
     /// the upper one exclusive (except for Discrete interpolations and instantaneous sequences, where it's inclusive), if you find yourself needing another variant, report it.
-    fn new(values: &[&Self::TI], interpolation: TInterpolation) -> Self {
-        let mut t_list: Vec<_> = values.iter().map(|i| i.inner_as_tinstant()).collect();
+    fn new<Inst: AsRef<Self::TI>>(values: &[Inst], interpolation: TInterpolation) -> Self {
+        let mut t_list: Vec<_> = values
+            .iter()
+            .map(|i| i.as_ref().inner_as_tinstant())
+            .collect();
         // The default for discrete instances or instantaneous sequences is an inclusive upper bound
-        let upper_inclusive =
-            matches!(interpolation, TInterpolation::Discrete) || values.len() == 1;
+        let upper_inclusive = matches!(
+            interpolation,
+            TInterpolation::Discrete | TInterpolation::Stepwise
+        ) || values.len() == 1;
         TSequence::from_inner(unsafe {
             meos_sys::tsequence_make(
                 t_list.as_mut_ptr(),
