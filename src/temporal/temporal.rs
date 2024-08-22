@@ -1449,6 +1449,92 @@ pub trait OrderedTemporal: Temporal {
     fn ever_greater_than_value(&self, value: Self::Type) -> Option<bool>;
 }
 
+/// A trait for simplifying temporal values in various ways.
+pub trait SimplifiableTemporal: Temporal {
+    /// Simplifies a temporal value ensuring that consecutive values are at least
+    /// a certain distance apart.
+    ///
+    /// # Arguments
+    ///
+    /// * `distance` - A `f64` representing the minimum distance between two points.
+    ///
+    /// # Returns
+    ///
+    /// A simplified instance of the implementing type with the same subtype as the input.
+    ///
+    /// # MEOS Functions
+    ///
+    /// This method wraps the `temporal_simplify_min_dist` function from MEOS.
+    fn simplify_min_distance(&self, distance: f64) -> Self::Enum {
+        factory::<Self::Enum>(unsafe {
+            meos_sys::temporal_simplify_min_dist(self.inner(), distance)
+        })
+    }
+
+    /// Simplifies a temporal value ensuring that consecutive values are at least
+    /// a certain time apart.
+    ///
+    /// # Arguments
+    ///
+    /// * `distance` - A `Duration` indicating the minimum time between two points.
+    ///
+    /// # Returns
+    ///
+    /// A simplified instance of the implementing type with the same subtype as the input.
+    ///
+    /// # MEOS Functions
+    ///
+    /// This method wraps the `temporal_simplify_min_tdelta` function from MEOS.
+    fn simplify_min_tdelta(&self, distance: TimeDelta) -> Self::Enum {
+        let interval = create_interval(distance);
+        factory::<Self::Enum>(unsafe {
+            meos_sys::temporal_simplify_min_tdelta(self.inner(), ptr::addr_of!(interval))
+        })
+    }
+
+    /// Simplifies a temporal value using the Douglas-Peucker line simplification algorithm.
+    ///
+    /// # Arguments
+    ///
+    /// * `distance` - A `f64` representing the minimum distance between two points.
+    /// * `synchronized` - A `bool` indicating if the Synchronized Distance should be used.
+    ///   If `false`, the spatial-only distance will be used.
+    ///
+    /// # Returns
+    ///
+    /// A simplified instance of the implementing type with the same subtype as the input.
+    ///
+    /// # MEOS Functions
+    ///
+    /// This method wraps the `temporal_simplify_dp` function from MEOS.
+    fn simplify_douglas_peucker(&self, distance: f64, synchronized: bool) -> Self::Enum {
+        factory::<Self::Enum>(unsafe {
+            meos_sys::temporal_simplify_dp(self.inner(), distance, synchronized)
+        })
+    }
+
+    /// Simplifies a temporal value using a single-pass Douglas-Peucker line simplification algorithm.
+    ///
+    /// # Arguments
+    ///
+    /// * `distance` - A `f64` representing the minimum distance between two points.
+    /// * `synchronized` - A `bool` indicating if the Synchronized Distance should be used.
+    ///   If `false`, the spatial-only distance will be used.
+    ///
+    /// # Returns
+    ///
+    /// A simplified instance of the implementing type with the same subtype as the input.
+    ///
+    /// # MEOS Functions
+    ///
+    /// This method wraps the `temporal_simplify_max_dist` function from MEOS.
+    fn simplify_max_distance(&self, distance: f64, synchronized: bool) -> Self::Enum {
+        factory::<Self::Enum>(unsafe {
+            meos_sys::temporal_simplify_max_dist(self.inner(), distance, synchronized)
+        })
+    }
+}
+
 macro_rules! impl_simple_traits_for_temporal {
     ($type:ty, $meos_type:ident) => {
         paste::paste! {
@@ -1470,18 +1556,6 @@ macro_rules! impl_simple_traits_for_temporal {
                     Temporal::from_inner_as_temporal(unsafe { meos_sys::temporal_copy(self.inner()) })
                 }
             }
-
-            impl FromStr for $type {
-                type Err = ParseError;
-
-                fn from_str(s: &str) -> Result<Self, Self::Err> {
-                    CString::new(s).map_err(|_| ParseError).map(|string| {
-                        let inner = unsafe { meos_sys::[<$meos_type _in>](string.as_ptr()) };
-                        Self::from_inner_as_temporal(inner)
-                    })
-                }
-            }
-
             impl PartialEq for $type {
                 fn eq(&self, other: &Self) -> bool {
                     unsafe { meos_sys::temporal_eq(self.inner(), other.inner()) }

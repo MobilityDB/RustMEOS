@@ -12,10 +12,10 @@ use meos::{
     init,
     temporal::{
         number::tint::{TInt, TIntInstant, TIntSequence, TIntSequenceSet},
-        point::tpoint::TGeomPointSequence,
-        tbool::TBoolSequence,
+        point::{tgeompoint::TGeomPoint, tpoint::TPointTrait},
+        tbool::TBool,
         tinstant::TInstant,
-        ttext::TTextSequence,
+        ttext::TText,
     },
     WKBVariant,
 };
@@ -62,9 +62,12 @@ fn main() {
     println!("{stbox:?} {wkb:?}");
     println!("{:?}", WKBVariant::Extended | WKBVariant::NDR);
 
-    let tint: TIntSequence = "[1@2001-01-01, 2@2001-01-03, 2@2001-01-04, 2@2001-01-05)"
+    let TInt::Sequence(tint) = "[1@2001-01-01, 2@2001-01-03, 2@2001-01-04, 2@2001-01-05)"
         .parse()
-        .unwrap();
+        .unwrap()
+    else {
+        panic!()
+    };
 
     let yatint = TInt::from_mfjson(
         r#"{"type":"MovingInteger","bbox":[10,25],"period":{"begin":"2001-01-01T18:00:00+01","end":"2001-01-01T18:10:00+01"},"values":[10,25],"datetimes":["2001-01-01T18:00:00+01",
@@ -78,9 +81,13 @@ fn main() {
         yatint.as_mfjson(true, meos::temporal::JSONCVariant::Pretty, 3, "4326")
     );
 
-    let tint2: TIntSequence = "{3@2001-01-01, 5@2001-01-03, 9@2001-01-04, 111@2001-01-05}"
+    let TInt::Sequence(tint2) = "{3@2001-01-01, 5@2001-01-03, 9@2001-01-04, 111@2001-01-05}"
         .parse()
-        .unwrap();
+        .unwrap()
+    else {
+        panic!()
+    };
+
     println!("{:?}", tint.values());
 
     println!("{tint:?}");
@@ -89,18 +96,20 @@ fn main() {
 
     println!("{}", tint2.always_greater(&tint.into()).unwrap());
 
-    let tbool: TBoolSequence = "[true@2001-01-01 08:00:00, false@2001-01-03 08:00:00]"
+    let TBool::Sequence(tbool) = "[true@2001-01-01 08:00:00, false@2001-01-03 08:00:00]"
         .parse()
-        .unwrap();
-
-    let tbool2: TBoolSequence = "[false@2001-01-01 08:00:00, true@2001-01-03 08:00:00]"
-        .parse()
-        .unwrap();
+        .unwrap()
+    else {
+        panic!()
+    };
     println!("{:?}", tbool | true);
 
-    let ttext: TTextSequence = "{AAA@2001-01-01 08:00:00, BBB@2001-01-03 08:00:00}"
+    let TText::Sequence(ttext) = "{AAA@2001-01-01 08:00:00, BBB@2001-01-03 08:00:00}"
         .parse()
-        .unwrap();
+        .unwrap()
+    else {
+        panic!()
+    };
 
     let bytes = [
         0u8, 128, 0, 0, 1, 63, 240, 0, 0, 0, 0, 0, 0, 63, 240, 0, 0, 0, 0, 0, 0, 63, 240, 0, 0, 0,
@@ -133,11 +142,6 @@ fn main() {
     unsafe {
         println!("{:?}", TIntInstant::from(tinst).inner().read());
     }
-    let a = TIntInstant::from(tinst).append_instant(
-        (4, Utc::now().checked_add_days(Days::new(1)).unwrap()).into(),
-        None,
-        None,
-    );
 
     unsafe {
         println!("{:?}", vector.inner().read());
@@ -151,11 +155,43 @@ fn main() {
     println!("{:?}", ttext.at_value(&String::from("AAA")));
     println!("{:?}", ttext.concatenate_str("uwu"));
 
-    let tpoint: TGeomPointSequence = "[Point(1 1)@2001-01-01, Point(3 3)@2001-01-03]"
+    let TGeomPoint::Sequence(tpoint) = "[Point(1 1)@2001-01-01, Point(3 3)@2001-01-03]"
         .parse()
-        .unwrap();
+        .unwrap()
+    else {
+        panic!()
+    };
     println!("{tpoint:?}");
 
+    println!("{:?}", tpoint.start_timestamp());
+    println!("{:?}", tpoint.start_value().to_wkt().unwrap());
+
+    println!("\n\n\nTPOINT:");
+    let TGeomPoint::Sequence(tpoint) =
+        "[Point(0 0)@2001-01-02, Point(1 1)@2001-01-04, Point(0 0)@2001-01-06)"
+            .parse()
+            .unwrap()
+    else {
+        panic!()
+    };
+    println!("{:?}", tpoint);
+    println!(
+        "{:?}",
+        tpoint.nearest_approach_instant_to_geometry(
+            &Geometry::new_from_wkt("Linestring(2 2,2 1,3 1)").unwrap()
+        )
+    );
+    println!("{:?}", tpoint.make_simple());
+    println!("{:?}", tpoint.speed());
+    println!(
+        "{:?}",
+        tpoint.time_weighted_centroid().unwrap().to_wkt().unwrap()
+    );
+    println!("{:?}", tpoint.trajectory().unwrap().to_wkt().unwrap());
+    println!("{:?}", tpoint.bounding_box());
+    println!("{:?}", tpoint.expand(3.0));
+    println!("{:?}", tpoint.srid());
+    println!("{}", tpoint.as_ewkt(5));
     println!("{:?}", tpoint.start_timestamp());
     println!("{:?}", tpoint.start_value().to_wkt().unwrap());
 }

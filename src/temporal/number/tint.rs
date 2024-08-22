@@ -20,7 +20,7 @@ use crate::{
         number::int_span_set::IntSpanSet,
     },
     errors::ParseError,
-    factory,
+    factory, impl_from_str,
     temporal::{
         interpolation::TInterpolation,
         tbool::{TBoolInstant, TBoolSequence, TBoolSequenceSet},
@@ -44,6 +44,8 @@ pub enum TInt {
     Sequence(TIntSequence),
     SequenceSet(TIntSequenceSet),
 }
+
+impl_from_str!(TInt);
 
 impl MeosEnum for TInt {
     fn from_instant(inner: *mut meos_sys::TInstant) -> Self {

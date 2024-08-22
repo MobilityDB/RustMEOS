@@ -7,7 +7,7 @@ use std::{
 use chrono::{DateTime, NaiveDateTime, Utc};
 use meos::{
     init,
-    temporal::{number::tfloat::TFloatInstant, point::tpoint::TGeomPointInstant},
+    temporal::{number::tfloat::TFloatInstant, point::tgeompoint::TGeomPoint},
 };
 
 const MAX_LENGTH_HEADER: usize = 1024;
@@ -76,7 +76,9 @@ fn main() {
                     "SRID=4326;Point({} {})@{}+00",
                     rec.longitude, rec.latitude, t_out
                 );
-                let inst1: TGeomPointInstant = point_buffer.parse().unwrap();
+                let TGeomPoint::Instant(inst1) = point_buffer.parse().unwrap() else {
+                    panic!()
+                };
 
                 let inst2: TFloatInstant = (rec.sog, rec.t).into();
                 println!(

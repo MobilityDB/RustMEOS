@@ -13,7 +13,10 @@ use meos::{
             tfloat::{TFloatInstant, TFloatSequence},
             tnumber::TNumber,
         },
-        point::tpoint::{TGeomPointInstant, TGeomPointSequence, TPointTrait},
+        point::{
+            tgeompoint::{TGeomPoint, TGeomPointInstant, TGeomPointSequence},
+            tpoint::TPointTrait,
+        },
         temporal::Temporal,
         tinstant::TInstant,
     },
@@ -132,7 +135,9 @@ fn main() {
                 rec.latitude,
                 rec.t.format("%Y-%m-%d %H:%M:%S")
             );
-            let inst1: TGeomPointInstant = point_str.parse().unwrap();
+            let TGeomPoint::Instant(inst1) = point_str.parse().unwrap() else {
+                panic!()
+            };
             trip.trip_instants.push(inst1);
 
             let inst2: TFloatInstant = TFloatInstant::from_value_and_timestamp(rec.sog, rec.t);

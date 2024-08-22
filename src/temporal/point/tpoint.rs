@@ -1,34 +1,18 @@
-use crate::temporal::interpolation::TInterpolation;
+use crate::temporal::tinstant::TInstant;
 use crate::temporal::JSONCVariant;
-use crate::temporal::{tinstant::TInstant, tsequence::TSequence};
-use core::fmt;
-use std::{
-    ffi::{c_void, CStr, CString},
-    hash::Hash,
-    mem, ptr, slice,
-    str::FromStr,
-};
-
-use crate::temporal::tsequence_set::TSequenceSet;
 use crate::{
     boxes::stbox::STBox,
-    collections::base::collection::{impl_collection, Collection},
-    errors::ParseError,
     factory,
-    temporal::{
-        number::tfloat::TFloat,
-        tbool::*,
-        temporal::{
-            impl_always_and_ever_value_equality_functions, impl_simple_traits_for_temporal,
-            Temporal,
-        },
-    },
-    utils::to_meos_timestamp,
+    temporal::{number::tfloat::TFloat, temporal::Temporal},
     MeosEnum,
 };
-use chrono::{DateTime, TimeZone};
+use core::fmt;
 use geos::{Geom, Geometry};
 use meos_sys::GSERIALIZED;
+use std::{
+    ffi::{c_void, CStr, CString},
+    ptr, slice,
+};
 
 pub struct Point(f64, f64, Option<f64>);
 
@@ -43,7 +27,7 @@ fn point_to_gserialize(point: Point, geodetic: bool) -> *mut meos_sys::GSERIALIZ
     }
 }
 
-fn geometry_to_gserialized(geometry: &Geometry) -> *mut GSERIALIZED {
+pub(super) fn geometry_to_gserialized(geometry: &Geometry) -> *mut GSERIALIZED {
     let wkb = geometry.to_wkb().unwrap();
     let wkb_len = wkb.len();
 
@@ -51,12 +35,14 @@ fn geometry_to_gserialized(geometry: &Geometry) -> *mut GSERIALIZED {
         meos_sys::geo_from_ewkb(
             wkb.into_inner(),
             wkb_len,
-            geometry.get_srid().expect("No SRID") as i32,
+            geometry.get_srid().unwrap_or_default() as i32,
         )
     }
 }
 
-fn gserialized_to_geometry(gs: *mut meos_sys::GSERIALIZED) -> Result<Geometry, geos::Error> {
+pub(super) fn gserialized_to_geometry(
+    gs: *mut meos_sys::GSERIALIZED,
+) -> Result<Geometry, geos::Error> {
     let mut size = 0;
     let endian = CString::new("xdr").unwrap();
     let bytes = unsafe { meos_sys::geo_as_ewkb(gs, endian.as_ptr(), ptr::addr_of_mut!(size)) };
@@ -1115,16 +1101,6 @@ pub trait TPointTrait<const IS_GEODETIC: bool>: Temporal {
     // }
 }
 
-macro_rules! impl_debug {
-    ($type:ty) => {
-        impl fmt::Debug for $type {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                f.write_str(&self.as_wkt(5))
-            }
-        }
-    };
-}
-
 macro_rules! impl_tpoint_traits {
     ($type:ty, $temporal_type:ident, $is_geodetic:expr, $tpoint_type:ident) => {
         paste::paste! {
@@ -1136,7 +1112,12 @@ macro_rules! impl_tpoint_traits {
             }
 
             impl_simple_traits_for_temporal!($type, [<t $tpoint_type:lower point>]);
-            impl_debug!($type);
+            impl fmt::Debug for $type {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    f.write_str(&self.as_wkt(5))
+                }
+            }
+            impl SimplifiableTemporal for $type {}
 
             impl Temporal for $type {
                 type TI = [<T $tpoint_type PointInstant>];
@@ -1253,147 +1234,4 @@ macro_rules! impl_tpoint_traits {
     };
 }
 
-pub struct TGeomPointInstant {
-    _inner: ptr::NonNull<meos_sys::TInstant>,
-}
-
-impl_tpoint_traits!(TGeomPointInstant, Instant, false, Geom);
-
-impl TInstant for TGeomPointInstant {
-    fn from_inner(inner: *mut meos_sys::TInstant) -> Self {
-        Self {
-            _inner: ptr::NonNull::new(inner).expect("Null pointers not allowed"),
-        }
-    }
-
-    fn inner_as_tinstant(&self) -> *const meos_sys::TInstant {
-        self._inner.as_ptr()
-    }
-
-    fn from_value_and_timestamp<Tz: TimeZone>(value: Self::Type, timestamp: DateTime<Tz>) -> Self {
-        Self::from_inner(unsafe {
-            meos_sys::tpointinst_make(
-                geometry_to_gserialized(&value),
-                to_meos_timestamp(&timestamp),
-            )
-        })
-    }
-}
-
-impl TPointTrait<false> for TGeomPointInstant {}
-
-pub struct TGeomPointSequence {
-    _inner: ptr::NonNull<meos_sys::TSequence>,
-}
-impl TGeomPointSequence {
-    /// Returns the azimuth of the temporal point between the start and end locations.
-    ///
-    /// ## Returns
-    ///
-    /// A `f64` indicating the direction of the temporal point.
-    ///
-    /// ## MEOS Functions
-    ///
-    /// tpoint_direction
-    pub fn direction(&self) -> f64 {
-        let mut result = 0.;
-        let _ = unsafe { meos_sys::tpoint_direction(self.inner(), ptr::addr_of_mut!(result)) };
-        result
-    }
-}
-
-impl_tpoint_traits!(TGeomPointSequence, Sequence, false, Geom);
-
-impl TSequence for TGeomPointSequence {
-    fn from_inner(inner: *mut meos_sys::TSequence) -> Self {
-        Self {
-            _inner: ptr::NonNull::new(inner).expect("Null pointers not allowed"),
-        }
-    }
-
-    fn inner_mut_as_tsequence(&self) -> *mut meos_sys::TSequence {
-        self._inner.as_ptr()
-    }
-}
-
-impl TPointTrait<false> for TGeomPointSequence {}
-
-pub struct TGeomPointSequenceSet {
-    _inner: ptr::NonNull<meos_sys::TSequenceSet>,
-}
-impl TGeomPointSequenceSet {
-    /// Returns the azimuth of the temporal point between the start and end locations.
-    ///
-    /// ## Returns
-    ///
-    /// A `f64` indicating the direction of the temporal point.
-    ///
-    /// ## MEOS Functions
-    ///
-    /// tpoint_direction
-    pub fn direction(&self) -> f64 {
-        let mut result = 0.;
-        let _ = unsafe { meos_sys::tpoint_direction(self.inner(), ptr::addr_of_mut!(result)) };
-        result
-    }
-}
-
-impl_tpoint_traits!(TGeomPointSequenceSet, SequenceSet, false, Geom);
-
-impl TSequenceSet for TGeomPointSequenceSet {
-    fn from_inner(inner: *mut meos_sys::TSequenceSet) -> Self {
-        Self {
-            _inner: ptr::NonNull::new(inner).expect("Null pointers not allowed"),
-        }
-    }
-}
-
-impl TPointTrait<false> for TGeomPointSequenceSet {}
-
-#[derive(Debug)]
-pub enum TGeomPoint {
-    Instant(TGeomPointInstant),
-    Sequence(TGeomPointSequence),
-    SequenceSet(TGeomPointSequenceSet),
-}
-
-impl MeosEnum for TGeomPoint {
-    fn from_instant(inner: *mut meos_sys::TInstant) -> Self {
-        Self::Instant(TGeomPointInstant::from_inner(inner))
-    }
-
-    fn from_sequence(inner: *mut meos_sys::TSequence) -> Self {
-        Self::Sequence(TGeomPointSequence::from_inner(inner))
-    }
-
-    fn from_sequence_set(inner: *mut meos_sys::TSequenceSet) -> Self {
-        Self::SequenceSet(TGeomPointSequenceSet::from_inner(inner))
-    }
-
-    fn from_mfjson(mfjson: &str) -> Self {
-        let cstr = CString::new(mfjson).unwrap();
-        factory::<Self>(unsafe { meos_sys::tint_from_mfjson(cstr.as_ptr()) })
-    }
-
-    fn inner(&self) -> *const meos_sys::Temporal {
-        match self {
-            TGeomPoint::Instant(value) => value.inner(),
-            TGeomPoint::Sequence(value) => value.inner(),
-            TGeomPoint::SequenceSet(value) => value.inner(),
-        }
-    }
-}
-
-impl FromIterator<TGeomPointInstant> for TGeomPointSequence {
-    fn from_iter<T: IntoIterator<Item = TGeomPointInstant>>(iter: T) -> Self {
-        let vec: Vec<TGeomPointInstant> = iter.into_iter().collect();
-        Self::new(&vec, TInterpolation::Linear)
-    }
-}
-
-impl<'a> FromIterator<&'a TGeomPointInstant> for TGeomPointSequence {
-    fn from_iter<T: IntoIterator<Item = &'a TGeomPointInstant>>(iter: T) -> Self {
-        let vec: Vec<&TGeomPointInstant> = iter.into_iter().collect();
-        Self::new(&vec, TInterpolation::Linear)
-    }
-}
+pub(super) use impl_tpoint_traits;

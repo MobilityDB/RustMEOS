@@ -196,3 +196,21 @@ pub trait MeosEnum: Debug + Sized {
 
     fn inner(&self) -> *const meos_sys::Temporal;
 }
+
+macro_rules! impl_from_str {
+    ($type:ty) => {
+        paste::paste! {
+        impl FromStr for $type {
+            type Err = ParseError;
+
+            fn from_str(s: &str) -> Result<Self, Self::Err> {
+                CString::new(s).map_err(|_| ParseError).map(|string| {
+                    let inner = unsafe { meos_sys::[<$type:lower _in>](string.as_ptr()) };
+                    factory::<Self>(inner)
+                })
+            }
+        }}
+    };
+}
+
+pub(crate) use impl_from_str;

@@ -13,7 +13,10 @@ use meos::{
             tfloat::{TFloatInstant, TFloatSequence},
             tnumber::TNumber,
         },
-        point::tpoint::{TGeomPointInstant, TGeomPointSequence, TPointTrait},
+        point::{
+            tgeompoint::{TGeomPoint, TGeomPointInstant, TGeomPointSequence},
+            tpoint::TPointTrait,
+        },
         temporal::Temporal,
         tinstant::TInstant,
         tsequence::TSequence,
@@ -127,7 +130,9 @@ fn main() {
                 long,
                 rec.t.format("%Y-%m-%d %H:%M:%S")
             );
-            let instant = point_str.parse().unwrap();
+            let TGeomPoint::Instant(instant) = point_str.parse().unwrap() else {
+                panic!()
+            };
             trip.trip_instants.push(instant);
         }
 

@@ -14,7 +14,7 @@ use crate::{
         datetime::{tstz_span::TsTzSpan, tstz_span_set::TsTzSpanSet},
     },
     errors::ParseError,
-    factory,
+    factory, impl_from_str,
     temporal::{
         tbool::{TBoolInstant, TBoolSequence, TBoolSequenceSet},
         temporal::{
@@ -235,6 +235,8 @@ pub enum TText {
     Sequence(TTextSequence),
     SequenceSet(TTextSequenceSet),
 }
+
+impl_from_str!(TText);
 
 impl MeosEnum for TText {
     fn from_instant(inner: *mut meos_sys::TInstant) -> Self {

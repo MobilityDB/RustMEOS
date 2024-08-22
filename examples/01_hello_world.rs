@@ -1,10 +1,4 @@
-use meos::{
-    init,
-    temporal::point::tpoint::{
-        TGeomPoint, TGeomPointInstant, TGeomPointSequence, TGeomPointSequenceSet,
-    },
-    MeosEnum,
-};
+use meos::{init, temporal::point::tgeompoint::TGeomPoint, MeosEnum};
 
 fn main() {
     init();
@@ -19,12 +13,24 @@ fn main() {
                           [POINT(3 3)@2000-01-03, POINT(3 3)@2000-01-04]}";
 
     // Read WKT into temporal point objects
-    let inst: TGeomPointInstant = inst_wkt.parse().unwrap();
-    let seq_disc: TGeomPointSequence = seq_disc_wkt.parse().unwrap();
-    let seq_linear: TGeomPointSequence = seq_linear_wkt.parse().unwrap();
-    let seq_step: TGeomPointSequence = seq_step_wkt.parse().unwrap();
-    let ss_linear: TGeomPointSequenceSet = ss_linear_wkt.parse().unwrap();
-    let ss_step: TGeomPointSequenceSet = ss_step_wkt.parse().unwrap();
+    let TGeomPoint::Instant(inst) = inst_wkt.parse().unwrap() else {
+        panic!()
+    };
+    let TGeomPoint::Sequence(seq_disc) = seq_disc_wkt.parse().unwrap() else {
+        panic!()
+    };
+    let TGeomPoint::Sequence(seq_linear) = seq_linear_wkt.parse().unwrap() else {
+        panic!()
+    };
+    let TGeomPoint::Sequence(seq_step) = seq_step_wkt.parse().unwrap() else {
+        panic!()
+    };
+    let TGeomPoint::SequenceSet(ss_linear) = ss_linear_wkt.parse().unwrap() else {
+        panic!()
+    };
+    let TGeomPoint::SequenceSet(ss_step) = ss_step_wkt.parse().unwrap() else {
+        panic!()
+    };
 
     // Convert results to MF-JSON
 

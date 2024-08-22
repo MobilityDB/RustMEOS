@@ -19,7 +19,7 @@ use crate::{
         datetime::{tstz_span::TsTzSpan, tstz_span_set::TsTzSpanSet},
     },
     errors::ParseError,
-    factory,
+    factory, impl_from_str,
     temporal::{
         temporal::{
             impl_always_and_ever_value_equality_functions, impl_simple_traits_for_temporal,
@@ -197,6 +197,8 @@ pub enum TBool {
     Sequence(TBoolSequence),
     SequenceSet(TBoolSequenceSet),
 }
+
+impl_from_str!(TBool);
 
 impl MeosEnum for TBool {
     fn from_instant(inner: *mut meos_sys::TInstant) -> Self {

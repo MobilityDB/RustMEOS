@@ -1,6 +1,6 @@
-use std::{fmt::Debug, str::FromStr};
+use std::fmt::Debug;
 
-pub trait Collection: PartialEq + Debug + FromStr + Clone {
+pub trait Collection: PartialEq + Debug + Clone {
     type Type;
     // Topological Operations
 

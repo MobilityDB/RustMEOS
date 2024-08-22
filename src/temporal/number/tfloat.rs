@@ -21,13 +21,13 @@ use crate::{
         number::float_span_set::FloatSpanSet,
     },
     errors::ParseError,
-    factory,
+    factory, impl_from_str,
     temporal::{
         interpolation::TInterpolation,
         tbool::{TBoolInstant, TBoolSequence, TBoolSequenceSet},
         temporal::{
             impl_always_and_ever_value_equality_functions, impl_ordered_temporal_functions,
-            impl_simple_traits_for_temporal, OrderedTemporal, Temporal,
+            impl_simple_traits_for_temporal, OrderedTemporal, SimplifiableTemporal, Temporal,
         },
         tinstant::TInstant,
         tsequence::TSequence,
@@ -41,10 +41,10 @@ macro_rules! impl_debug {
     ($type:ty) => {
         impl Debug for $type {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                let out_str = unsafe { meos_sys::tfloat_out(self.inner(), 3) };
+                let out_str = unsafe { meos_sys::tfloat_out(self.inner(), 5) };
                 let c_str = unsafe { CStr::from_ptr(out_str) };
-                let str = c_str.to_str().map_err(|_| std::fmt::Error)?;
-                let result = f.write_str(str);
+                let string = c_str.to_str().map_err(|_| std::fmt::Error)?;
+                let result = f.write_str(string);
                 unsafe { libc::free(out_str as *mut c_void) };
                 result
             }
@@ -58,6 +58,8 @@ pub enum TFloat {
     Sequence(TFloatSequence),
     SequenceSet(TFloatSequenceSet),
 }
+
+impl_from_str!(TFloat);
 
 impl MeosEnum for TFloat {
     fn from_instant(inner: *mut meos_sys::TInstant) -> Self {
@@ -138,6 +140,7 @@ impl TFloatTrait for TFloatInstant {}
 
 impl_temporal_for_tnumber!(TFloatInstant, Instant, f64, Float);
 impl_debug!(TFloatInstant);
+impl SimplifiableTemporal for TFloatInstant {}
 
 impl<Tz: TimeZone> From<(f64, DateTime<Tz>)> for TFloatInstant {
     fn from((v, t): (f64, DateTime<Tz>)) -> Self {
@@ -185,6 +188,7 @@ impl TFloatTrait for TFloatSequence {}
 
 impl_temporal_for_tnumber!(TFloatSequence, Sequence, f64, Float);
 impl_debug!(TFloatSequence);
+impl SimplifiableTemporal for TFloatSequence {}
 
 impl FromIterator<TFloatInstant> for TFloatSequence {
     fn from_iter<T: IntoIterator<Item = TFloatInstant>>(iter: T) -> Self {
@@ -239,6 +243,7 @@ impl TFloatTrait for TFloatSequenceSet {}
 
 impl_temporal_for_tnumber!(TFloatSequenceSet, SequenceSet, f64, Float);
 impl_debug!(TFloatSequenceSet);
+impl SimplifiableTemporal for TFloatSequenceSet {}
 
 impl From<TFloatInstant> for TFloat {
     fn from(value: TFloatInstant) -> Self {
