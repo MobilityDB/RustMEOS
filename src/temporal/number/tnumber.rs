@@ -153,7 +153,7 @@ macro_rules! impl_temporal_for_tnumber {
                         .contains(content)
                 }
             }
-            impl_simple_traits_for_temporal!($type, [<t $basic_type:lower>]);
+            impl_simple_traits_for_temporal!($type, with_drop);
 
 
             impl TNumber for $type {
@@ -284,4 +284,149 @@ macro_rules! impl_temporal_for_tnumber {
     }
 }
 
+macro_rules! impl_meos_enum {
+    ($type:ty, $base_type:ty, $basic_type:ident) => {
+        paste::paste! {
+        impl Collection for $type {
+            impl_collection!(tnumber, $base_type);
+
+            fn contains(&self, content: &Self::Type) -> bool {
+                [<$basic_type SpanSet>]::from_inner(unsafe { meos_sys::tnumber_valuespans(self.inner()) })
+                    .contains(content)
+            }
+        }
+        impl_simple_traits_for_temporal!($type);
+
+
+        impl TNumber for $type {
+            fn nearest_approach_distance(&self, other: &Self) -> Self::Type {
+                unsafe { meos_sys::[<nad_ t $basic_type:lower _ t $basic_type:lower>](self.inner(), other.inner()) }
+            }
+        }
+
+        impl OrderedTemporal for $type {
+            fn min_value(&self) -> Self::Type {
+                unsafe { meos_sys::[<t $basic_type:lower _min_value>](self.inner()) }
+            }
+
+            fn max_value(&self) -> Self::Type {
+                unsafe { meos_sys::[<t $basic_type:lower _max_value>](self.inner()) }
+            }
+
+            impl_ordered_temporal_functions!([<$basic_type:lower>]);
+        }
+        impl Temporal for $type {
+            type TI = [<T $basic_type Instant>];
+            type TS = [<T $basic_type Sequence>];
+            type TSS = [<T $basic_type SequenceSet>];
+            type TBB = TBox;
+            type Enum = [<T $basic_type>];
+            type TBoolType = TBool;
+
+            fn from_inner_as_temporal(inner: *mut meos_sys::Temporal) -> Self {
+                factory::<Self>(inner)
+            }
+
+            fn inner(&self) -> *const meos_sys::Temporal {
+                match self {
+                    $type::Instant(value) => value.inner(),
+                    $type::Sequence(value) => value.inner(),
+                    $type::SequenceSet(value) => value.inner(),
+                }
+            }
+
+            fn bounding_box(&self) -> Self::TBB {
+                TNumber::bounding_box(self)
+            }
+
+            fn values(&self) -> Vec<Self::Type> {
+                let mut count = 0;
+                unsafe {
+                    let values = meos_sys::[<t $basic_type:lower _values>](self.inner(), ptr::addr_of_mut!(count));
+
+                    Vec::from_raw_parts(values, count as usize, count as usize)
+                }
+            }
+
+            fn start_value(&self) -> Self::Type {
+                unsafe { meos_sys::[<t $basic_type:lower _start_value>](self.inner()) }
+            }
+
+            fn end_value(&self) -> Self::Type {
+                unsafe { meos_sys::[<t $basic_type:lower _end_value>](self.inner()) }
+            }
+
+            fn value_at_timestamp<Tz: TimeZone>(
+                &self,
+                timestamp: DateTime<Tz>,
+            ) -> Option<Self::Type> {
+                let mut result = 0.into();
+                unsafe {
+                    let success = meos_sys::[<t $basic_type:lower _value_at_timestamptz>](
+                        self.inner(),
+                        to_meos_timestamp(&timestamp),
+                        true,
+                        ptr::addr_of_mut!(result),
+                    );
+                    if success {
+                        Some(result)
+                    } else {
+                        None
+                    }
+                }
+            }
+
+            fn at_value(&self, value: &Self::Type) -> Option<Self::Enum> {
+                let result = unsafe { meos_sys::[<t $basic_type:lower _at_value>](self.inner(), *value) };
+                if !result.is_null() {
+                    Some(factory::<Self::Enum>(result))
+                } else {
+                    None
+                }
+            }
+
+            fn at_values(&self, values: &[Self::Type]) -> Option<Self::Enum> {
+                unsafe {
+                    let set = meos_sys::[<$basic_type:lower set_make>](values.as_ptr(), values.len() as i32);
+                    let result = meos_sys::temporal_at_values(self.inner(), set);
+                    if !result.is_null() {
+                        Some(factory::<Self::Enum>(result))
+                    } else {
+                        None
+                    }
+                }
+            }
+
+            fn minus_value(&self, value: Self::Type) -> Self::Enum {
+                factory::<Self::Enum>(unsafe {
+                    meos_sys::[<t $basic_type:lower _minus_value>](self.inner(), value)
+                })
+            }
+
+            fn minus_values(&self, values: &[Self::Type]) -> Self::Enum {
+                factory::<Self::Enum>(unsafe {
+                    let set = meos_sys::[<$basic_type:lower set_make>](values.as_ptr(), values.len() as i32);
+                    meos_sys::temporal_minus_values(self.inner(), set)
+                })
+            }
+
+            fn temporal_equal_value(&self, value: &Self::Type) -> Self::TBoolType {
+                Self::TBoolType::from_inner_as_temporal(unsafe {
+                    meos_sys::[<teq_t $basic_type:lower _ $basic_type:lower>](self.inner(), *value)
+                })
+            }
+
+            fn temporal_not_equal_value(&self, value: &Self::Type) -> Self::TBoolType {
+                Self::TBoolType::from_inner_as_temporal(unsafe {
+                    meos_sys::[<tne_t $basic_type:lower _ $basic_type:lower>](self.inner(), *value)
+                })
+            }
+
+            impl_always_and_ever_value_equality_functions!([<$basic_type:lower>]);
+        }
+    }
+    };
+}
+
+pub(crate) use impl_meos_enum;
 pub(crate) use impl_temporal_for_tnumber;

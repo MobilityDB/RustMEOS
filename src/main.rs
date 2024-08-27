@@ -81,12 +81,11 @@ fn main() {
         yatint.as_mfjson(true, meos::temporal::JSONCVariant::Pretty, 3, "4326")
     );
 
-    let TInt::Sequence(tint2) = "{3@2001-01-01, 5@2001-01-03, 9@2001-01-04, 111@2001-01-05}"
+    let tint2: TInt = "{3@2001-01-01, 5@2001-01-03, 9@2001-01-04, 111@2001-01-05}"
         .parse()
-        .unwrap()
-    else {
-        panic!()
-    };
+        .unwrap();
+
+    println!("{:?}", tint2.bounding_box());
 
     println!("{:?}", tint.values());
 

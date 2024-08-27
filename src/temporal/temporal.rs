@@ -1536,18 +1536,11 @@ pub trait SimplifiableTemporal: Temporal {
 }
 
 macro_rules! impl_simple_traits_for_temporal {
-    ($type:ty, $meos_type:ident) => {
+    ($type:ty) => {
         paste::paste! {
             impl AsRef<$type> for $type {
                 fn as_ref(&self) -> &$type {
                     self
-                }
-            }
-            impl Drop for $type {
-                fn drop(&mut self) {
-                    unsafe {
-                        libc::free(self._inner.as_ptr() as *mut c_void);
-                    }
                 }
             }
 
@@ -1572,6 +1565,17 @@ macro_rules! impl_simple_traits_for_temporal {
             }
         }
     };
+    ($type:ty, with_drop) => {
+        impl_simple_traits_for_temporal!($type);
+
+        impl Drop for $type {
+            fn drop(&mut self) {
+                unsafe {
+                    libc::free(self._inner.as_ptr() as *mut c_void);
+                }
+            }
+        }
+    }
 }
 
 macro_rules! impl_always_and_ever_value_equality_functions {

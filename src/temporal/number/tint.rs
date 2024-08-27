@@ -23,7 +23,7 @@ use crate::{
     factory, impl_from_str,
     temporal::{
         interpolation::TInterpolation,
-        tbool::{TBoolInstant, TBoolSequence, TBoolSequenceSet},
+        tbool::{TBool, TBoolInstant, TBoolSequence, TBoolSequenceSet},
         temporal::{
             impl_always_and_ever_value_equality_functions, impl_ordered_temporal_functions,
             impl_simple_traits_for_temporal, OrderedTemporal, Temporal,
@@ -36,7 +36,7 @@ use crate::{
     MeosEnum,
 };
 
-use super::tnumber::{impl_temporal_for_tnumber, TNumber};
+use super::tnumber::{impl_meos_enum, impl_temporal_for_tnumber, TNumber};
 
 #[derive(Debug)]
 pub enum TInt {
@@ -63,14 +63,6 @@ impl MeosEnum for TInt {
     fn from_mfjson(mfjson: &str) -> Self {
         let cstr = CString::new(mfjson).unwrap();
         factory::<Self>(unsafe { meos_sys::tint_from_mfjson(cstr.as_ptr()) })
-    }
-
-    fn inner(&self) -> *const meos_sys::Temporal {
-        match self {
-            TInt::Instant(value) => value.inner(),
-            TInt::Sequence(value) => value.inner(),
-            TInt::SequenceSet(value) => value.inner(),
-        }
     }
 }
 
@@ -334,3 +326,5 @@ impl TryFrom<TInt> for TIntSequenceSet {
         }
     }
 }
+
+impl_meos_enum!(TInt, i32, Int);

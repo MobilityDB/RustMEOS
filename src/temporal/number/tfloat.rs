@@ -8,7 +8,7 @@ use std::{
 
 use chrono::{DateTime, TimeZone};
 
-use super::tnumber::{impl_temporal_for_tnumber, TNumber};
+use super::tnumber::{impl_meos_enum, impl_temporal_for_tnumber, TNumber};
 use crate::{
     boxes::tbox::TBox,
     collections::{
@@ -24,7 +24,7 @@ use crate::{
     factory, impl_from_str,
     temporal::{
         interpolation::TInterpolation,
-        tbool::{TBoolInstant, TBoolSequence, TBoolSequenceSet},
+        tbool::{TBool, TBoolInstant, TBoolSequence, TBoolSequenceSet},
         temporal::{
             impl_always_and_ever_value_equality_functions, impl_ordered_temporal_functions,
             impl_simple_traits_for_temporal, OrderedTemporal, SimplifiableTemporal, Temporal,
@@ -83,14 +83,6 @@ impl MeosEnum for TFloat {
     fn from_mfjson(mfjson: &str) -> Self {
         let cstr = CString::new(mfjson).unwrap();
         factory::<Self>(unsafe { meos_sys::tfloat_from_mfjson(cstr.as_ptr()) })
-    }
-
-    fn inner(&self) -> *const meos_sys::Temporal {
-        match self {
-            TFloat::Instant(value) => value.inner(),
-            TFloat::Sequence(value) => value.inner(),
-            TFloat::SequenceSet(value) => value.inner(),
-        }
     }
 }
 
@@ -295,3 +287,4 @@ impl TryFrom<TFloat> for TFloatSequenceSet {
         }
     }
 }
+impl_meos_enum!(TFloat, f64, Float);

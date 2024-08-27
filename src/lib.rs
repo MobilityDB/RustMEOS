@@ -9,7 +9,7 @@ use bitmask_enum::bitmask;
 use boxes::r#box::Box as MeosBox;
 use collections::base::collection::Collection;
 pub use meos_sys;
-use temporal::JSONCVariant;
+use temporal::{temporal::Temporal, JSONCVariant};
 
 pub mod boxes;
 pub mod collections;
@@ -82,7 +82,7 @@ impl From<u32> for TemporalSubtype {
     }
 }
 
-pub trait MeosEnum: Debug + Sized {
+pub trait MeosEnum: Debug + Sized + Temporal {
     fn from_instant(inner: *mut meos_sys::TInstant) -> Self;
     fn from_sequence(inner: *mut meos_sys::TSequence) -> Self;
     fn from_sequence_set(inner: *mut meos_sys::TSequenceSet) -> Self;
@@ -193,8 +193,6 @@ pub trait MeosEnum: Debug + Sized {
             CStr::from_ptr(hexwkb_ptr).to_bytes()
         }
     }
-
-    fn inner(&self) -> *const meos_sys::Temporal;
 }
 
 macro_rules! impl_from_str {

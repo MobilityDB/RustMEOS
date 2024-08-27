@@ -4,7 +4,6 @@ use crate::{
     boxes::stbox::STBox,
     factory,
     temporal::{number::tfloat::TFloat, temporal::Temporal},
-    MeosEnum,
 };
 use core::fmt;
 use geos::{Geom, Geometry};
@@ -1111,7 +1110,7 @@ macro_rules! impl_tpoint_traits {
                 }
             }
 
-            impl_simple_traits_for_temporal!($type, [<t $tpoint_type:lower point>]);
+            impl_simple_traits_for_temporal!($type, with_drop);
             impl fmt::Debug for $type {
                 fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                     f.write_str(&self.as_wkt(5))

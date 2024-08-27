@@ -29,7 +29,7 @@ use crate::{
     MeosEnum,
 };
 
-use super::interpolation::TInterpolation;
+use super::{interpolation::TInterpolation, tbool::TBool};
 
 fn from_ctext(ctext: *mut meos_sys::text) -> String {
     unsafe {
@@ -103,7 +103,7 @@ macro_rules! impl_ttext_traits {
                 }
             }
 
-            impl_simple_traits_for_temporal!($type, ttext);
+            impl_simple_traits_for_temporal!($type, with_drop);
             impl_debug!($type);
 
             impl OrderedTemporal for $type {
@@ -254,14 +254,6 @@ impl MeosEnum for TText {
     fn from_mfjson(mfjson: &str) -> Self {
         let cstr = CString::new(mfjson).unwrap();
         factory::<Self>(unsafe { meos_sys::ttext_from_mfjson(cstr.as_ptr()) })
-    }
-
-    fn inner(&self) -> *const meos_sys::Temporal {
-        match self {
-            TText::Instant(value) => value.inner(),
-            TText::Sequence(value) => value.inner(),
-            TText::SequenceSet(value) => value.inner(),
-        }
     }
 }
 
@@ -446,5 +438,166 @@ impl TryFrom<TText> for TTextSequenceSet {
         } else {
             Err(ParseError)
         }
+    }
+}
+
+impl Collection for TText {
+    type Type = String;
+
+    fn contains(&self, content: &Self::Type) -> bool {
+        let result = unsafe { meos_sys::ever_eq_ttext_text(self.inner(), to_ctext(content)) };
+        result == 1
+    }
+
+    fn is_contained_in(&self, _: &Self) -> bool {
+        unimplemented!("Not implemented for `ttext` types")
+    }
+
+    fn overlaps(&self, _: &Self) -> bool {
+        unimplemented!("Not implemented for `ttext` types")
+    }
+
+    fn is_left(&self, _: &Self) -> bool {
+        unimplemented!("Not implemented for `ttext` types")
+    }
+
+    fn is_over_or_left(&self, _: &Self) -> bool {
+        unimplemented!("Not implemented for `ttext` types")
+    }
+
+    fn is_over_or_right(&self, _: &Self) -> bool {
+        unimplemented!("Not implemented for `ttext` types")
+    }
+
+    fn is_right(&self, _: &Self) -> bool {
+        unimplemented!("Not implemented for `ttext` types")
+    }
+
+    fn is_adjacent(&self, _: &Self) -> bool {
+        unimplemented!("Not implemented for `ttext` types")
+    }
+}
+
+impl_simple_traits_for_temporal!(TText);
+
+impl OrderedTemporal for TText {
+    fn min_value(&self) -> Self::Type {
+        from_ctext(unsafe { meos_sys::ttext_min_value(self.inner()) })
+    }
+
+    fn max_value(&self) -> Self::Type {
+        from_ctext(unsafe { meos_sys::ttext_max_value(self.inner()) })
+    }
+
+    impl_ordered_temporal_functions!(text, to_ctext);
+}
+
+impl Temporal for TText {
+    type TI = TTextInstant;
+    type TS = TTextSequence;
+    type TSS = TTextSequenceSet;
+    type TBB = TsTzSpan;
+    type Enum = TText;
+    type TBoolType = TBool;
+
+    impl_always_and_ever_value_equality_functions!(text, to_ctext);
+    fn from_inner_as_temporal(inner: *mut meos_sys::Temporal) -> Self {
+        factory::<Self>(inner)
+    }
+
+    fn inner(&self) -> *const meos_sys::Temporal {
+        match self {
+            TText::Instant(value) => value.inner(),
+            TText::Sequence(value) => value.inner(),
+            TText::SequenceSet(value) => value.inner(),
+        }
+    }
+
+    fn bounding_box(&self) -> Self::TBB {
+        self.timespan()
+    }
+
+    fn values(&self) -> Vec<Self::Type> {
+        let mut count = 0;
+        unsafe {
+            let values = meos_sys::ttext_values(self.inner(), ptr::addr_of_mut!(count));
+
+            Vec::from_raw_parts(values, count as usize, count as usize)
+                .into_iter()
+                .map(from_ctext)
+                .collect()
+        }
+    }
+
+    fn start_value(&self) -> Self::Type {
+        from_ctext(unsafe { meos_sys::ttext_start_value(self.inner()) })
+    }
+
+    fn end_value(&self) -> Self::Type {
+        from_ctext(unsafe { meos_sys::ttext_end_value(self.inner()) })
+    }
+
+    fn value_at_timestamp<Tz: TimeZone>(&self, timestamp: DateTime<Tz>) -> Option<Self::Type> {
+        let mut result = to_ctext("");
+        unsafe {
+            let success = meos_sys::ttext_value_at_timestamptz(
+                self.inner(),
+                to_meos_timestamp(&timestamp),
+                true,
+                ptr::addr_of_mut!(result),
+            );
+            if success {
+                Some(from_ctext(result))
+            } else {
+                None
+            }
+        }
+    }
+
+    fn at_value(&self, value: &Self::Type) -> Option<Self::Enum> {
+        let result = unsafe { meos_sys::ttext_at_value(self.inner(), to_ctext(value)) };
+        if !result.is_null() {
+            Some(factory::<Self::Enum>(result))
+        } else {
+            None
+        }
+    }
+    fn at_values(&self, values: &[Self::Type]) -> Option<Self::Enum> {
+        unsafe {
+            let ctexts: Vec<_> = values.into_iter().map(|text| to_ctext(&text)).collect();
+            let set = meos_sys::textset_make(ctexts.as_ptr() as *mut *const _, values.len() as i32);
+            let result = meos_sys::temporal_at_values(self.inner(), set);
+            if !result.is_null() {
+                Some(factory::<Self::Enum>(result))
+            } else {
+                None
+            }
+        }
+    }
+
+    fn minus_value(&self, value: Self::Type) -> Self::Enum {
+        factory::<Self::Enum>(unsafe {
+            meos_sys::ttext_minus_value(self.inner(), to_ctext(&value))
+        })
+    }
+
+    fn minus_values(&self, values: &[Self::Type]) -> Self::Enum {
+        factory::<Self::Enum>(unsafe {
+            let ctexts: Vec<_> = values.into_iter().map(|text| to_ctext(&text)).collect();
+            let set = meos_sys::textset_make(ctexts.as_ptr() as *mut *const _, values.len() as i32);
+            meos_sys::temporal_minus_values(self.inner(), set)
+        })
+    }
+
+    fn temporal_equal_value(&self, value: &Self::Type) -> Self::TBoolType {
+        Self::TBoolType::from_inner_as_temporal(unsafe {
+            meos_sys::teq_ttext_text(self.inner(), to_ctext(value))
+        })
+    }
+
+    fn temporal_not_equal_value(&self, value: &Self::Type) -> Self::TBoolType {
+        Self::TBoolType::from_inner_as_temporal(unsafe {
+            meos_sys::tne_ttext_text(self.inner(), to_ctext(value))
+        })
     }
 }
