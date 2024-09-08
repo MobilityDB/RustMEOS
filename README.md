@@ -6,7 +6,7 @@ The supported meos version is >= 1.1
 
 ## Disclaimer
 
-This project is checked with valgrind, but if you stumble on a crash feel free to open an issue explaining the problem.
+The crate is still in alpha, this means it is not advised for production usage as some tests are still to be added and not proper CI workflows are inplace. This project is checked with valgrind, but if you stumble on a crash feel free to open an issue explaining the problem.
 
 ## Usage example
 
