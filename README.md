@@ -1,4 +1,4 @@
-# meos
+# Rust MEOS
 
 Rust bindings for [meos](https://libmeos.org/) C API.
 
@@ -15,7 +15,7 @@ You can check the examples in the `examples/` directory.
 ### Constructing trajectories from text:
 
 ```rust
-use meos::{meos_initialize, TPoint};
+use meos::{meos_initialize, TGeomPoint};
 
 meos_initialize("UTC");
 
@@ -25,7 +25,7 @@ let trajectory: TGeomPoint = "[POINT(1 1)@2000-01-01 08:00, POINT(2 2)@2000-01-0
 ### Get the shortest distance ever between two temporal points
 
 ```rust
-use meos::{meos_initialize, TPoint};
+use meos::{meos_initialize, TGeomPoint};
 
 meos_initialize("UTC");
 
@@ -39,7 +39,7 @@ println!("{distance}"); // Prints 0.5
 ### Check if a trajectory ever goes through a point (using `geos`)
 
 ```rust
-use meos::{meos_initialize, TPoint};
+use meos::{meos_initialize, TGeomPoint};
 use geos::{Geometry}
 
 meos_initialize("UTC");
