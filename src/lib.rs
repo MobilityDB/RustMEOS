@@ -7,14 +7,20 @@ use std::{
 
 use bitmask_enum::bitmask;
 use boxes::r#box::Box as MeosBox;
-use collections::base::collection::Collection;
 pub use meos_sys;
-use temporal::{temporal::Temporal, JSONCVariant};
 
 pub mod boxes;
+pub use boxes::{stbox::STBox, tbox::TBox};
+
 pub mod collections;
+pub use collections::base::{collection::Collection, span::Span, span_set::SpanSet};
+
 pub mod errors;
+pub use errors::ParseError;
+
 pub mod temporal;
+pub use temporal::{JSONCVariant, interpolation::TInterpolation, number::{tfloat::*, tint::*}, point::{tgeogpoint::*, tgeompoint::*, tpoint::TPointTrait}, temporal::Temporal};
+
 pub(crate) mod utils;
 
 static START: Once = Once::new();
@@ -34,9 +40,21 @@ unsafe extern "C" fn error_handler(_error_level: i32, _error_code: i32, message:
     panic!("{}", message);
 }
 
-pub fn init() {
+/// Initializes the underlying MEOS platform.
+/// 
+/// This function must be called before any other PyMEOS-related function is used.
+/// 
+/// # Arguments
+/// 
+/// * `tz` - A string slice (`&str`) indicating the desired timezone to be used. 
+/// 
+/// ## Example
+/// ```
+/// meos_initialize("UTC");
+/// ```
+pub fn meos_initialize(tz: &str) {
     START.call_once(|| unsafe {
-        let ptr = CString::new("UTC").unwrap();
+        let ptr = CString::new(tz).unwrap();
         meos_sys::meos_initialize(ptr.as_ptr(), Some(error_handler));
         libc::atexit(finalize);
     });

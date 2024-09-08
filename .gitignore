@@ -11,3 +11,4 @@ test.rs
 test.py
 data/
 data/**
+src/main.rs

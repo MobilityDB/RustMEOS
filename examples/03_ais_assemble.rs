@@ -7,7 +7,7 @@ use std::{
 
 use chrono::{DateTime, NaiveDateTime, Utc};
 use meos::{
-    init,
+    meos_initialize,
     temporal::{
         number::{
             tfloat::{TFloatInstant, TFloatSequence},
@@ -47,7 +47,7 @@ struct TripRecord {
 }
 
 fn main() {
-    init();
+    meos_initialize("UTC");
     let start_time = Instant::now();
 
     let mut trips: Vec<TripRecord> = Vec::new();

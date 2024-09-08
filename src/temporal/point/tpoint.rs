@@ -6,7 +6,7 @@ use crate::{
     temporal::{number::tfloat::TFloat, temporal::Temporal},
 };
 use core::fmt;
-use geos::{Geom, Geometry};
+use geos::{Geom, Geometry, OutputDimension, WKBWriter};
 use meos_sys::GSERIALIZED;
 use std::{
     ffi::{c_void, CStr, CString},
@@ -27,12 +27,14 @@ fn point_to_gserialize(point: Point, geodetic: bool) -> *mut meos_sys::GSERIALIZ
 }
 
 pub(super) fn geometry_to_gserialized(geometry: &Geometry) -> *mut GSERIALIZED {
-    let wkb = geometry.to_wkb().unwrap();
+    let mut writer = WKBWriter::new().expect("Failed to create WKBWriter");
+    writer.set_output_dimension(OutputDimension::ThreeD);
+    let wkb: Vec<u8> = writer.write_wkb(geometry).unwrap().into();
     let wkb_len = wkb.len();
 
     unsafe {
         meos_sys::geo_from_ewkb(
-            wkb.into_inner(),
+            wkb.as_ptr(),
             wkb_len,
             geometry.get_srid().unwrap_or_default() as i32,
         )
@@ -278,7 +280,7 @@ pub trait TPointTrait<const IS_GEODETIC: bool>: Temporal {
     /// ## MEOS Functions
     ///
     /// bearing_tpoint_point, bearing_tpoint_tpoint
-    fn bearing(&self, other: Self::Enum) -> TFloat {
+    fn bearing(&self, other: &Self::Enum) -> TFloat {
         factory::<TFloat>(unsafe { meos_sys::bearing_tpoint_tpoint(self.inner(), other.inner()) })
     }
 
@@ -587,7 +589,7 @@ pub trait TPointTrait<const IS_GEODETIC: bool>: Temporal {
     ///
     /// See Also:
     ///     `TsTzSpan::is_before`
-    fn is_below(&self, other: Self::Enum) -> bool {
+    fn is_below(&self, other: &Self::Enum) -> bool {
         unsafe { meos_sys::below_tpoint_tpoint(self.inner(), other.inner()) }
     }
 
@@ -601,7 +603,7 @@ pub trait TPointTrait<const IS_GEODETIC: bool>: Temporal {
     ///
     /// See Also:
     ///     `TsTzSpan::is_over_or_before`
-    fn is_over_or_below(&self, other: Self::Enum) -> bool {
+    fn is_over_or_below(&self, other: &Self::Enum) -> bool {
         unsafe { meos_sys::overbelow_tpoint_tpoint(self.inner(), other.inner()) }
     }
 
@@ -615,7 +617,7 @@ pub trait TPointTrait<const IS_GEODETIC: bool>: Temporal {
     ///
     /// See Also:
     ///     `TsTzSpan::is_after`
-    fn is_above(&self, other: Self::Enum) -> bool {
+    fn is_above(&self, other: &Self::Enum) -> bool {
         unsafe { meos_sys::above_tpoint_tpoint(self.inner(), other.inner()) }
     }
 
@@ -629,7 +631,7 @@ pub trait TPointTrait<const IS_GEODETIC: bool>: Temporal {
     ///
     /// See Also:
     ///     `TsTzSpan::is_over_or_before`
-    fn is_over_or_above(&self, other: Self::Enum) -> bool {
+    fn is_over_or_above(&self, other: &Self::Enum) -> bool {
         unsafe { meos_sys::overabove_tpoint_tpoint(self.inner(), other.inner()) }
     }
 
@@ -640,7 +642,7 @@ pub trait TPointTrait<const IS_GEODETIC: bool>: Temporal {
     ///
     /// Returns:
     ///     True if front, False otherwise.
-    fn is_front(&self, other: Self::Enum) -> Option<bool> {
+    fn is_front(&self, other: &Self::Enum) -> Option<bool> {
         if self.has_z() {
             Some(unsafe { meos_sys::front_tpoint_tpoint(self.inner(), other.inner()) })
         } else {
@@ -658,7 +660,7 @@ pub trait TPointTrait<const IS_GEODETIC: bool>: Temporal {
     ///
     /// See Also:
     ///     `TsTzSpan::is_over_or_before`
-    fn is_over_or_front(&self, other: Self::Enum) -> Option<bool> {
+    fn is_over_or_front(&self, other: &Self::Enum) -> Option<bool> {
         if self.has_z() {
             Some(unsafe { meos_sys::overfront_tpoint_tpoint(self.inner(), other.inner()) })
         } else {
@@ -673,7 +675,7 @@ pub trait TPointTrait<const IS_GEODETIC: bool>: Temporal {
     ///
     /// Returns:
     ///     True if behind, False otherwise.
-    fn is_behind(&self, other: Self::Enum) -> Option<bool> {
+    fn is_behind(&self, other: &Self::Enum) -> Option<bool> {
         if self.has_z() {
             Some(unsafe { meos_sys::back_tpoint_tpoint(self.inner(), other.inner()) })
         } else {
@@ -688,7 +690,7 @@ pub trait TPointTrait<const IS_GEODETIC: bool>: Temporal {
     ///
     /// Returns:
     ///     True if over or behind, False otherwise.
-    fn is_over_or_behind(&self, other: Self::Enum) -> Option<bool> {
+    fn is_over_or_behind(&self, other: &Self::Enum) -> Option<bool> {
         if self.has_z() {
             Some(unsafe { meos_sys::overback_tpoint_tpoint(self.inner(), other.inner()) })
         } else {
@@ -750,7 +752,7 @@ pub trait TPointTrait<const IS_GEODETIC: bool>: Temporal {
     /// # MEOS Functions
     ///
     /// * `tdwithin_tpoint_geo`, `tdwithin_tpoint_tpoint`
-    fn is_within_distance(&self, other: Self::Enum, distance: f64) -> Self::TBoolType {
+    fn is_within_distance(&self, other: &Self::Enum, distance: f64) -> Self::TBoolType {
         Self::TBoolType::from_inner_as_temporal(unsafe {
             meos_sys::tdwithin_tpoint_tpoint(self.inner(), other.inner(), distance, false, false)
         })
@@ -830,7 +832,7 @@ pub trait TPointTrait<const IS_GEODETIC: bool>: Temporal {
     /// # MEOS Functions
     ///
     /// * `distance_tpoint_point`, `distance_tpoint_tpoint`
-    fn distance(&self, other: Self::Enum) -> TFloat {
+    fn distance(&self, other: &Self::Enum) -> TFloat {
         factory::<TFloat>(unsafe { meos_sys::distance_tpoint_tpoint(self.inner(), other.inner()) })
     }
 
@@ -865,7 +867,7 @@ pub trait TPointTrait<const IS_GEODETIC: bool>: Temporal {
     /// # MEOS Functions
     ///
     /// * `nad_tpoint_geo`, `nad_tpoint_stbox`, `nad_tpoint_tpoint`
-    fn nearest_approach_distance(&self, other: Self::Enum) -> f64 {
+    fn nearest_approach_distance(&self, other: &Self::Enum) -> f64 {
         unsafe { meos_sys::nad_tpoint_tpoint(self.inner(), other.inner()) }
     }
 
@@ -900,7 +902,7 @@ pub trait TPointTrait<const IS_GEODETIC: bool>: Temporal {
     /// # MEOS Functions
     ///
     /// * `nai_tpoint_geo`, `nai_tpoint_tpoint`
-    fn nearest_approach_instant(&self, other: Self::Enum) -> Self::TI {
+    fn nearest_approach_instant(&self, other: &Self::Enum) -> Self::TI {
         Self::TI::from_inner(unsafe { meos_sys::nai_tpoint_tpoint(self.inner(), other.inner()) })
     }
 
@@ -935,7 +937,7 @@ pub trait TPointTrait<const IS_GEODETIC: bool>: Temporal {
     /// # MEOS Functions
     ///
     /// * `shortestline_tpoint_geo`, `shortestline_tpoint_tpoint`
-    fn shortest_line(&self, other: Self::Enum) -> Result<Geometry, geos::Error> {
+    fn shortest_line(&self, other: &Self::Enum) -> Result<Geometry, geos::Error> {
         let gs = unsafe { meos_sys::shortestline_tpoint_tpoint(self.inner(), other.inner()) };
         gserialized_to_geometry(gs)
     }

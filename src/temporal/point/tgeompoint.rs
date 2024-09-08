@@ -138,6 +138,8 @@ pub enum TGeomPoint {
 
 impl_from_str!(TGeomPoint);
 
+impl TPointTrait<false> for TGeomPoint {}
+
 impl MeosEnum for TGeomPoint {
     fn from_instant(inner: *mut meos_sys::TInstant) -> Self {
         Self::Instant(TGeomPointInstant::from_inner(inner))

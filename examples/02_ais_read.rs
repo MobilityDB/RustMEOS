@@ -6,7 +6,7 @@ use std::{
 
 use chrono::{DateTime, NaiveDateTime, Utc};
 use meos::{
-    init,
+    meos_initialize,
     temporal::{number::tfloat::TFloatInstant, point::tgeompoint::TGeomPoint},
 };
 
@@ -22,7 +22,7 @@ struct AISRecord {
 }
 
 fn main() {
-    init();
+    meos_initialize("UTC");
     // https://github.com/MobilityDB/MobilityDB/blob/master/meos/examples/data/ais_instants.csv
     let file = File::open("data/ais_instants.csv").unwrap_or_else(|_| {
         println!("Error opening input file");
