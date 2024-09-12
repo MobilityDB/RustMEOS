@@ -50,6 +50,8 @@ unsafe extern "C" fn error_handler(_error_level: i32, _error_code: i32, message:
 /// 
 /// ## Example
 /// ```
+/// # use meos::meos_initialize;
+/// 
 /// meos_initialize("UTC");
 /// ```
 pub fn meos_initialize(tz: &str) {

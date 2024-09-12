@@ -117,10 +117,10 @@ impl span::Span for TsTzSpan {
     /// ```
     /// # use meos::collections::datetime::tstz_span::TsTzSpan;
     /// # use meos::collections::base::span::Span;
-    /// # use meos::init;
+    /// # use meos::meos_initialize;
     /// use chrono::naive::NaiveDate;
     /// use chrono::TimeDelta;
-    /// # init();
+    /// # meos_initialize("UTC");
     ///
     /// let from_ymd_opt = |y, m, d| NaiveDate::from_ymd_opt(y, m, d)
     ///                                 .unwrap().and_hms_opt(0, 0, 0)
@@ -147,10 +147,10 @@ impl span::Span for TsTzSpan {
     /// ```
     /// # use meos::collections::datetime::tstz_span::TsTzSpan;
     /// # use meos::collections::base::span::Span;
-    /// # use meos::init;
+    /// # use meos::meos_initialize;
     /// use chrono::naive::NaiveDate;
     /// use chrono::TimeDelta;
-    /// # init();
+    /// # meos_initialize("UTC");
     ///
     /// let from_ymd_opt = |y, m, d| NaiveDate::from_ymd_opt(y, m, d)
     ///                                 .unwrap().and_hms_opt(0, 0, 0)
@@ -180,8 +180,8 @@ impl span::Span for TsTzSpan {
     /// # use meos::collections::base::span::Span;
     /// use chrono::naive::NaiveDate;
     /// use chrono::TimeDelta;
-    /// # use meos::init;
-    /// # init();
+    /// # use meos::meos_initialize;
+    /// # meos_initialize("UTC");
     /// let from_ymd_opt = |y, m, d| NaiveDate::from_ymd_opt(y, m, d)
     ///                                 .unwrap().and_hms_opt(0, 0, 0)
     ///                                 .unwrap().and_utc();
@@ -222,11 +222,11 @@ impl span::Span for TsTzSpan {
     /// ## Example
     /// ```
     /// # use meos::collections::datetime::tstz_span::TsTzSpan;
-    /// # use meos::init;
+    /// # use meos::meos_initialize;
     /// use std::str::FromStr;
     /// # use meos::collections::base::span::Span;
     /// use chrono::TimeDelta;
-    /// # init();
+    /// # meos_initialize("UTC");
     /// let span1 = TsTzSpan::from_str("[2019-09-08 00:00:00+00, 2019-09-10 00:00:00+00]").unwrap();
     /// let span2 = TsTzSpan::from_str("[2019-09-12 00:00:00+00, 2019-09-14 00:00:00+00]").unwrap();
     /// let distance = span1.distance_to_span(&span2);
@@ -253,9 +253,9 @@ impl span::Span for TsTzSpan {
     /// # use meos::collections::datetime::tstz_span::TsTzSpan;
     /// # use meos::collections::base::span::Span;
     /// # use chrono::{TimeDelta, TimeZone, Utc};
-    /// # use meos::init;
+    /// # use meos::meos_initialize;
     /// use std::str::FromStr;
-    /// # init();
+    /// # meos_initialize("UTC");
     /// let span_set1 = TsTzSpan::from_str("[2019-09-08 00:00:00+00, 2019-09-10 00:00:00+00]").unwrap();
     /// let span_set2 = TsTzSpan::from_str("[2018-08-07 00:00:00+00, 2018-08-17 00:00:00+00]").unwrap();
     /// let distance = span_set1.distance_to_span(&span_set2);
@@ -311,9 +311,9 @@ impl std::str::FromStr for TsTzSpan {
     /// # use meos::collections::datetime::tstz_span::TsTzSpan;
     /// # use meos::collections::base::span::Span;
     /// # use std::str::FromStr;
-    /// # use meos::init;
+    /// # use meos::meos_initialize;
     /// use chrono::NaiveDate;
-    /// # init();
+    /// # meos_initialize("UTC");
     /// let from_ymd_opt = |y, m, d| NaiveDate::from_ymd_opt(y, m, d)
     ///                                 .unwrap().and_hms_opt(0, 0, 0)
     ///                                 .unwrap().and_utc();

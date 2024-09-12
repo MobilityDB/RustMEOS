@@ -215,11 +215,11 @@ impl span::Span for DateSpan {
     /// ## Example
     /// ```
     /// # use meos::collections::datetime::date_span::DateSpan;
-    /// # use meos::init;
+    /// # use meos::meos_initialize;
     /// use std::str::FromStr;
     /// # use meos::collections::base::span::Span;
     /// use chrono::TimeDelta;
-    /// # init();
+    /// # meos_initialize("UTC");
     /// let span1 = DateSpan::from_str("[2019-09-08, 2019-09-10]").unwrap();
     /// let span2 = DateSpan::from_str("[2019-09-12, 2019-09-14]").unwrap();
     /// let distance = span1.distance_to_span(&span2);
@@ -253,9 +253,9 @@ impl span::Span for DateSpan {
     /// # use meos::collections::datetime::date_span::DateSpan;
     /// # use meos::collections::base::span::Span;
     /// # use chrono::{TimeDelta, TimeZone, Utc};
-    /// # use meos::init;
+    /// # use meos::meos_initialize;
     /// use std::str::FromStr;
-    /// # init();
+    /// # meos_initialize("UTC");
     /// let span_set1 = DateSpan::from_str("[2019-09-08, 2019-09-10]").unwrap();
     /// let span_set2 = DateSpan::from_str("[2018-08-07, 2018-08-17]").unwrap();
     /// let distance = span_set1.distance_to_span(&span_set2);
@@ -309,9 +309,9 @@ impl std::str::FromStr for DateSpan {
     /// # use meos::collections::datetime::date_span::DateSpan;
     /// # use meos::collections::base::span::Span;
     /// # use std::str::FromStr;
-    /// # use meos::init;
+    /// # use meos::meos_initialize;
     /// use chrono::NaiveDate;
-    /// # init();
+    /// # meos_initialize("UTC");
     /// let from_ymd_opt = |y, m, d| NaiveDate::from_ymd_opt(y, m, d).unwrap();
     ///
     /// let span: DateSpan = "(2019-09-08, 2019-09-10)".parse().expect("Failed to parse span");

@@ -79,9 +79,9 @@ impl MeosBox for TBox {
     /// ```
     /// # use meos::boxes::tbox::TBox;
     /// use meos::boxes::r#box::Box;
-    /// # use meos::init;
+    /// # use meos::meos_initialize;
     /// use chrono::{Utc, TimeZone, TimeDelta};
-    /// # init();
+    /// # meos_initialize("UTC");
     /// let datetime = Utc.with_ymd_and_hms(2020, 5, 15, 12, 0, 0).unwrap();
     /// let tbox = TBox::from_time(datetime);
     /// let tstzspan = tbox.tstzspan();
@@ -634,8 +634,8 @@ impl TBox {
     /// # use meos::boxes::tbox::TBox;
     /// use meos::boxes::r#box::Box;
     /// # use std::str::FromStr;
-    /// # use meos::init;
-    /// # init();
+    /// # use meos::meos_initialize;
+    /// # meos_initialize("UTC");
     /// let tbox = TBox::from_str("TBOXFLOAT XT([0, 10),[2020-06-01, 2020-06-05])").unwrap();
     /// let shifted_scaled_tbox = tbox.shift_scale_value(Some(2.0), Some(4.0));
     ///
@@ -673,9 +673,9 @@ impl cmp::PartialEq for TBox {
     /// ```
     /// # use meos::boxes::tbox::TBox;
     /// use meos::boxes::r#box::Box;
-    /// # use meos::init;
+    /// # use meos::meos_initialize;
     /// use std::str::FromStr;
-    /// # init();
+    /// # meos_initialize("UTC");
     /// let span1: TBox = TBox::from_str("TBOXFLOAT XT([0, 10),[2020-06-01, 2020-06-05])").unwrap();
     /// let span2: TBox = TBox::from_str("TBOXFLOAT XT([0, 10),[2020-06-01, 2020-06-05])").unwrap();
     /// assert_eq!(span1, span2);
@@ -725,8 +725,8 @@ impl std::str::FromStr for TBox {
     /// # use meos::collections::number::int_span::IntSpan;
     /// # use meos::collections::datetime::tstz_span::TsTzSpan;
     /// use std::str::FromStr;
-    /// # use meos::init;
-    /// # init();
+    /// # use meos::meos_initialize;
+    /// # meos_initialize("UTC");
     ///
     /// let tbox: TBox = "TBOXINT XT([0, 10),[2020-06-01, 2020-06-05])".parse().expect("Failed to parse span");
     /// let value_span: IntSpan = tbox.intspan();
