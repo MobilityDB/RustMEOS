@@ -43,6 +43,9 @@ jobs:
         cmake .. -DMEOS=on
         make -j
         sudo make install
+    
+    - name: Add library to LDPATH
+      run: export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/
 
     - name: Build
       run: cargo build --verbose
