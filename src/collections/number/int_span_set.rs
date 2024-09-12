@@ -217,7 +217,7 @@ impl Hash for IntSpanSet {
         let hash = unsafe { meos_sys::spanset_hash(self.inner()) };
         state.write_u32(hash);
 
-        state.finish();
+        let _ = state.finish();
     }
 }
 

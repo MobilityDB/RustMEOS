@@ -1560,7 +1560,7 @@ macro_rules! impl_simple_traits_for_temporal {
                     let hash = unsafe { meos_sys::temporal_hash(self.inner()) };
                     state.write_u32(hash);
 
-                    state.finish();
+                    let _ = state.finish();
                 }
             }
         }

@@ -287,7 +287,7 @@ impl Hash for DateSpan {
         let hash = unsafe { meos_sys::span_hash(self._inner.as_ptr()) };
         state.write_u32(hash);
 
-        state.finish();
+        let _ = state.finish();
     }
 }
 
