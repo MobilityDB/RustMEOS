@@ -51,6 +51,13 @@ pub(super) fn gserialized_to_geometry(
     Geometry::new_from_wkb(unsafe { slice::from_raw_parts(bytes, size) })
 }
 
+pub(super) fn create_set_of_geometries(values: &[Geometry]) -> *mut meos_sys::Set {
+    let cgeos: Vec<_> = values.iter().map(geometry_to_gserialized).collect();
+    unsafe {
+        meos_sys::geoset_make(cgeos.as_ptr() as *mut *const _, values.len() as i32)
+    }
+}
+
 impl fmt::Display for Point {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Some(z) = self.2 {

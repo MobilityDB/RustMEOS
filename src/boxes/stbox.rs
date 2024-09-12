@@ -274,10 +274,10 @@ impl STBox {
 }
 
 impl Collection for STBox {
-    impl_collection!(stbox, ());
+    impl_collection!(stbox, STBox);
 
     fn contains(&self, content: &Self::Type) -> bool {
-        unsafe { meos_sys::contains_stbox_tpoint(self.inner(), std::ptr::null()) }
+        unsafe { meos_sys::contains_stbox_stbox(self.inner(), content.inner()) }
     }
 }
 

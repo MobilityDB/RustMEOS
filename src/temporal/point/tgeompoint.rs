@@ -29,7 +29,7 @@ use chrono::{DateTime, TimeZone};
 use geos::Geometry;
 
 use super::tpoint::{
-    geometry_to_gserialized, gserialized_to_geometry, impl_tpoint_traits, TPointTrait,
+    create_set_of_geometries, geometry_to_gserialized, gserialized_to_geometry, impl_tpoint_traits, TPointTrait
 };
 
 pub struct TGeomPointInstant {
@@ -262,11 +262,7 @@ impl Temporal for TGeomPoint {
     }
     fn at_values(&self, values: &[Self::Type]) -> Option<Self::Enum> {
         unsafe {
-            let cgeos: Vec<_> = values
-                .into_iter()
-                .map(|geo| geometry_to_gserialized(&geo))
-                .collect();
-            let set = meos_sys::geoset_make(cgeos.as_ptr() as *mut *const _, values.len() as i32);
+            let set = create_set_of_geometries(values);
             let result = meos_sys::temporal_at_values(self.inner(), set);
             if !result.is_null() {
                 Some(factory::<Self::Enum>(result))
@@ -284,11 +280,7 @@ impl Temporal for TGeomPoint {
 
     fn minus_values(&self, values: &[Self::Type]) -> Self::Enum {
         factory::<Self::Enum>(unsafe {
-            let cgeos: Vec<_> = values
-                .into_iter()
-                .map(|geo| geometry_to_gserialized(&geo))
-                .collect();
-            let set = meos_sys::geoset_make(cgeos.as_ptr() as *mut *const _, values.len() as i32);
+            let set = create_set_of_geometries(values);
             meos_sys::temporal_minus_values(self.inner(), set)
         })
     }

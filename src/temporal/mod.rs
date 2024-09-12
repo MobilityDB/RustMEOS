@@ -3,6 +3,7 @@ pub mod number;
 #[cfg(feature = "geos")]
 pub mod point;
 pub mod tbool;
+#[allow(clippy::module_inception)]
 pub mod temporal;
 pub mod tinstant;
 pub mod tsequence;

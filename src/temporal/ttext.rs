@@ -564,7 +564,7 @@ impl Temporal for TText {
     }
     fn at_values(&self, values: &[Self::Type]) -> Option<Self::Enum> {
         unsafe {
-            let ctexts: Vec<_> = values.into_iter().map(|text| to_ctext(&text)).collect();
+            let ctexts: Vec<_> = values.iter().map(|text| to_ctext(text)).collect();
             let set = meos_sys::textset_make(ctexts.as_ptr() as *mut *const _, values.len() as i32);
             let result = meos_sys::temporal_at_values(self.inner(), set);
             if !result.is_null() {
@@ -583,7 +583,7 @@ impl Temporal for TText {
 
     fn minus_values(&self, values: &[Self::Type]) -> Self::Enum {
         factory::<Self::Enum>(unsafe {
-            let ctexts: Vec<_> = values.into_iter().map(|text| to_ctext(&text)).collect();
+            let ctexts: Vec<_> = values.iter().map(|text| to_ctext(text)).collect();
             let set = meos_sys::textset_make(ctexts.as_ptr() as *mut *const _, values.len() as i32);
             meos_sys::temporal_minus_values(self.inner(), set)
         })
