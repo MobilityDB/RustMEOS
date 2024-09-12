@@ -1,8 +1,8 @@
 name: Rust
 
 on:
-  # push:
-  #   branches: [ "main" ]
+  push:
+    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
@@ -16,7 +16,36 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+    - name: Print current working directory
+      run: pwd
+
+    # Install GEOS library
+    - name: Install GEOS
+      run: sudo apt-get install -y libgeos-dev
+
+    # Install PROJ library
+    - name: Install PROJ
+      run: sudo apt-get install proj-bin libproj-dev proj-data
+
+    # Install JSON-C library
+    - name: Install JSON-C
+      run: sudo apt install libjson-c-dev
+
+    # Fetch and install MEOS library
+    - name: Fetch MEOS sources
+      run: git clone https://github.com/MobilityDB/MobilityDB.git
+
+    # Install MobilityDB
+    - name: Install MobilityDB
+      run: |
+        mkdir MobilityDB/build
+        cd MobilityDB/build
+        cmake .. -DMEOS=on
+        make -j
+        sudo make install
+
     - name: Build
       run: cargo build --verbose
+
     - name: Run tests
       run: cargo test --verbose
