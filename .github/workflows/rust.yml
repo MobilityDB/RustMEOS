@@ -45,7 +45,7 @@ jobs:
         sudo make install
     
     - name: Add library to LDPATH
-      run: export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/
+      run: echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib" >> $GITHUB_ENV
 
     - name: Build
       run: cargo build --verbose
