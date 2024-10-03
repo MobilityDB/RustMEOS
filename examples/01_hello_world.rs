@@ -1,4 +1,4 @@
-use meos::{meos_initialize, TGeomPoint, MeosEnum};
+use meos::{meos_initialize, MeosEnum, TGeomPoint};
 
 fn main() {
     meos_initialize("UTC");

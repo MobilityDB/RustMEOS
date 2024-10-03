@@ -541,3 +541,43 @@ impl BitOr<bool> for TBool {
 }
 
 impl TBoolTrait for TBool {}
+
+#[cfg(test)]
+mod tests {
+    use crate::meos_initialize;
+
+    use super::*;
+
+    #[test]
+    fn instant_tbool() {
+        meos_initialize("UTC");
+        let string = "t@2018-01-01 08:00:00+00";
+        let result: TBool = string.parse().unwrap();
+        assert_eq!(
+            format!("{result:?}"),
+            format!("Instant({})", string.to_owned())
+        );
+    }
+
+    #[test]
+    fn sequence_tbool() {
+        meos_initialize("UTC");
+        let string = "[t@2018-01-01 08:00:00+00]";
+        let result: TBool = string.parse().unwrap();
+        assert_eq!(
+            format!("{result:?}"),
+            format!("Sequence({})", string.to_owned())
+        );
+    }
+
+    #[test]
+    fn sequence_set_tbool() {
+        meos_initialize("UTC");
+        let string = "{[t@2018-01-01 08:00:00+00]}";
+        let result: TBool = string.parse().unwrap();
+        assert_eq!(
+            format!("{result:?}"),
+            format!("SequenceSet({})", string.to_owned())
+        );
+    }
+}

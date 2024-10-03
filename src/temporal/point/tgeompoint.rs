@@ -29,7 +29,8 @@ use chrono::{DateTime, TimeZone};
 use geos::Geometry;
 
 use super::tpoint::{
-    create_set_of_geometries, geometry_to_gserialized, gserialized_to_geometry, impl_tpoint_traits, TPointTrait
+    create_set_of_geometries, geometry_to_gserialized, gserialized_to_geometry, impl_tpoint_traits,
+    TPointTrait,
 };
 
 pub struct TGeomPointInstant {

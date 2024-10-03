@@ -1,5 +1,3 @@
-
-
 use super::{temporal::Temporal, tsequence::TSequence};
 
 pub trait TSequenceSet: Temporal {

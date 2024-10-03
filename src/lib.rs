@@ -20,7 +20,13 @@ pub mod errors;
 pub use errors::ParseError;
 
 pub mod temporal;
-pub use temporal::{JSONCVariant, interpolation::TInterpolation, number::{tfloat::*, tint::*}, point::{tgeogpoint::*, tgeompoint::*, tpoint::TPointTrait}, temporal::Temporal};
+pub use temporal::{
+    interpolation::TInterpolation,
+    number::{tfloat::*, tint::*},
+    point::{tgeogpoint::*, tgeompoint::*, tpoint::TPointTrait},
+    temporal::Temporal,
+    JSONCVariant,
+};
 
 pub(crate) mod utils;
 
@@ -42,17 +48,17 @@ unsafe extern "C" fn error_handler(_error_level: i32, _error_code: i32, message:
 }
 
 /// Initializes the underlying MEOS platform.
-/// 
+///
 /// This function must be called before any other PyMEOS-related function is used.
-/// 
+///
 /// # Arguments
-/// 
-/// * `tz` - A string slice (`&str`) indicating the desired timezone to be used. 
-/// 
+///
+/// * `tz` - A string slice (`&str`) indicating the desired timezone to be used.
+///
 /// ## Example
 /// ```
 /// # use meos::meos_initialize;
-/// 
+///
 /// meos_initialize("UTC");
 /// ```
 pub fn meos_initialize(tz: &str) {
