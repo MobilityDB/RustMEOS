@@ -1,6 +1,6 @@
 [package]
 name = "meos-sys"
-version = "0.1.4"
+version = "0.1.5"
 authors = ["David García Morillo <david.garcia.morillo@ulb.be>"]
 
 repository = "https://github.com/MobilityDB/RustMEOS"
