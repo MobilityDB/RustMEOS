@@ -18,17 +18,14 @@ fn main() {
 
     // If `bundled_proj` is on, use the git submodule to build MEOS from scratch
     let include_path = if cfg!(feature = "bundled_proj") {
-        let dst = cmake::Config::new("MobilityDB").define("MEOS", "1").build();
+        let meos_path = std::env::var("DEP_MEOSSRC_SEARCH").unwrap();
 
-        println!(
-            "cargo:rustc-link-search=dylib={}",
-            dst.join("lib").display()
-        );
+        println!("cargo:rustc-link-search=dylib={}", meos_path);
 
         // Tell cargo to tell rustc to link the system meos shared library.
         println!("cargo:rustc-link-lib=meos");
 
-        dst.join("lib")
+        meos_path
     // Else use pkg-config, using a default as a fallback
     } else {
         let pk_include_path = detect_meos_via_pkg_config();
@@ -48,14 +45,14 @@ fn main() {
 
             // Tell cargo to tell rustc to link the system meos shared library.
             println!("cargo:rustc-link-lib=dylib=meos");
-            PathBuf::from(default_include_path)
+            default_include_path
         } else {
-            pk_include_path.unwrap()
+            pk_include_path.unwrap().display().to_string()
         }
     };
 
     #[cfg(feature = "buildtime_bindgen")]
-    generate_bindings(include_path).unwrap();
+    generate_bindings(include_path.into()).unwrap();
 
     #[cfg(not(feature = "buildtime_bindgen"))]
     let _ = include_path;
