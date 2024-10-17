@@ -2,7 +2,7 @@
 
 Rust bindings for [meos](https://libmeos.org/) C API.
 
-The supported meos version is >= 1.1
+The supported meos version is >= 1.2
 
 ## Disclaimer
 
@@ -25,29 +25,40 @@ let trajectory: TGeomPoint = "[POINT(1 1)@2000-01-01 08:00, POINT(2 2)@2000-01-0
 ### Get the shortest distance ever between two temporal points
 
 ```rust
-use meos::{meos_initialize, TGeomPoint};
+use meos::{meos_initialize, TGeomPoint, TPointTrait};
 
 meos_initialize();
 
-let tpoint1: TGeomPoint = "[Point(0 0 0)@2001-01-01, Point(1 1 1)@2001-01-03, Point(0 0 0)@2001-01-05)".parse().unwrap();
-let tpoint2: TGeomPoint = "[Point(2 0 0)@2001-01-02, Point(1 1 1)@2001-01-04, Point(2 2 2)@2001-01-06)".parse().unwrap();
+let tpoint1: TGeomPoint =
+    "[Point(0 0 0)@2001-01-01, Point(1 1 1)@2001-01-03, Point(0 0 0)@2001-01-05)"
+        .parse()
+        .unwrap();
+let tpoint2: TGeomPoint =
+    "[Point(2 0 0)@2001-01-02, Point(1 1 1)@2001-01-04, Point(2 2 2)@2001-01-06)"
+        .parse()
+        .unwrap();
 
-let distance = tpoint1.nearest_approach_distance(tpoint2);
+let distance = tpoint1.nearest_approach_distance(&tpoint2);
 println!("{distance}"); // Prints 0.5
 ```
 
 ### Check if a trajectory ever goes through a point (using `geos`)
 
 ```rust
-use meos::{meos_initialize, TGeomPoint};
-use geos::{Geometry}
+use geos::Geometry;
+use meos::{meos_initialize, TGeomPoint, Temporal};
 
 meos_initialize();
 
-let trajectory: TGeomPoint = "[Point(0 0 0)@2001-01-01, Point(2 2 2)@2001-01-05)".parse().unwrap();
+let trajectory: TGeomPoint = "[Point(0 0 0)@2001-01-01, Point(2 2 2)@2001-01-05)"
+    .parse()
+    .unwrap();
 let geom = Geometry::new_from_wkt("Point (1 1 1)").expect("Invalid geometry");
 
-println!("Does go through `geom`: {}", tpoint1.ever_equal_than_value(geom).unwrap()); // `true`
+println!(
+    "Does go through `geom`: {}",
+    trajectory.ever_equal_than_value(geom).unwrap()
+); // `true`
 ```
 
 ## Multithreading
