@@ -12,7 +12,7 @@ Currently the bindings are generated manually using bindgen. The commit of the r
 
 ## Build
 
-By default, the build will use system-installed MEOS if available, `pkg-config` is used to automatically detect MEOS
+The build by default will use system-installed MEOS, `pkg-config` is used to automatically detect MEOS
 
 If MEOS is in a custom location, you can instead use the `MEOS_LIB_DIR` environment variable to
 configure MEOS detection.
@@ -35,6 +35,13 @@ DYLD_FALLBACK_LIBRARY_PATH=<path to MEOS>/lib MEOS_LIB_DIR=<path to MEOS>/lib ME
 
 ```
 
+---
+
+You can also enable the `bundled_proj` feature to build MEOS from scratch, (note that you will need to already have installed `json-c`, `proj`, and `geos` in your system, see [here](https://github.com/MobilityDB/MobilityDB/?tab=readme-ov-file#requirements)).
+
+## Binding generation
+By default, meos-sys will use the pregenerated bindings for the 1.2 version, the 1.1 ones is also available. Alternatively, you can generate your own bindings from your `libmeos` installation by specifying the `bindgen` feature.
+
 ## Bindings
 
-Pre-built bindings are available for 1.1
+Pre-built bindings are available for 1.2 and 1.1
