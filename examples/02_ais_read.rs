@@ -22,7 +22,7 @@ struct AISRecord {
 }
 
 fn main() {
-    meos_initialize("UTC");
+    meos_initialize();
     // https://github.com/MobilityDB/MobilityDB/blob/master/meos/examples/data/ais_instants.csv
     let file = File::open("data/ais_instants.csv").unwrap_or_else(|_| {
         println!("Error opening input file");

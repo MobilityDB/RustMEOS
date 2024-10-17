@@ -69,7 +69,7 @@ impl span_set::SpanSet for DateSpanSet {
     /// # use std::str::FromStr;
     /// # use meos::collections::base::span_set::SpanSet;
     /// use chrono::TimeDelta;
-    /// # meos_initialize("UTC");
+    /// # meos_initialize();
     /// let span_set = DateSpanSet::from_str("{[2019-09-08, 2019-09-10], [2019-09-16, 2019-09-20]}").unwrap();
     /// let shifted_span_set = span_set.shift(TimeDelta::days(5));
     ///
@@ -96,7 +96,7 @@ impl span_set::SpanSet for DateSpanSet {
     /// # use std::str::FromStr;
     /// # use meos::collections::base::span_set::SpanSet;
     /// use chrono::TimeDelta;
-    /// # meos_initialize("UTC");
+    /// # meos_initialize();
     /// let span_set = DateSpanSet::from_str("{[2019-09-08, 2019-09-10], [2019-09-13, 2019-09-15]}").unwrap();
     /// let scaled_span_set = span_set.scale(TimeDelta::days(5));
     ///
@@ -124,7 +124,7 @@ impl span_set::SpanSet for DateSpanSet {
     /// # use std::str::FromStr;
     /// # use meos::collections::base::span_set::SpanSet;
     /// use chrono::TimeDelta;
-    /// # meos_initialize("UTC");
+    /// # meos_initialize();
     /// let span_set = DateSpanSet::from_str("{[2019-09-08, 2019-09-10], [2019-09-11, 2019-09-12]}").unwrap();
     /// let shifted_scaled_span_set = span_set.shift_scale(Some(TimeDelta::days(5)), Some(TimeDelta::days(10)));
     ///
@@ -164,7 +164,7 @@ impl span_set::SpanSet for DateSpanSet {
     /// # use chrono::{TimeDelta, TimeZone, NaiveDate};
     /// # use meos::meos_initialize;
     /// use std::str::FromStr;
-    /// # meos_initialize("UTC");
+    /// # meos_initialize();
     /// let span_set = DateSpanSet::from_str("{[2019-09-08, 2019-09-10], [2019-09-11, 2019-09-12]}").unwrap();
     /// let timestamp = NaiveDate::from_ymd_opt(2019, 9, 5).unwrap();
     /// let distance = span_set.distance_to_value(&timestamp);
@@ -200,7 +200,7 @@ impl span_set::SpanSet for DateSpanSet {
     /// # use chrono::{TimeDelta, TimeZone, Utc};
     /// # use meos::meos_initialize;
     /// use std::str::FromStr;
-    /// # meos_initialize("UTC");
+    /// # meos_initialize();
     /// let span_set1 = DateSpanSet::from_str("{[2019-09-08, 2019-09-10], [2019-09-11, 2019-09-12]}").unwrap();
     /// let span_set2 = DateSpanSet::from_str("{[2018-08-07, 2018-08-17], [2018-10-17, 2018-10-20]}").unwrap();
     /// let distance = span_set1.distance_to_span_set(&span_set2);
@@ -231,7 +231,7 @@ impl span_set::SpanSet for DateSpanSet {
     /// # use chrono::{TimeDelta, TimeZone, Utc};
     /// # use meos::meos_initialize;
     /// use std::str::FromStr;
-    /// # meos_initialize("UTC");
+    /// # meos_initialize();
     /// let span_set = DateSpanSet::from_str("{[2019-09-08, 2019-09-10], [2019-09-11, 2019-09-12]}").unwrap();
     /// let span = DateSpan::from_str("[2018-08-07, 2018-08-17]").unwrap();
     /// let distance = span_set.distance_to_span(&span);
@@ -310,7 +310,7 @@ impl BitAnd<DateSpanSet> for DateSpanSet {
     /// # use meos::meos_initialize;
     /// # use std::str::FromStr;
     /// # use meos::collections::base::span_set::SpanSet;
-    /// # meos_initialize("UTC");
+    /// # meos_initialize();
     /// let span_set1 = DateSpanSet::from_str("{[2019-09-08, 2019-09-10], [2019-09-15, 2019-09-20]}").unwrap();
     /// let span_set2 = DateSpanSet::from_str("{[2019-09-15, 2019-09-30], [2019-11-11, 2019-11-12]}").unwrap();
     ///
@@ -342,7 +342,7 @@ impl BitOr for DateSpanSet {
     /// # use meos::meos_initialize;
     /// # use std::str::FromStr;
     /// # use meos::collections::base::span_set::SpanSet;
-    /// # meos_initialize("UTC");
+    /// # meos_initialize();
     /// let span_set1 = DateSpanSet::from_str("{[2019-09-08, 2019-09-10], [2019-09-15, 2019-09-20]}").unwrap();
     /// let span_set2 = DateSpanSet::from_str("{[2019-09-15, 2019-09-30], [2019-11-11, 2019-11-12]}").unwrap();
     ///

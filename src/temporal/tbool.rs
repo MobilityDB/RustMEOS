@@ -550,7 +550,7 @@ mod tests {
 
     #[test]
     fn instant_tbool() {
-        meos_initialize("UTC");
+        meos_initialize();
         let string = "t@2018-01-01 08:00:00+00";
         let result: TBool = string.parse().unwrap();
         assert_eq!(
@@ -561,7 +561,7 @@ mod tests {
 
     #[test]
     fn sequence_tbool() {
-        meos_initialize("UTC");
+        meos_initialize();
         let string = "[t@2018-01-01 08:00:00+00]";
         let result: TBool = string.parse().unwrap();
         assert_eq!(
@@ -572,7 +572,7 @@ mod tests {
 
     #[test]
     fn sequence_set_tbool() {
-        meos_initialize("UTC");
+        meos_initialize();
         let string = "{[t@2018-01-01 08:00:00+00]}";
         let result: TBool = string.parse().unwrap();
         assert_eq!(

@@ -219,7 +219,7 @@ impl span::Span for DateSpan {
     /// use std::str::FromStr;
     /// # use meos::collections::base::span::Span;
     /// use chrono::TimeDelta;
-    /// # meos_initialize("UTC");
+    /// # meos_initialize();
     /// let span1 = DateSpan::from_str("[2019-09-08, 2019-09-10]").unwrap();
     /// let span2 = DateSpan::from_str("[2019-09-12, 2019-09-14]").unwrap();
     /// let distance = span1.distance_to_span(&span2);
@@ -255,7 +255,7 @@ impl span::Span for DateSpan {
     /// # use chrono::{TimeDelta, TimeZone, Utc};
     /// # use meos::meos_initialize;
     /// use std::str::FromStr;
-    /// # meos_initialize("UTC");
+    /// # meos_initialize();
     /// let span_set1 = DateSpan::from_str("[2019-09-08, 2019-09-10]").unwrap();
     /// let span_set2 = DateSpan::from_str("[2018-08-07, 2018-08-17]").unwrap();
     /// let distance = span_set1.distance_to_span(&span_set2);
@@ -311,7 +311,7 @@ impl std::str::FromStr for DateSpan {
     /// # use std::str::FromStr;
     /// # use meos::meos_initialize;
     /// use chrono::NaiveDate;
-    /// # meos_initialize("UTC");
+    /// # meos_initialize();
     /// let from_ymd_opt = |y, m, d| NaiveDate::from_ymd_opt(y, m, d).unwrap();
     ///
     /// let span: DateSpan = "(2019-09-08, 2019-09-10)".parse().expect("Failed to parse span");

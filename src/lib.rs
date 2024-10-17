@@ -59,14 +59,22 @@ unsafe extern "C" fn error_handler(_error_level: i32, _error_code: i32, message:
 /// ```
 /// # use meos::meos_initialize;
 ///
-/// meos_initialize("UTC");
+/// meos_initialize();
 /// ```
-pub fn meos_initialize(tz: &str) {
+pub fn meos_initialize() {
     START.call_once(|| unsafe {
-        let ptr = CString::new(tz).unwrap();
-        meos_sys::meos_initialize(ptr.as_ptr(), Some(error_handler));
+        meos_sys::meos_initialize();
+        meos_sys::meos_initialize_error_handler(Some(error_handler));
         libc::atexit(finalize);
     });
+}
+
+pub fn meos_initialize_timezone(tz: &str) {
+    unsafe {
+        let ptr = CString::new(tz).unwrap();
+
+        meos_sys::meos_initialize_timezone(ptr.as_ptr());
+    }
 }
 
 fn factory<T: MeosEnum>(temporal: *mut meos_sys::Temporal) -> T {

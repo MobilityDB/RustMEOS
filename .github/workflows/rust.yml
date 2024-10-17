@@ -50,5 +50,9 @@ jobs:
     - name: Build
       run: cargo build --verbose
 
-    - name: Run tests
-      run: cargo test --verbose
+    - name: Run lib tests
+      # They need to be run in sequence because MEOS doesn't support multi-threading
+      run: cargo test --verbose --lib -- --test-threads 1
+    
+    - name: Run doc tests
+      run: cargo test --verbose --doc

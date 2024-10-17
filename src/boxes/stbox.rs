@@ -295,7 +295,7 @@ impl cmp::PartialEq for STBox {
     /// # use meos::boxes::stbox::STBox;
     /// # use meos::meos_initialize;
     /// use std::str::FromStr;
-    /// # meos_initialize("UTC");
+    /// # meos_initialize();
     /// let span1: STBox = STBox::from_str("STBOX ZT(((1.0,2.0,3.0),(4.0,5.0,6.0)),[2001-01-01, 2001-01-02])").unwrap();
     /// let span2: STBox = STBox::from_str("STBOX ZT(((1.0,2.0,3.0),(4.0,5.0,6.0)),[2001-01-01, 2001-01-02])").unwrap();
     /// assert_eq!(span1, span2);
@@ -345,7 +345,7 @@ impl std::str::FromStr for STBox {
     /// use meos::boxes::r#box::Box;
     /// use std::str::FromStr;
     /// # use meos::meos_initialize;
-    /// # meos_initialize("UTC");
+    /// # meos_initialize();
     ///
     /// let stbox: STBox = "STBOX ZT(((1.0,2.0,3.0),(4.0,5.0,6.0)),[2001-01-01, 2001-01-02])".parse().expect("Failed to parse span");
     /// let temporal_span: TsTzSpan = stbox.tstzspan();

@@ -1,7 +1,7 @@
 use meos::{meos_initialize, MeosEnum, TGeomPoint};
 
 fn main() {
-    meos_initialize("UTC");
+    meos_initialize();
     // Input temporal points in WKT format
     let instant_wkt = "POINT(1 1)@2000-01-01";
     let sequence_discrete_wkt = "{POINT(1 1)@2000-01-01, POINT(2 2)@2000-01-02}";

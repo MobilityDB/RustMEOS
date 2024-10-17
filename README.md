@@ -17,7 +17,7 @@ You can check the examples in the `examples/` directory.
 ```rust
 use meos::{meos_initialize, TGeomPoint};
 
-meos_initialize("UTC");
+meos_initialize();
 
 let trajectory: TGeomPoint = "[POINT(1 1)@2000-01-01 08:00, POINT(2 2)@2000-01-01 08:01]".parse().unwrap();
 ```
@@ -27,7 +27,7 @@ let trajectory: TGeomPoint = "[POINT(1 1)@2000-01-01 08:00, POINT(2 2)@2000-01-0
 ```rust
 use meos::{meos_initialize, TGeomPoint};
 
-meos_initialize("UTC");
+meos_initialize();
 
 let tpoint1: TGeomPoint = "[Point(0 0 0)@2001-01-01, Point(1 1 1)@2001-01-03, Point(0 0 0)@2001-01-05)".parse().unwrap();
 let tpoint2: TGeomPoint = "[Point(2 0 0)@2001-01-02, Point(1 1 1)@2001-01-04, Point(2 2 2)@2001-01-06)".parse().unwrap();
@@ -42,7 +42,7 @@ println!("{distance}"); // Prints 0.5
 use meos::{meos_initialize, TGeomPoint};
 use geos::{Geometry}
 
-meos_initialize("UTC");
+meos_initialize();
 
 let trajectory: TGeomPoint = "[Point(0 0 0)@2001-01-01, Point(2 2 2)@2001-01-05)".parse().unwrap();
 let geom = Geometry::new_from_wkt("Point (1 1 1)").expect("Invalid geometry");

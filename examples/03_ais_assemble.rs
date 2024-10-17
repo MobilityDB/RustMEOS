@@ -47,7 +47,7 @@ struct TripRecord {
 }
 
 fn main() {
-    meos_initialize("UTC");
+    meos_initialize();
     let start_time = Instant::now();
 
     let mut trips: Vec<TripRecord> = Vec::new();
