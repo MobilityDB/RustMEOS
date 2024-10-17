@@ -16,39 +16,26 @@ fn main() {
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-env-changed=MEOS_LIB_DIR");
 
-    // If `bundled_proj` is on, use the git submodule to build MEOS from scratch
-    let include_path = if cfg!(feature = "bundled_proj") {
-        let meos_path = std::env::var("DEP_MEOSSRC_SEARCH").unwrap();
+    let pk_include_path = detect_meos_via_pkg_config();
 
-        println!("cargo:rustc-link-search=dylib={}", meos_path);
+    // Try to find the library manually
+    let include_path = if !pk_include_path.is_some() {
+        let default_include_path = String::from("/usr/local/lib/");
+        let lib_dir_env = env::var_os("MEOS_LIB_DIR")
+            .map(OsString::into_string)
+            .transpose()
+            .ok()
+            .flatten()
+            .unwrap_or(default_include_path.clone());
+
+        // Tell cargo to look for shared libraries in the specified directory
+        println!("cargo:rustc-link-search={lib_dir_env}");
 
         // Tell cargo to tell rustc to link the system meos shared library.
-        println!("cargo:rustc-link-lib=meos");
-
-        meos_path
-    // Else use pkg-config, using a default as a fallback
+        println!("cargo:rustc-link-lib=dylib=meos");
+        default_include_path
     } else {
-        let pk_include_path = detect_meos_via_pkg_config();
-
-        // Try to find the library manually
-        if !pk_include_path.is_some() {
-            let default_include_path = String::from("/usr/local/lib/");
-            let lib_dir_env = env::var_os("MEOS_LIB_DIR")
-                .map(OsString::into_string)
-                .transpose()
-                .ok()
-                .flatten()
-                .unwrap_or(default_include_path.clone());
-
-            // Tell cargo to look for shared libraries in the specified directory
-            println!("cargo:rustc-link-search={lib_dir_env}");
-
-            // Tell cargo to tell rustc to link the system meos shared library.
-            println!("cargo:rustc-link-lib=dylib=meos");
-            default_include_path
-        } else {
-            pk_include_path.unwrap().display().to_string()
-        }
+        pk_include_path.unwrap().display().to_string()
     };
 
     #[cfg(feature = "buildtime_bindgen")]

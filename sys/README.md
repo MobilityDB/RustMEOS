@@ -35,10 +35,6 @@ DYLD_FALLBACK_LIBRARY_PATH=<path to MEOS>/lib MEOS_LIB_DIR=<path to MEOS>/lib ME
 
 ```
 
----
-
-You can also enable the `bundled_proj` feature to build MEOS from scratch, (note that you will need to already have installed `json-c`, `proj`, and `geos` in your system, see [here](https://github.com/MobilityDB/MobilityDB/?tab=readme-ov-file#requirements)).
-
 ## Binding generation
 By default, meos-sys will use the pregenerated bindings for the 1.2 version, the 1.1 ones is also available. Alternatively, you can generate your own bindings from your `libmeos` installation by specifying the `bindgen` feature.
 
