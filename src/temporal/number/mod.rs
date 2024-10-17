@@ -3,6 +3,7 @@ pub mod tint;
 pub mod tnumber;
 
 #[cfg(test)]
+#[serial_test::serial]
 mod tests {
     use crate::{meos_initialize, meos_initialize_timezone};
 
