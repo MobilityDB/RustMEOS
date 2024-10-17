@@ -7,7 +7,7 @@ build = "build.rs"
 description = "static library build for meos-sys"
 repository = "https://github.com/MobilityDB/RustMEOS"
 authors = ["David García Morillo <david.garcia.morillo@ulb.be>"]
-license-file = "LICENSE"
+license-file = "../LICENSE"
 exclude = ["source/tests"]
 
 [build-dependencies]
