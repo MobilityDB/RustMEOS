@@ -1,5 +1,10 @@
+#![crate_name = "meos"]
+#![crate_type = "lib"]
+#![cfg_attr(doc, doc = include_str!("../README.md"))]
+#![doc(html_logo_url = "https://libmeos.org/brand.svg")]
 #![allow(refining_impl_trait)]
 #![allow(clippy::non_canonical_partial_ord_impl)]
+
 use std::{
     ffi::{c_void, CStr, CString},
     fmt::Debug,
@@ -7,26 +12,22 @@ use std::{
 };
 
 use bitmask_enum::bitmask;
-use boxes::r#box::Box as MeosBox;
-pub use meos_sys;
+use boxes::Box as MeosBox;
+pub use meos_sys as sys;
 
-pub mod boxes;
-pub use boxes::{stbox::STBox, tbox::TBox};
+mod boxes;
+pub use boxes::{STBox, TBox};
 
-pub mod collections;
-pub use collections::base::{collection::Collection, span::Span, span_set::SpanSet};
+mod collections;
+pub use collections::base::{Collection, Span, SpanSet};
+pub use collections::datetime::{DateSpan, DateSpanSet, TsTzSpan, TsTzSpanSet};
+pub use collections::number::*;
 
-pub mod errors;
+mod errors;
 pub use errors::ParseError;
 
-pub mod temporal;
-pub use temporal::{
-    interpolation::TInterpolation,
-    number::{tfloat::*, tint::*},
-    point::{tgeogpoint::*, tgeompoint::*, tpoint::TPointTrait},
-    temporal::Temporal,
-    JSONCVariant,
-};
+mod temporal;
+pub use temporal::*;
 
 pub(crate) mod utils;
 

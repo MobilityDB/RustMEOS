@@ -5,20 +5,19 @@ use std::{
     ptr,
 };
 
-use crate::temporal::temporal::Temporal;
+use crate::temporal::Temporal;
 use chrono::{DateTime, TimeDelta, TimeZone, Utc};
 
 use crate::{
     collections::{
         base::{
-            collection::{impl_collection, Collection},
-            span::Span,
+            Span, {impl_collection, Collection},
         },
-        datetime::tstz_span::TsTzSpan,
-        number::{float_span::FloatSpan, int_span::IntSpan, number_span::NumberSpan},
+        datetime::TsTzSpan,
+        number::{FloatSpan, IntSpan, NumberSpan},
     },
     errors::ParseError,
-    temporal::number::tfloat::TFloat,
+    temporal::TFloat,
     utils::{create_interval, from_meos_timestamp, to_meos_timestamp},
     WKBVariant,
 };

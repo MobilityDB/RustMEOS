@@ -7,20 +7,8 @@ use std::{
 
 use chrono::{DateTime, Utc};
 use meos::{
-    meos_initialize,
-    temporal::{
-        number::{
-            tfloat::{TFloatInstant, TFloatSequence},
-            tnumber::TNumber,
-        },
-        point::{
-            tgeompoint::{TGeomPoint, TGeomPointInstant, TGeomPointSequence},
-            tpoint::TPointTrait,
-        },
-        temporal::Temporal,
-        tinstant::TInstant,
-        tsequence::TSequence,
-    },
+    meos_initialize, TFloatInstant, TFloatSequence, TGeomPoint, TGeomPointInstant,
+    TGeomPointSequence, TInstant, TNumber, TPointTrait, TSequence, Temporal,
 };
 
 // Constants
@@ -153,11 +141,11 @@ fn main() {
     for trip in trips.iter_mut() {
         trip.trip = Some(TSequence::new(
             &trip.trip_instants.iter().collect::<Vec<_>>(),
-            meos::temporal::interpolation::TInterpolation::Linear,
+            meos::TInterpolation::Linear,
         ));
         trip.sog = Some(TSequence::new(
             &trip.sog_instants.iter().collect::<Vec<_>>(),
-            meos::temporal::interpolation::TInterpolation::Linear,
+            meos::TInterpolation::Linear,
         ));
 
         println!(

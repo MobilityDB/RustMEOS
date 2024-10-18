@@ -12,10 +12,9 @@ use geos::{Geom, Geometry};
 use crate::{
     collections::{
         base::{
-            collection::{impl_collection, Collection},
-            span::Span,
+            Span, {impl_collection, Collection},
         },
-        datetime::tstz_span::TsTzSpan,
+        datetime::TsTzSpan,
     },
     errors::ParseError,
     utils::{create_interval, from_meos_timestamp, to_meos_timestamp},

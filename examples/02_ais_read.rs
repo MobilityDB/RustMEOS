@@ -6,8 +6,7 @@ use std::{
 
 use chrono::{DateTime, NaiveDateTime, Utc};
 use meos::{
-    meos_initialize,
-    temporal::{number::tfloat::TFloatInstant, point::tgeompoint::TGeomPoint},
+    meos_initialize, {TFloatInstant, TGeomPoint},
 };
 
 const MAX_LENGTH_HEADER: usize = 1024;

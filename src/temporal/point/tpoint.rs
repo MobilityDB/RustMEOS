@@ -1,7 +1,7 @@
 use crate::temporal::tinstant::TInstant;
 use crate::temporal::JSONCVariant;
 use crate::{
-    boxes::stbox::STBox,
+    boxes::STBox,
     factory,
     temporal::{number::tfloat::TFloat, temporal::Temporal},
 };

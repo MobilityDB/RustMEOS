@@ -10,8 +10,8 @@ use chrono::{DateTime, TimeZone};
 
 use crate::{
     collections::{
-        base::{collection::Collection, span::Span, span_set::SpanSet},
-        datetime::{tstz_span::TsTzSpan, tstz_span_set::TsTzSpanSet},
+        base::*,
+        datetime::{TsTzSpan, TsTzSpanSet},
     },
     errors::ParseError,
     factory, impl_from_str,

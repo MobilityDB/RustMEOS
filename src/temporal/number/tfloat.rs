@@ -10,15 +10,11 @@ use chrono::{DateTime, TimeZone};
 
 use super::tnumber::{impl_meos_enum, impl_temporal_for_tnumber, TNumber};
 use crate::{
-    boxes::tbox::TBox,
+    boxes::TBox,
     collections::{
-        base::{
-            collection::{impl_collection, Collection},
-            span::Span,
-            span_set::SpanSet,
-        },
-        datetime::{tstz_span::TsTzSpan, tstz_span_set::TsTzSpanSet},
-        number::float_span_set::FloatSpanSet,
+        base::*,
+        datetime::{TsTzSpan, TsTzSpanSet},
+        number::FloatSpanSet,
     },
     errors::ParseError,
     factory, impl_from_str,

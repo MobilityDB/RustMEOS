@@ -5,11 +5,7 @@ use std::hash::Hash;
 use std::ops::{BitAnd, BitOr};
 use std::ptr;
 
-use collection::{impl_collection, Collection};
-use span::Span;
-use span_set::impl_iterator;
-
-use crate::collections::base::span_set::SpanSet;
+use crate::collections::base::SpanSet;
 use crate::collections::base::*;
 use crate::errors::ParseError;
 
@@ -35,7 +31,7 @@ impl Collection for IntSpanSet {
     }
 }
 
-impl span_set::SpanSet for IntSpanSet {
+impl SpanSet for IntSpanSet {
     type SpanType = IntSpan;
     type SubsetType = <Self as Collection>::Type;
     fn inner(&self) -> *const meos_sys::SpanSet {

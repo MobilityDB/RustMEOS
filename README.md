@@ -1,16 +1,44 @@
-# Rust MEOS
+# RustMEOS
 
-Rust bindings for [meos](https://libmeos.org/) C API.
+RustMEOS is a Rust library providing bindings for the [MEOS](https://libmeos.org/) C library, designed for spatiotemporal data management and analysis. It enables handling of temporal and spatial data, making it ideal for applications that need to work with moving objects, trajectories, and time-varying geographical data.
 
-The supported meos version is >= 1.2
+It supports MEOS version >= 1.2
 
-## Disclaimer
+## Overview
 
-The crate is still in alpha, this means it is not advised for production usage as some tests are still to be added. This project is checked with valgrind, but if you stumble on a crash feel free to open an issue explaining the problem.
+The primary goal of this library is to facilitate the creation and manipulation of temporal types, such as time-stamped geographic points, sequences, and numeric values. These temporal data structures can be used for various use cases including:
+
+- **Tracking Movement:** Efficiently manage and analyze the movement of objects (e.g., vehicles, ships, animals) over time.
+- **Spatiotemporal Queries:**:
+    - **Distance Calculations:** Compute the shortest distance between trajectories, which can be useful for determining when two moving objects were closest to each other.
+    - **Time-Weighted Averages:** Analyze time-dependent data, like averaging speeds or temperatures over a period.
+    - **Intersection Queries:** Check if a trajectory passes through specific points or regions, enabling location-based analysis of movement.
+
+This library provides access to advanced spatiotemporal data handling capabilities of MEOS while maintaining Rust’s memory safety, concurrency, and performance benefits.
+
+## Installation
+
+Add the following dependency to your `Cargo.toml`:
+
+```toml
+[dependencies]
+meos = "0.1"
+```
+Ensure that the `meos` C library is installed on your system. Follow the installation instructions on the [MEOS website](https://github.com/MobilityDB/MobilityDB/?tab=readme-ov-file#requirements).
+
+## Key Features
+
+The library offers a range of temporal data types, including:
+
+- **Temporal Geometric Points (`TGeomPoint`):** These represent geometric points that change over time (e.g., location data of moving objects).
+- **Temporal Float (`TFloat`):** These store numeric values associated with time, such as speed or temperature over time.
+- **Temporal Boolean (`TBool`):** Represents true/false values that vary over time, useful for tracking binary states such as whether an object is within a specific area at given times.
+
+The type hierarchy is the following, the main types (`TGeomPoint`, `TFloat`, etc.) are enums that encapsulate the different kinds of temporal subtypes, **Instant**, **Sequence**, and **SequenceSet**, to learn more about these, refer to the [`meos` documentation](https://libmeos.org/documentation/datamodel/). Users can almost seamlessly use either the enums or the concrete structs (e.g. `TGeomPointSequence`). Some users may benefit from using the concrete structs since more concrete types can be inferred in some functions.
 
 ## Usage example
 
-You can check the examples in the `examples/` directory.
+You can check more examples in the `examples/` directory.
 
 ### Constructing trajectories from text:
 
@@ -20,6 +48,35 @@ use meos::{meos_initialize, TGeomPoint};
 meos_initialize();
 
 let trajectory: TGeomPoint = "[POINT(1 1)@2000-01-01 08:00, POINT(2 2)@2000-01-01 08:01]".parse().unwrap();
+```
+
+### Constructing trajectories from a list of pairs (point, timestamp):
+
+```rust
+    use chrono::{DateTime, TimeZone, Utc};
+    use geos::Geometry;
+    use meos::{meos_initialize, TGeomPointSequence};
+
+    meos_initialize();
+
+    let geometries_with_time: Vec<(Geometry, DateTime<Utc>)> = vec![
+        (
+            Geometry::new_from_wkt("POINT(1 1)").unwrap(),
+            Utc.with_ymd_and_hms(2020, 1, 1, 0, 0, 0).unwrap(),
+        ),
+        (
+            Geometry::new_from_wkt("POINT(3 2)").unwrap(),
+            Utc.with_ymd_and_hms(2020, 1, 1, 0, 1, 0).unwrap(),
+        ),
+        (
+            Geometry::new_from_wkt("POINT(3 3)").unwrap(),
+            Utc.with_ymd_and_hms(2020, 1, 1, 0, 2, 0).unwrap(),
+        ),
+    ];
+
+    let tpoint: TGeomPointSequence = geometries_with_time.into_iter().collect();
+
+    println!("{tpoint:?}");
 ```
 
 ### Get the shortest distance ever between two temporal points

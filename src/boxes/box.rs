@@ -1,7 +1,7 @@
 use chrono::{DateTime, TimeDelta, TimeZone, Utc};
 
 use crate::{
-    collections::{base::collection::Collection, datetime::tstz_span::TsTzSpan},
+    collections::{base::Collection, datetime::TsTzSpan},
     WKBVariant,
 };
 

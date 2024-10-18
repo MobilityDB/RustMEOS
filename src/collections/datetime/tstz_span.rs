@@ -8,8 +8,6 @@ use std::{
 };
 
 use chrono::{DateTime, Datelike, TimeDelta, TimeZone, Utc};
-use collection::{impl_collection, Collection};
-use span::Span;
 
 use crate::{
     collections::base::*,
@@ -38,7 +36,7 @@ impl Collection for TsTzSpan {
     }
 }
 
-impl span::Span for TsTzSpan {
+impl Span for TsTzSpan {
     type SubsetType = TimeDelta;
     fn inner(&self) -> *const meos_sys::Span {
         self._inner.as_ptr()

@@ -4,16 +4,14 @@ use std::ptr;
 use chrono::Datelike;
 use chrono::NaiveDate;
 use chrono::TimeDelta;
-use collection::{impl_collection, Collection};
-use span::Span;
-use span_set::impl_iterator;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::{BitAnd, BitOr};
 
-use crate::collections::base::span_set::SpanSet;
+use crate::collections::base::SpanSet;
 use crate::collections::base::*;
 use crate::errors::ParseError;
+use crate::utils::from_interval;
 
 use super::date_span::DateSpan;
 use super::DAYS_UNTIL_2000;
@@ -37,7 +35,7 @@ impl Collection for DateSpanSet {
     }
 }
 
-impl span_set::SpanSet for DateSpanSet {
+impl SpanSet for DateSpanSet {
     type SpanType = DateSpan;
     type SubsetType = TimeDelta;
     fn inner(&self) -> *const meos_sys::SpanSet {
@@ -243,6 +241,14 @@ impl span_set::SpanSet for DateSpanSet {
                 meos_sys::distance_datespanset_datespan(self.inner(), span.inner()).into(),
             )
         }
+    }
+}
+
+impl DateSpanSet {
+    pub fn duration(&self, ignore_gaps: bool) -> TimeDelta {
+        from_interval(unsafe {
+            meos_sys::datespanset_duration(self._inner.as_ptr(), ignore_gaps).read()
+        })
     }
 }
 

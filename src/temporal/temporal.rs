@@ -6,8 +6,8 @@ use std::{
 
 use crate::{
     collections::{
-        base::{collection::Collection, span::Span, span_set::SpanSet},
-        datetime::{tstz_span::TsTzSpan, tstz_span_set::TsTzSpanSet},
+        base::*,
+        datetime::{TsTzSpan, TsTzSpanSet},
     },
     factory,
     utils::{create_interval, from_interval, from_meos_timestamp, to_meos_timestamp},
@@ -84,6 +84,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Returns
     /// The time span.
+    #[doc(alias = "temporal_time")]
     fn time(&self) -> TsTzSpanSet {
         TsTzSpanSet::from_inner(unsafe { meos_sys::temporal_time(self.inner()) })
     }
@@ -92,6 +93,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Returns
     /// The time span.
+    #[doc(alias = "temporal_to_tstzspan")]
     fn timespan(&self) -> TsTzSpan {
         unsafe { TsTzSpan::from_inner(meos_sys::temporal_to_tstzspan(self.inner())) }
     }
@@ -103,6 +105,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Returns
     /// The duration of the temporal object.
+    #[doc(alias = "temporal_duration")]
     fn duration(&self, ignore_gaps: bool) -> TimeDelta {
         from_interval(unsafe { meos_sys::temporal_duration(self.inner(), ignore_gaps).read() })
     }
@@ -111,6 +114,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Returns
     /// The number of instants.
+    #[doc(alias = "temporal_num_instants")]
     fn num_instants(&self) -> i32 {
         unsafe { meos_sys::temporal_num_instants(self.inner()) }
     }
@@ -119,6 +123,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Returns
     /// The first instant.
+    #[doc(alias = "temporal_start_instant")]
     fn start_instant(&self) -> Self::TI {
         <Self::TI as TInstant>::from_inner(unsafe {
             meos_sys::temporal_start_instant(self.inner())
@@ -129,6 +134,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Returns
     /// The last instant.
+    #[doc(alias = "temporal_end_instant")]
     fn end_instant(&self) -> Self::TI {
         <Self::TI as TInstant>::from_inner(unsafe { meos_sys::temporal_end_instant(self.inner()) })
     }
@@ -137,6 +143,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Returns
     /// The instant with the minimum value.
+    #[doc(alias = "temporal_min_instant")]
     fn min_instant(&self) -> Self::TI {
         <Self::TI as TInstant>::from_inner(unsafe { meos_sys::temporal_min_instant(self.inner()) })
     }
@@ -145,6 +152,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Returns
     /// The instant with the maximum value.
+    #[doc(alias = "temporal_max_instant")]
     fn max_instant(&self) -> Self::TI {
         <Self::TI as TInstant>::from_inner(unsafe { meos_sys::temporal_max_instant(self.inner()) })
     }
@@ -156,6 +164,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Return
     /// The n-th instant if exists, None otherwise.
+    #[doc(alias = "temporal_instant_n")]
     fn instant_n(&self, n: i32) -> Option<Self::TI> {
         let result = unsafe { meos_sys::temporal_instant_n(self.inner(), n) };
         if !result.is_null() {
@@ -169,6 +178,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Returns
     /// A list of instants.
+    #[doc(alias = "temporal_instants")]
     fn instants(&self) -> Vec<Self::TI> {
         let mut count = 0;
         unsafe {
@@ -185,6 +195,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Returns
     /// The number of timestamps.
+    #[doc(alias = "temporal_num_timestamps")]
     fn num_timestamps(&self) -> i32 {
         unsafe { meos_sys::temporal_num_timestamps(self.inner()) }
     }
@@ -193,6 +204,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Returns
     /// The first timestamp.
+    #[doc(alias = "temporal_start_timestampz")]
     fn start_timestamp(&self) -> DateTime<Utc> {
         from_meos_timestamp(unsafe { meos_sys::temporal_start_timestamptz(self.inner()) })
     }
@@ -201,6 +213,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Returns
     /// The last timestamp.
+    #[doc(alias = "temporal_end_timestampz")]
     fn end_timestamp(&self) -> DateTime<Utc> {
         from_meos_timestamp(unsafe { meos_sys::temporal_end_timestamptz(self.inner()) })
     }
@@ -212,6 +225,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Returns
     /// The n-th timestamp if exists, None otherwise.
+    #[doc(alias = "temporal_timestampz_n")]
     fn timestamp_n(&self, n: i32) -> Option<DateTime<Utc>> {
         let mut timestamp = 0;
         unsafe {
@@ -229,6 +243,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Returns
     /// A list of timestamps.
+    #[doc(alias = "temporal_timestamps")]
     fn timestamps(&self) -> Vec<DateTime<Utc>> {
         let mut count = 0;
         let timestamps =
@@ -245,9 +260,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Returns
     /// A list of segments.
-    ///
-    /// MEOS Functions:
-    ///    `temporal_segments`
+    #[doc(alias = "temporal_segments")]
     fn segments(&self) -> Vec<Self::TS> {
         let mut count = 0;
         let segments =
@@ -263,9 +276,7 @@ pub trait Temporal: Collection + Hash {
     // ------------------------- Transformations -------------------------------
 
     /// Returns a new `Temporal` object with the given interpolation.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_set_interpolation`
+    #[doc(alias = "temporal_set_interp")]
     fn set_interpolation(&self, interpolation: TInterpolation) -> Self {
         Self::from_inner_as_temporal(unsafe {
             meos_sys::temporal_set_interp(self.inner(), interpolation as u32)
@@ -276,9 +287,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Arguments
     /// * `delta` - TimeDelta to shift the temporal dimension.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_shift_time`
+    #[doc(alias = "temporal_shift_scale_time")]
     fn shift_time(&self, delta: TimeDelta) -> Self {
         self.shift_scale_time(Some(delta), None)
     }
@@ -287,9 +296,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Arguments
     /// * `duration` - TimeDelta representing the new temporal duration.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_scale_time`
+    #[doc(alias = "temporal_shift_scale_time")]
     fn scale_time(&self, duration: TimeDelta) -> Self {
         self.shift_scale_time(None, Some(duration))
     }
@@ -299,9 +306,7 @@ pub trait Temporal: Collection + Hash {
     /// ## Arguments
     /// * `shift` - TimeDelta to shift the time dimension.
     /// * `duration` - TimeDelta representing the new temporal duration.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_shift_scale_time`
+    #[doc(alias = "temporal_shift_scale_time")]
     fn shift_scale_time(&self, shift: Option<TimeDelta>, duration: Option<TimeDelta>) -> Self {
         let d = {
             if let Some(d) = shift {
@@ -329,9 +334,7 @@ pub trait Temporal: Collection + Hash {
     /// * `duration` - TimeDelta of the temporal tiles.
     /// * `start` - Start time of the temporal tiles.
     /// * `interpolation`- Interpolation of the resulting temporal object.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_tsample`
+    #[doc(alias = "temporal_tsample")]
     fn temporal_sample<Tz: TimeZone>(
         self,
         duration: TimeDelta,
@@ -354,9 +357,7 @@ pub trait Temporal: Collection + Hash {
     /// ## Arguments
     /// * `duration` - TimeDelta of the temporal tiles.
     /// * `start` - Start time of the temporal tiles.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_tprecision`
+    #[doc(alias = "temporal_tprecision")]
     fn temporal_precision<Tz: TimeZone>(self, duration: TimeDelta, start: DateTime<Tz>) -> Self {
         let interval = create_interval(duration);
         Self::from_inner_as_temporal(unsafe {
@@ -369,9 +370,7 @@ pub trait Temporal: Collection + Hash {
     }
 
     /// Converts `self` into a `TInstant`.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_to_tinstant`
+    #[doc(alias = "temporal_to_instant")]
     fn to_instant(&self) -> Self::TI {
         TInstant::from_inner(unsafe { meos_sys::temporal_to_tinstant(self.inner()) })
     }
@@ -380,9 +379,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Arguments
     /// * `interpolation` - The interpolation type for the sequence.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_to_sequence`
+    #[doc(alias = "temporal_to_tsequence")]
     fn to_sequence(&self, interpolation: TInterpolation) -> Self::TS {
         let c_str = CString::new(interpolation.to_string()).unwrap();
         TSequence::from_inner(unsafe {
@@ -394,9 +391,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Arguments
     /// * `interpolation` - The interpolation type for the sequence set.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_to_tsequenceset`
+    #[doc(alias = "temporal_to_tsequenceset")]
     fn to_sequence_set(&self, interpolation: TInterpolation) -> Self::TSS {
         let c_str = CString::new(interpolation.to_string()).unwrap();
         TSequenceSet::from_inner(unsafe {
@@ -412,9 +407,7 @@ pub trait Temporal: Collection + Hash {
     /// * `instant` - Instant to append.
     /// * `max_dist` - Maximum distance for defining a gap.
     /// * `max_time` - Maximum time for defining a gap.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_append_tinstant`
+    #[doc(alias = "temporal_append_tinstant")]
     fn append_instant(
         self,
         instant: Self::TI,
@@ -442,9 +435,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Arguments
     /// * `sequence` - Sequence to append.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_append_tsequence`
+    #[doc(alias = "temporal_append_tsequence")]
     fn append_sequence(&self, sequence: Self::TS) -> Self::Enum {
         factory::<Self::Enum>(unsafe {
             meos_sys::temporal_append_tsequence(
@@ -459,9 +450,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Arguments
     /// * `other` - Another temporal object
-    ///
-    /// MEOS Functions:
-    ///     `temporal_merge`
+    #[doc(alias = "temporal_merge")]
     fn merge_other(&self, other: Self::Enum) -> Self::Enum {
         factory::<Self::Enum>(unsafe { meos_sys::temporal_merge(self.inner(), other.inner()) })
     }
@@ -471,9 +460,7 @@ pub trait Temporal: Collection + Hash {
     /// ## Arguments
     /// * `other` - Temporal object to insert.
     /// * `connect` - Whether to connect inserted elements with existing ones.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_insert`
+    #[doc(alias = "temporal_insert")]
     fn insert(&self, other: Self::Enum, connect: bool) -> Self::Enum {
         factory::<Self::Enum>(unsafe {
             meos_sys::temporal_insert(self.inner(), other.inner(), connect)
@@ -485,9 +472,7 @@ pub trait Temporal: Collection + Hash {
     /// ## Arguments
     /// * `other` - Temporal object to update with.
     /// * `connect` - Whether to connect updated elements with existing ones.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_update`
+    #[doc(alias = "temporal_update")]
     fn update(&self, other: Self::Enum, connect: bool) -> Self::Enum {
         factory::<Self::Enum>(unsafe {
             meos_sys::temporal_update(self.inner(), other.inner(), connect)
@@ -499,9 +484,7 @@ pub trait Temporal: Collection + Hash {
     /// ## Arguments
     /// * `other` - Time object specifying the elements to delete.
     /// * `connect` - Whether to connect the potential gaps generated by the deletions.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_delete`
+    #[doc(alias = "temporal_delete_timestamptz")]
     fn delete_at_timestamp<Tz: TimeZone>(&self, other: DateTime<Tz>, connect: bool) -> Self::Enum {
         factory::<Self::Enum>(unsafe {
             meos_sys::temporal_delete_timestamptz(self.inner(), to_meos_timestamp(&other), connect)
@@ -513,6 +496,7 @@ pub trait Temporal: Collection + Hash {
     /// ## Arguments
     /// * `time_span` - Time span object specifying the elements to delete.
     /// * `connect` - Whether to connect the potential gaps generated by the deletions.
+    #[doc(alias = "temporal_delete_tstzspan")]
     fn delete_at_tstz_span(&self, time_span: TsTzSpan, connect: bool) -> Self::Enum {
         factory::<Self::Enum>(unsafe {
             meos_sys::temporal_delete_tstzspan(self.inner(), time_span.inner(), connect)
@@ -524,6 +508,7 @@ pub trait Temporal: Collection + Hash {
     /// ## Arguments
     /// * `time_span_set` - Time span set object specifying the elements to delete.
     /// * `connect` - Whether to connect the potential gaps generated by the deletions.
+    #[doc(alias = "temporal_delete_tstzspanset")]
     fn delete_at_tstz_span_set(&self, time_span_set: TsTzSpanSet, connect: bool) -> Self::Enum {
         factory::<Self::Enum>(unsafe {
             meos_sys::temporal_delete_tstzspanset(self.inner(), time_span_set.inner(), connect)
@@ -536,9 +521,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Arguments
     /// * `other` - A timestamp to restrict the values to.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_at_temporal_at_timestamptz`
+    #[doc(alias = "temporal_at_timestamptz")]
     fn at_timestamp<Tz: TimeZone>(&self, other: DateTime<Tz>) -> Self::TI {
         <Self::TI as Temporal>::from_inner_as_temporal(unsafe {
             meos_sys::temporal_at_timestamptz(self.inner(), to_meos_timestamp(&other))
@@ -549,9 +532,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Arguments
     /// * `time_span` - A time span to restrict the values to.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_at_tstzspan`
+    #[doc(alias = "temporal_at_tstzspan")]
     fn at_tstz_span(&self, time_span: TsTzSpan) -> Self {
         Self::from_inner_as_temporal(unsafe {
             meos_sys::temporal_at_tstzspan(self.inner(), time_span.inner())
@@ -562,9 +543,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Arguments
     /// * `time_span_set` - A time span set to restrict the values to.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_at_tstzspanset`
+    #[doc(alias = "temporal_at_tstzspanset")]
     fn at_tstz_span_set(&self, time_span_set: TsTzSpanSet) -> Self {
         Self::from_inner_as_temporal(unsafe {
             meos_sys::temporal_at_tstzspanset(self.inner(), time_span_set.inner())
@@ -572,24 +551,16 @@ pub trait Temporal: Collection + Hash {
     }
 
     /// Returns a new temporal object containing the times `self` is at `value`.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_at_value`
     fn at_value(&self, value: &Self::Type) -> Option<Self::Enum>;
 
     /// Returns a new temporal object containing the times `self` is in any of the values of `values`.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_at_values`
     fn at_values(&self, values: &[Self::Type]) -> Option<Self::Enum>;
 
     /// Returns a new temporal object with values at `timestamp` removed.
     ///
     /// ## Arguments
     /// * `timestamp` - A timestamp specifying the values to remove.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_minus_*`
+    #[doc(alias = "temporal_minus_timestampz")]
     fn minus_timestamp<Tz: TimeZone>(&self, timestamp: DateTime<Tz>) -> Self::Enum {
         factory::<Self::Enum>(unsafe {
             meos_sys::temporal_minus_timestamptz(self.inner(), to_meos_timestamp(&timestamp))
@@ -600,9 +571,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Arguments
     /// * `timestamps` - A timestamp specifying the values to remove.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_minus_*`
+    #[doc(alias = "temporal_minus_tstzset")]
     fn minus_timestamp_set<Tz: TimeZone>(&self, timestamps: &[DateTime<Tz>]) -> Self::Enum {
         let timestamps: Vec<_> = timestamps.iter().map(to_meos_timestamp).collect();
         let set = unsafe { meos_sys::tstzset_make(timestamps.as_ptr(), timestamps.len() as i32) };
@@ -613,6 +582,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Arguments
     /// * `time_span` - A time span specifying the values to remove.
+    #[doc(alias = "temporal_minus_tstzspan")]
     fn minus_tstz_span(&self, time_span: TsTzSpan) -> Self::Enum {
         factory::<Self::Enum>(unsafe {
             meos_sys::temporal_minus_tstzspan(self.inner(), time_span.inner())
@@ -623,6 +593,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Arguments
     /// * `time_span_set` - A time span set specifying the values to remove.
+    #[doc(alias = "temporal_minus_tstzspanset")]
     fn minus_tstz_span_set(&self, time_span_set: TsTzSpanSet) -> Self::Enum {
         factory::<Self::Enum>(unsafe {
             meos_sys::temporal_minus_tstzspanset(self.inner(), time_span_set.inner())
@@ -630,15 +601,9 @@ pub trait Temporal: Collection + Hash {
     }
 
     /// Returns a new temporal object containing the times `self` is not at `value`.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_minus_value`
     fn minus_value(&self, value: Self::Type) -> Self::Enum;
 
     /// Returns a new temporal object containing the times `self` is not at `values`.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_minus_values`
     fn minus_values(&self, values: &[Self::Type]) -> Self::Enum;
 
     // ------------------------- Topological Operations ------------------------
@@ -650,6 +615,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// See also:
     ///     `Collection.is_adjacent`
+    #[doc(alias = "adjacent_temporal_temporal")]
     fn is_adjacent(&self, other: Self::Enum) -> bool {
         unsafe { meos_sys::adjacent_temporal_temporal(self.inner(), other.inner()) }
     }
@@ -672,6 +638,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// See also:
     ///     `Collection.is_contained_in`
+    #[doc(alias = "contained_temporal_temporal")]
     fn is_contained_in(&self, other: Self::Enum) -> bool {
         unsafe { meos_sys::contained_temporal_temporal(self.inner(), other.inner()) }
     }
@@ -691,6 +658,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Arguments
     /// * `other` - A time or temporal object to compare.
+    #[doc(alias = "contains_temporal_temporal")]
     fn contains(&self, other: Self::Enum) -> bool {
         unsafe { meos_sys::contains_temporal_temporal(self.inner(), other.inner()) }
     }
@@ -710,6 +678,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// See also:
     ///     `Collection.overlaps`
+    #[doc(alias = "overlaps_temporal_temporal")]
     fn overlaps(&self, other: Self) -> bool {
         unsafe { meos_sys::overlaps_temporal_temporal(self.inner(), other.inner()) }
     }
@@ -736,6 +705,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// See also:
     ///     `TsTzSpan.is_left`
+    #[doc(alias = "before_temporal_temporal")]
     fn is_before(&self, other: Self::Enum) -> bool {
         unsafe { meos_sys::before_temporal_temporal(self.inner(), other.inner()) }
     }
@@ -750,6 +720,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// See also:
     ///     `TsTzSpan.is_over_or_left`
+    #[doc(alias = "overbefore_temporal_temporal")]
     fn is_over_or_before(&self, other: Self::Enum) -> bool {
         unsafe { meos_sys::overbefore_temporal_temporal(self.inner(), other.inner()) }
     }
@@ -764,6 +735,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// See also:
     ///     `TsTzSpan.is_right`
+    #[doc(alias = "after_temporal_temporal")]
     fn is_after(&self, other: Self::Enum) -> bool {
         unsafe { meos_sys::after_temporal_temporal(self.inner(), other.inner()) }
     }
@@ -778,6 +750,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// See also:
     ///     `TsTzSpan.is_over_or_right`
+    #[doc(alias = "overafter_temporal_temporal")]
     fn is_over_or_after(&self, other: Self::Enum) -> bool {
         unsafe { meos_sys::overafter_temporal_temporal(self.inner(), other.inner()) }
     }
@@ -790,9 +763,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Returns
     /// A float with the Frechet distance.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_frechet_distance`
+    #[doc(alias = "temporal_frechet_distance")]
     fn frechet_distance(&self, other: Self) -> f64 {
         unsafe { meos_sys::temporal_frechet_distance(self.inner(), other.inner()) }
     }
@@ -804,9 +775,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Returns
     /// A float with the Dynamic Time Warp distance.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_dyntimewarp_distance`
+    #[doc(alias = "temporal_dyntimewarp_distance")]
     fn dyntimewarp_distance(&self, other: Self) -> f64 {
         unsafe { meos_sys::temporal_dyntimewarp_distance(self.inner(), other.inner()) }
     }
@@ -818,9 +787,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Returns
     /// A float with the Hausdorff distance.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_hausdorff_distance`
+    #[doc(alias = "temporal_hausdorff_distance")]
     fn hausdorff_distance(&self, other: Self) -> f64 {
         unsafe { meos_sys::temporal_hausdorff_distance(self.inner(), other.inner()) }
     }
@@ -834,9 +801,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Returns
     /// A list of temporal objects representing the split tiles.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_time_split`
+    #[doc(alias = "temporal_time_split")]
     fn time_split<Tz: TimeZone>(&self, duration: TimeDelta, start: DateTime<Tz>) -> Vec<Self> {
         let duration = create_interval(duration);
         let start = to_meos_timestamp(&start);
@@ -865,9 +830,6 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Returns
     /// A list of temporal objects representing the split parts.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_time_split`
     fn time_split_n(&self, n: usize) -> Vec<Self> {
         let start = self.start_timestamp();
         let duration = (self.end_timestamp() - start) / n as i32;
@@ -882,9 +844,7 @@ pub trait Temporal: Collection + Hash {
     ///
     /// ## Returns
     /// A sequence set of stops.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_stops`
+    #[doc(alias = "temporal_stops")]
     fn stops(&self, max_distance: f64, min_duration: TimeDelta) -> Self::TSS {
         let interval = create_interval(min_duration);
         unsafe {
@@ -905,6 +865,7 @@ pub trait Temporal: Collection + Hash {
     /// ## Returns
     ///
     /// `true` if the values of `self` are always equal to `other`, `false` otherwise.
+    #[doc(alias = "always_eq_temporal_temporal")]
     fn always_equal(&self, other: &Self) -> Option<bool> {
         let result = unsafe { meos_sys::always_eq_temporal_temporal(self.inner(), other.inner()) };
         if result != -1 {
@@ -923,6 +884,7 @@ pub trait Temporal: Collection + Hash {
     /// ## Returns
     ///
     /// `true` if the values of `self` are always not equal to `other`, `false` otherwise.
+    #[doc(alias = "always_ne_temporal_temporal")]
     fn always_not_equal(&self, other: &Self) -> Option<bool> {
         let result = unsafe { meos_sys::always_ne_temporal_temporal(self.inner(), other.inner()) };
         if result != -1 {
@@ -941,6 +903,7 @@ pub trait Temporal: Collection + Hash {
     /// ## Returns
     ///
     /// `true` if the values of `self` are ever equal to `other`, `false` otherwise.
+    #[doc(alias = "ever_eq_temporal_temporal")]
     fn ever_equal(&self, other: &Self) -> Option<bool> {
         let result = unsafe { meos_sys::ever_eq_temporal_temporal(self.inner(), other.inner()) };
         if result != -1 {
@@ -959,6 +922,7 @@ pub trait Temporal: Collection + Hash {
     /// ## Returns
     ///
     /// `true` if the values of `self` are ever not equal to `other`, `false` otherwise.
+    #[doc(alias = "ever_ne_temporal_temporal")]
     fn ever_not_equal(&self, other: &Self) -> Option<bool> {
         let result = unsafe { meos_sys::ever_ne_temporal_temporal(self.inner(), other.inner()) };
         if result != -1 {
@@ -1079,32 +1043,20 @@ pub trait OrderedTemporal: Temporal {
     fn max_value(&self) -> Self::Type;
 
     /// Returns a new temporal object containing the times `self` is at its minimum value.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_at_min`
     fn at_min(&self) -> Self {
         Self::from_inner_as_temporal(unsafe { meos_sys::temporal_at_min(self.inner()) })
     }
 
     /// Returns a new temporal object containing the times `self` is at its maximum value.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_at_max`
     fn at_max(&self) -> Self {
         Self::from_inner_as_temporal(unsafe { meos_sys::temporal_at_max(self.inner()) })
     }
     /// Returns a new temporal object containing the times `self` is not at its minimum value.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_minus_min`
     fn minus_min(&self) -> Self {
         Self::from_inner_as_temporal(unsafe { meos_sys::temporal_minus_min(self.inner()) })
     }
 
     /// Returns a new temporal object containing the times `self` is not at its maximum value.
-    ///
-    /// MEOS Functions:
-    ///     `temporal_minus_max`
     fn minus_max(&self) -> Self {
         Self::from_inner_as_temporal(unsafe { meos_sys::temporal_minus_max(self.inner()) })
     }
@@ -1222,6 +1174,7 @@ pub trait OrderedTemporal: Temporal {
     /// ## Returns
     ///
     /// `true` if the values of `self` are always less than `other`, `false` otherwise.
+    #[doc(alias = "always_lt_temporal_temporal")]
     fn always_less(&self, other: &Self::Enum) -> Option<bool> {
         let result = unsafe { meos_sys::always_lt_temporal_temporal(self.inner(), other.inner()) };
         if result != -1 {
@@ -1240,6 +1193,7 @@ pub trait OrderedTemporal: Temporal {
     /// ## Returns
     ///
     /// `true` if the values of `self` are always less than or equal to `other`, `false` otherwise.
+    #[doc(alias = "always_le_temporal_temporal")]
     fn always_less_or_equal(&self, other: &Self::Enum) -> Option<bool> {
         let result = unsafe { meos_sys::always_le_temporal_temporal(self.inner(), other.inner()) };
         if result != -1 {
@@ -1258,6 +1212,7 @@ pub trait OrderedTemporal: Temporal {
     /// ## Returns
     ///
     /// `true` if the values of `self` are always greater than or equal to `other`, `false` otherwise.
+    #[doc(alias = "always_ge_temporal_temporal")]
     fn always_greater_or_equal(&self, other: &Self::Enum) -> Option<bool> {
         let result = unsafe { meos_sys::always_ge_temporal_temporal(self.inner(), other.inner()) };
         if result != -1 {
@@ -1276,6 +1231,7 @@ pub trait OrderedTemporal: Temporal {
     /// ## Returns
     ///
     /// `true` if the values of `self` are always greater than `other`, `false` otherwise.
+    #[doc(alias = "always_gt_temporal_temporal")]
     fn always_greater(&self, other: &Self::Enum) -> Option<bool> {
         let result = unsafe { meos_sys::always_gt_temporal_temporal(self.inner(), other.inner()) };
         if result != -1 {
@@ -1298,6 +1254,7 @@ pub trait OrderedTemporal: Temporal {
     /// ## Returns
     ///
     /// `true` if the values of `self` are ever less than `other`, `false` otherwise.
+    #[doc(alias = "ever_lt_temporal_temporal")]
     fn ever_less(&self, other: &Self::Enum) -> Option<bool> {
         let result = unsafe { meos_sys::ever_lt_temporal_temporal(self.inner(), other.inner()) };
         if result != -1 {
@@ -1315,6 +1272,7 @@ pub trait OrderedTemporal: Temporal {
     /// ## Returns
     ///
     /// `true` if the values of `self` are ever less than or equal to `other`, `false` otherwise.
+    #[doc(alias = "ever_le_temporal_temporal")]
     fn ever_less_or_equal(&self, other: &Self::Enum) -> Option<bool> {
         let result = unsafe { meos_sys::ever_le_temporal_temporal(self.inner(), other.inner()) };
         if result != -1 {
@@ -1333,6 +1291,7 @@ pub trait OrderedTemporal: Temporal {
     /// ## Returns
     ///
     /// `true` if the values of `self` are ever greater than or equal to `other`, `false` otherwise.
+    #[doc(alias = "ever_ge_temporal_temporal")]
     fn ever_greater_or_equal(&self, other: &Self::Enum) -> Option<bool> {
         let result = unsafe { meos_sys::ever_ge_temporal_temporal(self.inner(), other.inner()) };
         if result != -1 {
@@ -1351,6 +1310,7 @@ pub trait OrderedTemporal: Temporal {
     /// ## Returns
     ///
     /// `true` if the values of `self` are ever greater than `other`, `false` otherwise.
+    #[doc(alias = "ever_gt_temporal_temporal")]
     fn ever_greater(&self, other: &Self::Enum) -> Option<bool> {
         let result = unsafe { meos_sys::ever_gt_temporal_temporal(self.inner(), other.inner()) };
         if result != -1 {
@@ -1454,17 +1414,16 @@ pub trait SimplifiableTemporal: Temporal {
     /// Simplifies a temporal value ensuring that consecutive values are at least
     /// a certain distance apart.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `distance` - A `f64` representing the minimum distance between two points.
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// A simplified instance of the implementing type with the same subtype as the input.
     ///
-    /// # MEOS Functions
-    ///
-    /// This method wraps the `temporal_simplify_min_dist` function from MEOS.
+    /// ## MEOS Functions
+    #[doc(alias = "temporal_simplify_min_dist")]
     fn simplify_min_distance(&self, distance: f64) -> Self::Enum {
         factory::<Self::Enum>(unsafe {
             meos_sys::temporal_simplify_min_dist(self.inner(), distance)
@@ -1474,17 +1433,14 @@ pub trait SimplifiableTemporal: Temporal {
     /// Simplifies a temporal value ensuring that consecutive values are at least
     /// a certain time apart.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `distance` - A `Duration` indicating the minimum time between two points.
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// A simplified instance of the implementing type with the same subtype as the input.
-    ///
-    /// # MEOS Functions
-    ///
-    /// This method wraps the `temporal_simplify_min_tdelta` function from MEOS.
+    #[doc(alias = "temporal_simplify_min_tdelta")]
     fn simplify_min_tdelta(&self, distance: TimeDelta) -> Self::Enum {
         let interval = create_interval(distance);
         factory::<Self::Enum>(unsafe {
@@ -1494,19 +1450,16 @@ pub trait SimplifiableTemporal: Temporal {
 
     /// Simplifies a temporal value using the Douglas-Peucker line simplification algorithm.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `distance` - A `f64` representing the minimum distance between two points.
     /// * `synchronized` - A `bool` indicating if the Synchronized Distance should be used.
     ///   If `false`, the spatial-only distance will be used.
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// A simplified instance of the implementing type with the same subtype as the input.
-    ///
-    /// # MEOS Functions
-    ///
-    /// This method wraps the `temporal_simplify_dp` function from MEOS.
+    #[doc(alias = "temporal_simplify_dp")]
     fn simplify_douglas_peucker(&self, distance: f64, synchronized: bool) -> Self::Enum {
         factory::<Self::Enum>(unsafe {
             meos_sys::temporal_simplify_dp(self.inner(), distance, synchronized)
@@ -1515,19 +1468,16 @@ pub trait SimplifiableTemporal: Temporal {
 
     /// Simplifies a temporal value using a single-pass Douglas-Peucker line simplification algorithm.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `distance` - A `f64` representing the minimum distance between two points.
     /// * `synchronized` - A `bool` indicating if the Synchronized Distance should be used.
     ///   If `false`, the spatial-only distance will be used.
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// A simplified instance of the implementing type with the same subtype as the input.
-    ///
-    /// # MEOS Functions
-    ///
-    /// This method wraps the `temporal_simplify_max_dist` function from MEOS.
+    #[doc(alias = "temporal_simplify_max_dist")]
     fn simplify_max_distance(&self, distance: f64, synchronized: bool) -> Self::Enum {
         factory::<Self::Enum>(unsafe {
             meos_sys::temporal_simplify_max_dist(self.inner(), distance, synchronized)

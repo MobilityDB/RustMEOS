@@ -35,7 +35,7 @@ fn main() {
     // Convert results to MF-JSON
 
     let instant_mfjson =
-        TGeomPoint::Instant(inst).as_mfjson(true, meos::temporal::JSONCVariant::Pretty, 6, "4326");
+        TGeomPoint::Instant(inst).as_mfjson(true, meos::JSONCVariant::Pretty, 6, "4326");
     println!(
         "\n\
             --------------------\n\
@@ -48,12 +48,8 @@ fn main() {
         instant_wkt, instant_mfjson
     );
 
-    let seq_disc_mfjson = TGeomPoint::Sequence(seq_disc).as_mfjson(
-        true,
-        meos::temporal::JSONCVariant::Pretty,
-        6,
-        "4326",
-    );
+    let seq_disc_mfjson =
+        TGeomPoint::Sequence(seq_disc).as_mfjson(true, meos::JSONCVariant::Pretty, 6, "4326");
     println!(
         "\n\
             -------------------------------------------------\n\
@@ -66,12 +62,8 @@ fn main() {
         sequence_discrete_wkt, seq_disc_mfjson
     );
 
-    let seq_linear_mfjson = TGeomPoint::Sequence(seq_linear).as_mfjson(
-        true,
-        meos::temporal::JSONCVariant::Pretty,
-        6,
-        "4326",
-    );
+    let seq_linear_mfjson =
+        TGeomPoint::Sequence(seq_linear).as_mfjson(true, meos::JSONCVariant::Pretty, 6, "4326");
     println!(
         "\n\
             -----------------------------------------------\n\
@@ -84,12 +76,8 @@ fn main() {
         sequence_linear_wkt, seq_linear_mfjson
     );
 
-    let seq_step_mfjson = TGeomPoint::Sequence(seq_step).as_mfjson(
-        true,
-        meos::temporal::JSONCVariant::Pretty,
-        6,
-        "4326",
-    );
+    let seq_step_mfjson =
+        TGeomPoint::Sequence(seq_step).as_mfjson(true, meos::JSONCVariant::Pretty, 6, "4326");
     println!(
         "\n\
             --------------------------------------------\n\
@@ -102,12 +90,8 @@ fn main() {
         sequence_step_wkt, seq_step_mfjson
     );
 
-    let ss_linear_mfjson = TGeomPoint::SequenceSet(ss_linear).as_mfjson(
-        true,
-        meos::temporal::JSONCVariant::Pretty,
-        6,
-        "4326",
-    );
+    let ss_linear_mfjson =
+        TGeomPoint::SequenceSet(ss_linear).as_mfjson(true, meos::JSONCVariant::Pretty, 6, "4326");
     println!(
         "\n\
             ---------------------------------------------------\n\
@@ -120,12 +104,8 @@ fn main() {
         sequence_set_linear_wkt, ss_linear_mfjson
     );
 
-    let ss_step_mfjson = TGeomPoint::SequenceSet(ss_step).as_mfjson(
-        true,
-        meos::temporal::JSONCVariant::Pretty,
-        6,
-        "4326",
-    );
+    let ss_step_mfjson =
+        TGeomPoint::SequenceSet(ss_step).as_mfjson(true, meos::JSONCVariant::Pretty, 6, "4326");
     println!(
         "\n\
             ------------------------------------------------\n\

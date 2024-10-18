@@ -9,15 +9,11 @@ use std::{
 use chrono::{DateTime, TimeZone};
 
 use crate::{
-    boxes::tbox::TBox,
+    boxes::TBox,
     collections::{
-        base::{
-            collection::{impl_collection, Collection},
-            span::Span,
-            span_set::SpanSet,
-        },
-        datetime::{tstz_span::TsTzSpan, tstz_span_set::TsTzSpanSet},
-        number::int_span_set::IntSpanSet,
+        base::*,
+        datetime::{TsTzSpan, TsTzSpanSet},
+        number::IntSpanSet,
     },
     errors::ParseError,
     factory, impl_from_str,

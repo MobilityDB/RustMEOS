@@ -5,14 +5,10 @@ use chrono::DateTime;
 use chrono::Datelike;
 use chrono::TimeDelta;
 use chrono::Utc;
-use collection::{impl_collection, Collection};
-use span::Span;
-use span_set::impl_iterator;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::{BitAnd, BitOr};
 
-use crate::collections::base::span_set::SpanSet;
 use crate::collections::base::*;
 use crate::errors::ParseError;
 use crate::utils::to_meos_timestamp;
@@ -39,7 +35,7 @@ impl Collection for TsTzSpanSet {
     }
 }
 
-impl span_set::SpanSet for TsTzSpanSet {
+impl SpanSet for TsTzSpanSet {
     type SpanType = TsTzSpan;
     type SubsetType = TimeDelta;
     fn inner(&self) -> *const meos_sys::SpanSet {

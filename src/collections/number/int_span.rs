@@ -7,9 +7,6 @@ use std::{
     ptr,
 };
 
-use collection::{impl_collection, Collection};
-use span::Span;
-
 use crate::{collections::base::*, errors::ParseError};
 
 use super::number_span::NumberSpan;
@@ -33,7 +30,7 @@ impl Collection for IntSpan {
     }
 }
 
-impl span::Span for IntSpan {
+impl Span for IntSpan {
     type SubsetType = Self::Type;
     fn inner(&self) -> *const meos_sys::Span {
         self._inner.as_ptr()

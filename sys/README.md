@@ -37,7 +37,3 @@ DYLD_FALLBACK_LIBRARY_PATH=<path to MEOS>/lib MEOS_LIB_DIR=<path to MEOS>/lib ME
 
 ## Binding generation
 By default, meos-sys will use the pregenerated bindings for the 1.2 version, the 1.1 ones is also available. Alternatively, you can generate your own bindings from your `libmeos` installation by specifying the `bindgen` feature.
-
-## Bindings
-
-Pre-built bindings are available for 1.2 and 1.1

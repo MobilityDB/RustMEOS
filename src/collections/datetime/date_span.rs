@@ -8,8 +8,6 @@ use std::{
 };
 
 use chrono::{Datelike, NaiveDate, TimeDelta};
-use collection::{impl_collection, Collection};
-use span::Span;
 
 use crate::{
     collections::{base::*, datetime::DAYS_UNTIL_2000},
@@ -37,7 +35,7 @@ impl Collection for DateSpan {
     }
 }
 
-impl span::Span for DateSpan {
+impl Span for DateSpan {
     type SubsetType = TimeDelta;
     fn inner(&self) -> *const meos_sys::Span {
         self._inner.as_ptr()

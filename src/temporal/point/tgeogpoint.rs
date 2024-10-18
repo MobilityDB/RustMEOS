@@ -11,8 +11,8 @@ use std::{
 
 use crate::temporal::tsequence_set::TSequenceSet;
 use crate::{
-    boxes::stbox::STBox,
-    collections::base::collection::{impl_collection, Collection},
+    boxes::STBox,
+    collections::base::{impl_collection, Collection},
     errors::ParseError,
     factory,
     temporal::{
@@ -57,6 +57,12 @@ impl TInstant for TGeogPointInstant {
                 to_meos_timestamp(&timestamp),
             )
         })
+    }
+}
+
+impl<Tz: TimeZone> From<(Geometry, DateTime<Tz>)> for TGeogPointInstant {
+    fn from((value, timestamp): (Geometry, DateTime<Tz>)) -> Self {
+        Self::from_value_and_timestamp(value, timestamp)
     }
 }
 
@@ -171,6 +177,14 @@ impl<'a> FromIterator<&'a TGeogPointInstant> for TGeogPointSequence {
     fn from_iter<T: IntoIterator<Item = &'a TGeogPointInstant>>(iter: T) -> Self {
         let vec: Vec<&TGeogPointInstant> = iter.into_iter().collect();
         Self::new(&vec, TInterpolation::Linear)
+    }
+}
+
+impl<Tz: TimeZone> FromIterator<(Geometry, DateTime<Tz>)> for TGeogPointSequence {
+    fn from_iter<T: IntoIterator<Item = (Geometry, DateTime<Tz>)>>(iter: T) -> Self {
+        iter.into_iter()
+            .map(Into::<TGeogPointInstant>::into)
+            .collect()
     }
 }
 

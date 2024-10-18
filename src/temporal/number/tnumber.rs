@@ -1,6 +1,6 @@
 use crate::{
-    boxes::tbox::TBox,
-    collections::number::{number_span::NumberSpan, number_span_set::NumberSpanSet},
+    boxes::TBox,
+    collections::number::{NumberSpan, NumberSpanSet},
     temporal::temporal::Temporal,
 };
 
