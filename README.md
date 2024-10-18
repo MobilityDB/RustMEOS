@@ -9,7 +9,7 @@ It supports MEOS version >= 1.2
 The primary goal of this library is to facilitate the creation and manipulation of temporal types, such as time-stamped geographic points, sequences, and numeric values. These temporal data structures can be used for various use cases including:
 
 - **Tracking Movement:** Efficiently manage and analyze the movement of objects (e.g., vehicles, ships, animals) over time.
-- **Spatiotemporal Queries:**:
+- **Spatiotemporal Queries**:
     - **Distance Calculations:** Compute the shortest distance between trajectories, which can be useful for determining when two moving objects were closest to each other.
     - **Time-Weighted Averages:** Analyze time-dependent data, like averaging speeds or temperatures over a period.
     - **Intersection Queries:** Check if a trajectory passes through specific points or regions, enabling location-based analysis of movement.
@@ -22,7 +22,7 @@ Add the following dependency to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-meos = "0.1"
+meos = "0.2"
 ```
 Ensure that the `meos` C library is installed on your system. Follow the installation instructions on the [MEOS website](https://github.com/MobilityDB/MobilityDB/?tab=readme-ov-file#requirements).
 
