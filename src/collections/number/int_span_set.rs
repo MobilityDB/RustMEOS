@@ -58,9 +58,9 @@ impl SpanSet for IntSpanSet {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::number::int_span_set::IntSpanSet;
+    /// # use meos::IntSpanSet;
     /// # use std::str::FromStr;
-    /// # use meos::collections::base::span_set::SpanSet;
+    /// # use meos::SpanSet;
     ///
     /// let span = IntSpanSet::from_str("{[17, 18), [19, 20)}").unwrap();
     /// let shifted_span = span.shift(5);
@@ -83,9 +83,9 @@ impl SpanSet for IntSpanSet {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::number::int_span_set::IntSpanSet;
+    /// # use meos::IntSpanSet;
     /// # use std::str::FromStr;
-    /// # use meos::collections::base::span_set::SpanSet;
+    /// # use meos::SpanSet;
     ///
     /// let span = IntSpanSet::from_str("{[17, 18), [19, 23)}").unwrap();
     /// let scaled_span = span.scale(5);
@@ -109,9 +109,9 @@ impl SpanSet for IntSpanSet {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::number::int_span_set::IntSpanSet;
+    /// # use meos::IntSpanSet;
     /// # use std::str::FromStr;
-    /// # use meos::collections::base::span_set::SpanSet;
+    /// # use meos::SpanSet;
     ///
     /// let span = IntSpanSet::from_str("{[17, 18), [19, 20)}").unwrap();
     /// let shifted_scaled_span = span.shift_scale(Some(5), Some(2));
@@ -139,8 +139,8 @@ impl SpanSet for IntSpanSet {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::number::int_span_set::IntSpanSet;
-    /// # use meos::collections::base::span_set::SpanSet;
+    /// # use meos::IntSpanSet;
+    /// # use meos::SpanSet;
     /// let span_set: IntSpanSet = [(2019..2023).into(), (2029..2030).into()].iter().collect();
     /// let distance = span_set.distance_to_value(&2032);
     /// assert_eq!(distance, 3);
@@ -159,9 +159,9 @@ impl SpanSet for IntSpanSet {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::number::int_span_set::IntSpanSet;
-    /// # use meos::collections::base::span_set::SpanSet;
-    /// # use meos::collections::base::span::Span;
+    /// # use meos::IntSpanSet;
+    /// # use meos::SpanSet;
+    /// # use meos::Span;
     ///
     /// let span_set1: IntSpanSet = [(2019..2023).into(), (2029..2030).into()].iter().collect();
     /// let span_set2: IntSpanSet = [(2049..2050).into(), (2059..2600).into()].iter().collect();
@@ -183,10 +183,10 @@ impl SpanSet for IntSpanSet {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::number::int_span_set::IntSpanSet;
-    /// # use meos::collections::base::span_set::SpanSet;
-    /// # use meos::collections::base::span::Span;
-    /// # use meos::collections::number::int_span::IntSpan;
+    /// # use meos::IntSpanSet;
+    /// # use meos::SpanSet;
+    /// # use meos::Span;
+    /// # use meos::IntSpan;
     ///
     /// let span_set: IntSpanSet = [(2019..2023).into(), (2029..2030).into()].iter().collect();
     /// let span: IntSpan = (2009..2010).into();
@@ -260,9 +260,9 @@ impl BitAnd<IntSpanSet> for IntSpanSet {
     /// ## Example
     ///
     /// ```
-    /// # use meos::collections::number::int_span_set::IntSpanSet;
+    /// # use meos::IntSpanSet;
     /// # use std::str::FromStr;
-    /// # use meos::collections::base::span_set::SpanSet;
+    /// # use meos::SpanSet;
     ///
     /// let span_set1 = IntSpanSet::from_str("{[17, 18), [19, 20)}").unwrap();
     /// let span_set2 = IntSpanSet::from_str("{[19, 23), [45, 67)}").unwrap();
@@ -291,9 +291,9 @@ impl BitOr for IntSpanSet {
     /// ## Example
     ///
     /// ```
-    /// # use meos::collections::number::int_span_set::IntSpanSet;
+    /// # use meos::IntSpanSet;
     /// # use std::str::FromStr;
-    /// # use meos::collections::base::span_set::SpanSet;
+    /// # use meos::SpanSet;
     ///
     /// let span_set1 = IntSpanSet::from_str("{[17, 18), [19, 20)}").unwrap();
     /// let span_set2 = IntSpanSet::from_str("{[19, 23), [45, 67)}").unwrap();

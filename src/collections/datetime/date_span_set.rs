@@ -62,10 +62,10 @@ impl SpanSet for DateSpanSet {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::datetime::date_span_set::DateSpanSet;
+    /// # use meos::DateSpanSet;
     /// # use meos::meos_initialize;
     /// # use std::str::FromStr;
-    /// # use meos::collections::base::span_set::SpanSet;
+    /// # use meos::SpanSet;
     /// use chrono::TimeDelta;
     /// # meos_initialize();
     /// let span_set = DateSpanSet::from_str("{[2019-09-08, 2019-09-10], [2019-09-16, 2019-09-20]}").unwrap();
@@ -89,10 +89,10 @@ impl SpanSet for DateSpanSet {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::datetime::date_span_set::DateSpanSet;
+    /// # use meos::DateSpanSet;
     /// # use meos::meos_initialize;
     /// # use std::str::FromStr;
-    /// # use meos::collections::base::span_set::SpanSet;
+    /// # use meos::SpanSet;
     /// use chrono::TimeDelta;
     /// # meos_initialize();
     /// let span_set = DateSpanSet::from_str("{[2019-09-08, 2019-09-10], [2019-09-13, 2019-09-15]}").unwrap();
@@ -117,10 +117,10 @@ impl SpanSet for DateSpanSet {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::datetime::date_span_set::DateSpanSet;
+    /// # use meos::DateSpanSet;
     /// # use meos::meos_initialize;
     /// # use std::str::FromStr;
-    /// # use meos::collections::base::span_set::SpanSet;
+    /// # use meos::SpanSet;
     /// use chrono::TimeDelta;
     /// # meos_initialize();
     /// let span_set = DateSpanSet::from_str("{[2019-09-08, 2019-09-10], [2019-09-11, 2019-09-12]}").unwrap();
@@ -157,8 +157,8 @@ impl SpanSet for DateSpanSet {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::datetime::date_span_set::DateSpanSet;
-    /// # use meos::collections::base::span_set::SpanSet;
+    /// # use meos::DateSpanSet;
+    /// # use meos::SpanSet;
     /// # use chrono::{TimeDelta, TimeZone, NaiveDate};
     /// # use meos::meos_initialize;
     /// use std::str::FromStr;
@@ -193,8 +193,8 @@ impl SpanSet for DateSpanSet {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::datetime::date_span_set::DateSpanSet;
-    /// # use meos::collections::base::span_set::SpanSet;
+    /// # use meos::DateSpanSet;
+    /// # use meos::SpanSet;
     /// # use chrono::{TimeDelta, TimeZone, Utc};
     /// # use meos::meos_initialize;
     /// use std::str::FromStr;
@@ -222,10 +222,10 @@ impl SpanSet for DateSpanSet {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::datetime::date_span_set::DateSpanSet;
-    /// # use meos::collections::base::span_set::SpanSet;
-    /// # use meos::collections::datetime::date_span::DateSpan;
-    /// # use meos::collections::base::span::Span;
+    /// # use meos::DateSpanSet;
+    /// # use meos::SpanSet;
+    /// # use meos::DateSpan;
+    /// # use meos::Span;
     /// # use chrono::{TimeDelta, TimeZone, Utc};
     /// # use meos::meos_initialize;
     /// use std::str::FromStr;
@@ -312,10 +312,10 @@ impl BitAnd<DateSpanSet> for DateSpanSet {
     /// ## Example
     ///
     /// ```
-    /// # use meos::collections::datetime::date_span_set::DateSpanSet;
+    /// # use meos::DateSpanSet;
     /// # use meos::meos_initialize;
     /// # use std::str::FromStr;
-    /// # use meos::collections::base::span_set::SpanSet;
+    /// # use meos::SpanSet;
     /// # meos_initialize();
     /// let span_set1 = DateSpanSet::from_str("{[2019-09-08, 2019-09-10], [2019-09-15, 2019-09-20]}").unwrap();
     /// let span_set2 = DateSpanSet::from_str("{[2019-09-15, 2019-09-30], [2019-11-11, 2019-11-12]}").unwrap();
@@ -344,10 +344,10 @@ impl BitOr for DateSpanSet {
     /// ## Example
     ///
     /// ```
-    /// # use meos::collections::datetime::date_span_set::DateSpanSet;
+    /// # use meos::DateSpanSet;
     /// # use meos::meos_initialize;
     /// # use std::str::FromStr;
-    /// # use meos::collections::base::span_set::SpanSet;
+    /// # use meos::SpanSet;
     /// # meos_initialize();
     /// let span_set1 = DateSpanSet::from_str("{[2019-09-08, 2019-09-10], [2019-09-15, 2019-09-20]}").unwrap();
     /// let span_set2 = DateSpanSet::from_str("{[2019-09-15, 2019-09-30], [2019-11-11, 2019-11-12]}").unwrap();

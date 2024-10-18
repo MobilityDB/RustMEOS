@@ -61,8 +61,8 @@ impl Span for DateSpan {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::datetime::date_span::DateSpan;
-    /// # use meos::collections::base::span::Span;
+    /// # use meos::DateSpan;
+    /// # use meos::Span;
     /// # use chrono::naive::NaiveDate;
     ///
     /// let from_ymd_opt = |y, m, d| NaiveDate::from_ymd_opt(y, m, d).unwrap();
@@ -86,8 +86,8 @@ impl Span for DateSpan {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::datetime::date_span::DateSpan;
-    /// # use meos::collections::base::span::Span;
+    /// # use meos::DateSpan;
+    /// # use meos::Span;
     /// # use chrono::naive::NaiveDate;
     ///
     /// let from_ymd_opt = |y, m, d| NaiveDate::from_ymd_opt(y, m, d).unwrap();
@@ -114,8 +114,8 @@ impl Span for DateSpan {
     ///
     /// # Example
     /// ```
-    /// # use meos::collections::datetime::date_span::DateSpan;
-    /// # use meos::collections::base::span::Span;
+    /// # use meos::DateSpan;
+    /// # use meos::Span;
     /// use chrono::naive::NaiveDate;
     /// use chrono::TimeDelta;
     ///
@@ -140,8 +140,8 @@ impl Span for DateSpan {
     ///
     /// # Example
     /// ```
-    /// # use meos::collections::datetime::date_span::DateSpan;
-    /// # use meos::collections::base::span::Span;
+    /// # use meos::DateSpan;
+    /// # use meos::Span;
     /// use chrono::naive::NaiveDate;
     /// use chrono::TimeDelta;
     ///
@@ -167,8 +167,8 @@ impl Span for DateSpan {
     ///
     /// # Example
     /// ```
-    /// # use meos::collections::datetime::date_span::DateSpan;
-    /// # use meos::collections::base::span::Span;
+    /// # use meos::DateSpan;
+    /// # use meos::Span;
     /// use chrono::naive::NaiveDate;
     /// use chrono::TimeDelta;
     ///
@@ -212,10 +212,10 @@ impl Span for DateSpan {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::datetime::date_span::DateSpan;
+    /// # use meos::DateSpan;
     /// # use meos::meos_initialize;
     /// use std::str::FromStr;
-    /// # use meos::collections::base::span::Span;
+    /// # use meos::Span;
     /// use chrono::TimeDelta;
     /// # meos_initialize();
     /// let span1 = DateSpan::from_str("[2019-09-08, 2019-09-10]").unwrap();
@@ -248,8 +248,8 @@ impl Span for DateSpan {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::datetime::date_span::DateSpan;
-    /// # use meos::collections::base::span::Span;
+    /// # use meos::DateSpan;
+    /// # use meos::Span;
     /// # use chrono::{TimeDelta, TimeZone, Utc};
     /// # use meos::meos_initialize;
     /// use std::str::FromStr;
@@ -304,8 +304,8 @@ impl std::str::FromStr for DateSpan {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::datetime::date_span::DateSpan;
-    /// # use meos::collections::base::span::Span;
+    /// # use meos::DateSpan;
+    /// # use meos::Span;
     /// # use std::str::FromStr;
     /// # use meos::meos_initialize;
     /// use chrono::NaiveDate;
@@ -335,8 +335,8 @@ impl cmp::PartialEq for DateSpan {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::datetime::date_span::DateSpan;
-    /// # use meos::collections::base::span::Span;
+    /// # use meos::DateSpan;
+    /// # use meos::Span;
     /// use chrono::naive::NaiveDate;
     ///
     /// let from_ymd_opt = |y, m, d| NaiveDate::from_ymd_opt(y, m, d).unwrap();
@@ -417,8 +417,8 @@ impl BitAnd for DateSpan {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::datetime::date_span::DateSpan;
-    /// # use meos::collections::base::span::Span;
+    /// # use meos::DateSpan;
+    /// # use meos::Span;
     /// # use std::str::FromStr;
     /// use chrono::naive::NaiveDate;
     ///

@@ -62,10 +62,10 @@ impl SpanSet for TsTzSpanSet {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::datetime::tstz_span_set::TsTzSpanSet;
+    /// # use meos::TsTzSpanSet;
     /// # use meos::meos_initialize;
     /// # use std::str::FromStr;
-    /// # use meos::collections::base::span_set::SpanSet;
+    /// # use meos::SpanSet;
     /// use chrono::TimeDelta;
     /// # meos_initialize();
     /// let span_set = TsTzSpanSet::from_str("{[2019-09-08 00:00:00+00, 2019-09-10 00:00:00+00], [2019-09-16 00:00:00+00, 2019-09-20 00:00:00+00]}").unwrap();
@@ -89,10 +89,10 @@ impl SpanSet for TsTzSpanSet {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::datetime::tstz_span_set::TsTzSpanSet;
+    /// # use meos::TsTzSpanSet;
     /// # use meos::meos_initialize;
     /// # use std::str::FromStr;
-    /// # use meos::collections::base::span_set::SpanSet;
+    /// # use meos::SpanSet;
     /// use chrono::TimeDelta;
     /// # meos_initialize();
     /// let span_set = TsTzSpanSet::from_str("{[2019-09-08 00:00:00+00, 2019-09-10 00:00:00+00], [2019-09-13 00:00:00+00, 2019-09-15 00:00:00+00]}").unwrap();
@@ -117,10 +117,10 @@ impl SpanSet for TsTzSpanSet {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::datetime::tstz_span_set::TsTzSpanSet;
+    /// # use meos::TsTzSpanSet;
     /// # use meos::meos_initialize;
     /// # use std::str::FromStr;
-    /// # use meos::collections::base::span_set::SpanSet;
+    /// # use meos::SpanSet;
     /// use chrono::TimeDelta;
     /// # meos_initialize();
     /// let span_set = TsTzSpanSet::from_str("{[2019-09-08 00:00:00+00, 2019-09-10 00:00:00+00], [2019-09-11 00:00:00+00, 2019-09-12 00:00:00+00]}").unwrap();
@@ -161,8 +161,8 @@ impl SpanSet for TsTzSpanSet {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::datetime::tstz_span_set::TsTzSpanSet;
-    /// # use meos::collections::base::span_set::SpanSet;
+    /// # use meos::TsTzSpanSet;
+    /// # use meos::SpanSet;
     /// # use chrono::{TimeDelta, TimeZone, Utc};
     /// # use meos::meos_initialize;
     /// use std::str::FromStr;
@@ -191,8 +191,8 @@ impl SpanSet for TsTzSpanSet {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::datetime::tstz_span_set::TsTzSpanSet;
-    /// # use crate::meos::collections::base::span_set::SpanSet;
+    /// # use meos::TsTzSpanSet;
+    /// # use crate::meos::SpanSet;
     /// # use chrono::{TimeDelta, TimeZone, Utc};
     /// # use meos::meos_initialize;
     /// use std::str::FromStr;
@@ -221,10 +221,10 @@ impl SpanSet for TsTzSpanSet {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::datetime::tstz_span_set::TsTzSpanSet;
-    /// # use meos::collections::base::span_set::SpanSet;
-    /// # use meos::collections::datetime::tstz_span::TsTzSpan;
-    /// # use meos::collections::base::span::Span;
+    /// # use meos::TsTzSpanSet;
+    /// # use meos::SpanSet;
+    /// # use meos::TsTzSpan;
+    /// # use meos::Span;
     /// # use chrono::{TimeDelta, TimeZone, Utc};
     /// # use meos::meos_initialize;
     /// use std::str::FromStr;
@@ -303,10 +303,10 @@ impl BitAnd<TsTzSpanSet> for TsTzSpanSet {
     /// ## Example
     ///
     /// ```
-    /// # use meos::collections::datetime::tstz_span_set::TsTzSpanSet;
+    /// # use meos::TsTzSpanSet;
     /// # use meos::meos_initialize;
     /// # use std::str::FromStr;
-    /// # use meos::collections::base::span_set::SpanSet;
+    /// # use meos::SpanSet;
     /// # meos_initialize();
     /// let span_set1 = TsTzSpanSet::from_str("{[2019-09-08 00:00:00+00, 2019-09-10 00:00:00+00], [2019-09-15 00:00:00+00, 2019-09-20 00:00:00+00]}").unwrap();
     /// let span_set2 = TsTzSpanSet::from_str("{[2019-09-15 00:00:00+00, 2019-09-30 00:00:00+00], [2019-11-11 00:00:00+00, 2019-11-12 00:00:00+00]}").unwrap();
@@ -335,10 +335,10 @@ impl BitOr for TsTzSpanSet {
     /// ## Example
     ///
     /// ```
-    /// # use meos::collections::datetime::tstz_span_set::TsTzSpanSet;
+    /// # use meos::TsTzSpanSet;
     /// # use meos::meos_initialize;
     /// # use std::str::FromStr;
-    /// # use meos::collections::base::span_set::SpanSet;
+    /// # use meos::SpanSet;
     /// # meos_initialize();
     /// let span_set1 = TsTzSpanSet::from_str("{[2019-09-08 00:00:00+00, 2019-09-10 00:00:00+00], [2019-09-15 00:00:00+00, 2019-09-20 00:00:00+00]}").unwrap();
     /// let span_set2 = TsTzSpanSet::from_str("{[2019-09-15 00:00:00+00, 2019-09-30 00:00:00+00], [2019-11-11 00:00:00+00, 2019-11-12 00:00:00+00]}").unwrap();

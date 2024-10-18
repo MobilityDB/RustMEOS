@@ -603,6 +603,7 @@ impl Temporal for TText {
 }
 
 #[cfg(test)]
+#[serial_test::serial]
 mod tests {
     use crate::{meos_initialize, meos_initialize_timezone};
 

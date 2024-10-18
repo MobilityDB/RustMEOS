@@ -56,8 +56,8 @@ impl MeosBox for TBox {
     ///
     /// ## Example
     /// ```
-    /// # use meos::boxes::tbox::TBox;
-    /// use meos::boxes::r#box::Box;
+    /// # use meos::TBox;
+    /// use meos::Box;
     /// use chrono::{Utc, TimeZone};
     /// let datetime = Utc.with_ymd_and_hms(2020, 5, 15, 12, 0, 0).unwrap();
     /// let tbox = TBox::from_time(datetime);
@@ -76,8 +76,8 @@ impl MeosBox for TBox {
     ///
     /// ## Example
     /// ```
-    /// # use meos::boxes::tbox::TBox;
-    /// use meos::boxes::r#box::Box;
+    /// # use meos::TBox;
+    /// use meos::Box;
     /// # use meos::meos_initialize;
     /// use chrono::{Utc, TimeZone, TimeDelta};
     /// # meos_initialize();
@@ -113,8 +113,8 @@ impl MeosBox for TBox {
     ///
     /// ## Example
     /// ```
-    /// # use meos::boxes::tbox::TBox;
-    /// use meos::boxes::r#box::Box;
+    /// # use meos::TBox;
+    /// use meos::Box;
     /// let tbox = TBox::from_int(5);
     /// assert!(tbox.has_x());
     /// ```
@@ -129,8 +129,8 @@ impl MeosBox for TBox {
     ///
     /// ## Example
     /// ```
-    /// # use meos::boxes::tbox::TBox;
-    /// use meos::boxes::r#box::Box;
+    /// # use meos::TBox;
+    /// use meos::Box;
     /// use chrono::{Utc, TimeZone};
     /// let datetime = Utc.with_ymd_and_hms(2020, 1, 1, 0, 0, 0).unwrap();
     /// let tbox = TBox::from_time(datetime);
@@ -147,8 +147,8 @@ impl MeosBox for TBox {
     ///
     /// ## Example
     /// ```
-    /// # use meos::boxes::tbox::TBox;
-    /// use meos::boxes::r#box::Box;
+    /// # use meos::TBox;
+    /// use meos::Box;
     /// let tbox = TBox::from_float(3.14);
     /// assert_eq!(tbox.xmin(), Some(3.14));
     /// ```
@@ -171,8 +171,8 @@ impl MeosBox for TBox {
     ///
     /// ## Example
     /// ```
-    /// # use meos::boxes::tbox::TBox;
-    /// use meos::boxes::r#box::Box;
+    /// # use meos::TBox;
+    /// use meos::Box;
     /// let tbox = TBox::from_float(3.14);
     /// assert_eq!(tbox.xmax(), Some(3.14));
     /// ```
@@ -195,8 +195,8 @@ impl MeosBox for TBox {
     ///
     /// ## Example
     /// ```
-    /// # use meos::boxes::tbox::TBox;
-    /// use meos::boxes::r#box::Box;
+    /// # use meos::TBox;
+    /// use meos::Box;
     /// use chrono::{Utc, TimeZone};
     /// let datetime = Utc.with_ymd_and_hms(2020, 1, 1, 0, 0, 0).unwrap();
     /// let tbox = TBox::from_time(datetime);
@@ -221,8 +221,8 @@ impl MeosBox for TBox {
     ///
     /// ## Example
     /// ```
-    /// # use meos::boxes::tbox::TBox;
-    /// use meos::boxes::r#box::Box;
+    /// # use meos::TBox;
+    /// use meos::Box;
     /// use chrono::{Utc, TimeZone};
     /// let datetime = Utc.with_ymd_and_hms(2020, 1, 1, 0, 0, 0).unwrap();
     /// let tbox = TBox::from_time(datetime);
@@ -246,8 +246,8 @@ impl MeosBox for TBox {
     ///
     /// ## Example
     /// ```
-    /// # use meos::boxes::tbox::TBox;
-    /// use meos::boxes::r#box::Box;
+    /// # use meos::TBox;
+    /// use meos::Box;
     /// let tbox = TBox::from_int(5);
     /// assert_eq!(tbox.is_tmin_inclusive(), None); // No temporal dimension
     /// ```
@@ -270,8 +270,8 @@ impl MeosBox for TBox {
     ///
     /// ## Example
     /// ```
-    /// # use meos::boxes::tbox::TBox;
-    /// use meos::boxes::r#box::Box;
+    /// # use meos::TBox;
+    /// use meos::Box;
     /// use chrono::{Utc, TimeZone};
     /// let datetime = Utc.with_ymd_and_hms(2020, 1, 1, 0, 0, 0).unwrap();
     /// let tbox = TBox::from_time(datetime);
@@ -299,8 +299,8 @@ impl MeosBox for TBox {
     ///
     /// ## Example
     /// ```
-    /// # use meos::boxes::tbox::TBox;
-    /// use meos::boxes::r#box::Box;
+    /// # use meos::TBox;
+    /// use meos::Box;
     /// use chrono::{Utc, TimeZone, TimeDelta};
     /// let datetime = Utc.with_ymd_and_hms(2020, 1, 1, 0, 0, 0).unwrap();
     /// let tbox = TBox::from_time(datetime);
@@ -329,8 +329,8 @@ impl MeosBox for TBox {
     ///
     /// ## Example
     /// ```
-    /// # use meos::boxes::tbox::TBox;
-    /// use meos::boxes::r#box::Box;
+    /// # use meos::TBox;
+    /// use meos::Box;
     /// let tbox = TBox::from_float(3.141592);
     /// let rounded_tbox = tbox.round(2);
     /// assert_eq!(rounded_tbox.xmin(), Some(3.14));
@@ -351,8 +351,8 @@ impl MeosBox for TBox {
     ///
     /// ## Example
     /// ```
-    /// # use meos::boxes::tbox::TBox;
-    /// use meos::boxes::r#box::Box;
+    /// # use meos::TBox;
+    /// use meos::Box;
     /// let tbox1 = TBox::from_float(1.0);
     /// let tbox2 = TBox::from_float(5.0);
     /// let distance = tbox1.nearest_approach_distance(&tbox2);
@@ -373,9 +373,9 @@ impl MeosBox for TBox {
     ///
     /// ## Example
     /// ```
-    /// # use meos::boxes::tbox::TBox;
-    /// use meos::boxes::r#box::Box;
-    /// # use meos::collections::datetime::tstz_span::TsTzSpan;
+    /// # use meos::TBox;
+    /// use meos::Box;
+    /// # use meos::TsTzSpan;
     /// use chrono::{Utc, TimeZone, TimeDelta};
     /// let datetime1 = Utc.with_ymd_and_hms(2020, 1, 1, 0, 0, 0).unwrap();
     /// let datetime2 = Utc.with_ymd_and_hms(2020, 2, 1, 0, 0, 0).unwrap();
@@ -448,8 +448,8 @@ impl TBox {
     ///
     /// ## Example
     /// ```
-    /// # use meos::boxes::tbox::TBox;
-    /// use meos::boxes::r#box::Box;
+    /// # use meos::TBox;
+    /// use meos::Box;
     /// let tbox = TBox::from_int(42);
     /// assert_eq!(tbox.xmin().unwrap(), 42.0);
     /// ```
@@ -468,8 +468,8 @@ impl TBox {
     ///
     /// ## Example
     /// ```
-    /// # use meos::boxes::tbox::TBox;
-    /// use meos::boxes::r#box::Box;
+    /// # use meos::TBox;
+    /// use meos::Box;
     /// let tbox = TBox::from_float(42.0);
     /// assert_eq!(tbox.xmin().unwrap(), 42.0);
     /// ```
@@ -488,10 +488,10 @@ impl TBox {
     ///
     /// ## Example
     /// ```
-    /// # use meos::boxes::tbox::TBox;
-    /// use meos::boxes::r#box::Box;
-    /// # use meos::collections::base::span::Span;
-    /// # use meos::collections::number::float_span::FloatSpan;
+    /// # use meos::TBox;
+    /// use meos::Box;
+    /// # use meos::Span;
+    /// # use meos::FloatSpan;
     ///
     /// let span: FloatSpan = (42.0..50.0).into();
     /// let tbox = TBox::from_numeric_span(span);
@@ -516,9 +516,9 @@ impl TBox {
     ///
     /// ## Example
     /// ```
-    /// # use meos::boxes::tbox::TBox;
-    /// use meos::boxes::r#box::Box;
-    /// # use meos::collections::number::int_span::IntSpan;
+    /// # use meos::TBox;
+    /// use meos::Box;
+    /// # use meos::IntSpan;
     ///
     /// let tbox = TBox::from_int(5);
     /// let intspan = tbox.intspan();
@@ -535,9 +535,9 @@ impl TBox {
     ///
     /// ## Example
     /// ```
-    /// # use meos::boxes::tbox::TBox;
-    /// use meos::boxes::r#box::Box;
-    /// # use meos::collections::number::float_span::FloatSpan;
+    /// # use meos::TBox;
+    /// use meos::Box;
+    /// # use meos::FloatSpan;
     ///
     /// let tbox = TBox::from_float(5.0);
     /// let floatspan = tbox.floatspan();
@@ -556,8 +556,7 @@ impl TBox {
     ///
     /// ## Example
     /// ```
-    /// # use meos::boxes::tbox::TBox;
-    /// use meos::boxes::r#box::Box;
+    /// # use meos::TBox;
     /// let tbox = TBox::from_float(3.14);
     /// assert_eq!(tbox.xmin_is_inclusive(), Some(true));
     /// ```
@@ -580,8 +579,8 @@ impl TBox {
     ///
     /// ## Example
     /// ```
-    /// # use meos::boxes::tbox::TBox;
-    /// use meos::boxes::r#box::Box;
+    /// # use meos::TBox;
+    /// use meos::Box;
     /// let tbox = TBox::from_float(3.14);
     /// assert_eq!(tbox.xmax_is_inclusive(), Some(true)); // Assuming inclusivity is true by default
     /// ```
@@ -608,8 +607,8 @@ impl TBox {
     ///
     /// ## Example
     /// ```
-    /// # use meos::boxes::tbox::TBox;
-    /// use meos::boxes::r#box::Box;
+    /// # use meos::TBox;
+    /// use meos::Box;
     /// let tbox = TBox::from_float(3.0);
     /// let expanded_tbox = tbox.expand_value(2.0);
     /// assert_eq!(expanded_tbox.xmin(), Some(1.0));
@@ -630,8 +629,8 @@ impl TBox {
     ///
     /// ## Example
     /// ```
-    /// # use meos::boxes::tbox::TBox;
-    /// use meos::boxes::r#box::Box;
+    /// # use meos::TBox;
+    /// use meos::Box;
     /// # use std::str::FromStr;
     /// # use meos::meos_initialize;
     /// # meos_initialize();
@@ -670,8 +669,8 @@ impl cmp::PartialEq for TBox {
     ///
     /// ## Example
     /// ```
-    /// # use meos::boxes::tbox::TBox;
-    /// use meos::boxes::r#box::Box;
+    /// # use meos::TBox;
+    /// use meos::Box;
     /// # use meos::meos_initialize;
     /// use std::str::FromStr;
     /// # meos_initialize();
@@ -718,11 +717,11 @@ impl std::str::FromStr for TBox {
     ///
     /// ## Example
     /// ```
-    /// # use meos::boxes::tbox::TBox;
-    /// use meos::boxes::r#box::Box;
-    /// # use meos::collections::base::span::Span;
-    /// # use meos::collections::number::int_span::IntSpan;
-    /// # use meos::collections::datetime::tstz_span::TsTzSpan;
+    /// # use meos::TBox;
+    /// use meos::Box;
+    /// # use meos::Span;
+    /// # use meos::IntSpan;
+    /// # use meos::TsTzSpan;
     /// use std::str::FromStr;
     /// # use meos::meos_initialize;
     /// # meos_initialize();

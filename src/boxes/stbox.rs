@@ -54,8 +54,8 @@ impl MeosBox for STBox {
     ///
     /// ## Example
     /// ```
-    /// # use meos::boxes::stbox::STBox;
-    /// use meos::boxes::r#box::Box;
+    /// # use meos::STBox;
+    /// use meos::Box;
     /// use chrono::{Utc, TimeZone};
     /// let datetime = Utc.with_ymd_and_hms(2020, 5, 15, 12, 0, 0).unwrap();
     /// let stbox = STBox::from_time(datetime);
@@ -291,7 +291,7 @@ impl cmp::PartialEq for STBox {
     ///
     /// ## Example
     /// ```
-    /// # use meos::boxes::stbox::STBox;
+    /// # use meos::STBox;
     /// # use meos::meos_initialize;
     /// use std::str::FromStr;
     /// # meos_initialize();
@@ -338,10 +338,10 @@ impl std::str::FromStr for STBox {
     ///
     /// ## Example
     /// ```
-    /// # use meos::boxes::stbox::STBox;
-    /// # use meos::collections::base::span::Span;
-    /// # use meos::collections::datetime::tstz_span::TsTzSpan;
-    /// use meos::boxes::r#box::Box;
+    /// # use meos::STBox;
+    /// # use meos::Span;
+    /// # use meos::TsTzSpan;
+    /// use meos::Box;
     /// use std::str::FromStr;
     /// # use meos::meos_initialize;
     /// # meos_initialize();

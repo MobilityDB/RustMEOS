@@ -65,8 +65,8 @@ pub trait Span: Collection {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::number::float_span::FloatSpan;
-    /// # use meos::collections::base::span::Span;
+    /// # use meos::FloatSpan;
+    /// # use meos::Span;
     /// # use std::str::FromStr;
     ///
     /// let span: FloatSpan = FloatSpan::from_str("[23.9, 78.8]").unwrap();
@@ -86,8 +86,8 @@ pub trait Span: Collection {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::number::float_span::FloatSpan;
-    /// # use meos::collections::base::span::Span;
+    /// # use meos::FloatSpan;
+    /// # use meos::Span;
     /// # use std::str::FromStr;
     ///
     /// let span: FloatSpan = (23.9..=78.8).into();

@@ -16,7 +16,7 @@ use boxes::Box as MeosBox;
 pub use meos_sys as sys;
 
 mod boxes;
-pub use boxes::{STBox, TBox};
+pub use boxes::{Box, STBox, TBox};
 
 mod collections;
 pub use collections::base::{Collection, Span, SpanSet};

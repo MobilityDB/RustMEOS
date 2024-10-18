@@ -60,9 +60,9 @@ impl SpanSet for FloatSpanSet {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::number::float_span_set::FloatSpanSet;
+    /// # use meos::FloatSpanSet;
     /// # use std::str::FromStr;
-    /// # use meos::collections::base::span_set::SpanSet;
+    /// # use meos::SpanSet;
     ///
     /// let span = FloatSpanSet::from_str("{[17.5, 18.5), [19.5, 20.5)}").unwrap();
     /// let shifted_span = span.shift(5.0);
@@ -85,9 +85,9 @@ impl SpanSet for FloatSpanSet {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::number::float_span_set::FloatSpanSet;
+    /// # use meos::FloatSpanSet;
     /// # use std::str::FromStr;
-    /// # use meos::collections::base::span_set::SpanSet;
+    /// # use meos::SpanSet;
     ///
     /// let span = FloatSpanSet::from_str("{[17.5, 18.5), [19.5, 20.5)}").unwrap();
     /// let scaled_span = span.scale(2.0);
@@ -111,9 +111,9 @@ impl SpanSet for FloatSpanSet {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::number::float_span_set::FloatSpanSet;
+    /// # use meos::FloatSpanSet;
     /// # use std::str::FromStr;
-    /// # use meos::collections::base::span_set::SpanSet;
+    /// # use meos::SpanSet;
     ///
     /// let span = FloatSpanSet::from_str("{[17.5, 18.5), [19.5, 20.5)}").unwrap();
     /// let shifted_scaled_span = span.shift_scale(Some(5.0), Some(2.5));
@@ -141,8 +141,8 @@ impl SpanSet for FloatSpanSet {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::number::float_span_set::FloatSpanSet;
-    /// # use meos::collections::base::span_set::SpanSet;
+    /// # use meos::FloatSpanSet;
+    /// # use meos::SpanSet;
     /// let span_set: FloatSpanSet = [(2019.0..2023.5).into(), (2029.0..2030.5).into()].iter().collect();
     /// let distance = span_set.distance_to_value(&2032.5);
     /// assert_eq!(distance, 2.0);
@@ -161,9 +161,9 @@ impl SpanSet for FloatSpanSet {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::number::float_span_set::FloatSpanSet;
-    /// # use meos::collections::base::span_set::SpanSet;
-    /// # use meos::collections::base::span::Span;
+    /// # use meos::FloatSpanSet;
+    /// # use meos::SpanSet;
+    /// # use meos::Span;
     ///
     /// let span_set1: FloatSpanSet = [(2019.0..2023.5).into(), (2029.0..2030.5).into()].iter().collect();
     /// let span_set2: FloatSpanSet = [(2049.0..2050.5).into(), (2059.0..2600.5).into()].iter().collect();
@@ -184,11 +184,11 @@ impl SpanSet for FloatSpanSet {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::number::float_span_set::FloatSpanSet;
-    /// # use meos::collections::base::span_set::SpanSet;
-    /// # use meos::collections::datetime::date_span::DateSpan;
-    /// # use meos::collections::base::span::Span;
-    /// # use meos::collections::number::float_span::FloatSpan;
+    /// # use meos::FloatSpanSet;
+    /// # use meos::SpanSet;
+    /// # use meos::DateSpan;
+    /// # use meos::Span;
+    /// # use meos::FloatSpan;
     ///
     /// let span_set: FloatSpanSet = [(2019.0..2023.5).into(), (2029.0..2030.5).into()].iter().collect();
     /// let span: FloatSpan = (2009.0..2013.5).into();
@@ -262,9 +262,9 @@ impl BitAnd<FloatSpanSet> for FloatSpanSet {
     /// ## Example
     ///
     /// ```
-    /// # use meos::collections::number::float_span_set::FloatSpanSet;
+    /// # use meos::FloatSpanSet;
     /// # use std::str::FromStr;
-    /// # use meos::collections::base::span_set::SpanSet;
+    /// # use meos::SpanSet;
     ///
     /// let span_set1 = FloatSpanSet::from_str("{[17.5, 18.5), [19.5, 20.5)}").unwrap();
     /// let span_set2 = FloatSpanSet::from_str("{[19.5, 23.5), [45.5, 67.5)}").unwrap();
@@ -293,9 +293,9 @@ impl BitOr for FloatSpanSet {
     /// ## Example
     ///
     /// ```
-    /// # use meos::collections::number::float_span_set::FloatSpanSet;
+    /// # use meos::FloatSpanSet;
     /// # use std::str::FromStr;
-    /// # use meos::collections::base::span_set::SpanSet;
+    /// # use meos::SpanSet;
     ///
     /// let span_set1 = FloatSpanSet::from_str("{[17.5, 18.5), [19.5, 20.5)}").unwrap();
     /// let span_set2 = FloatSpanSet::from_str("{[19.5, 23.5), [45.5, 67.5)}").unwrap();

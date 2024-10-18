@@ -56,8 +56,8 @@ impl Span for FloatSpan {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::number::float_span::FloatSpan;
-    /// # use meos::collections::base::span::Span;
+    /// # use meos::FloatSpan;
+    /// # use meos::Span;
     ///
     /// let span: FloatSpan = (12.9..67.8).into();
     /// let lower = span.lower();
@@ -73,8 +73,8 @@ impl Span for FloatSpan {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::number::float_span::FloatSpan;
-    /// # use meos::collections::base::span::Span;
+    /// # use meos::FloatSpan;
+    /// # use meos::Span;
     ///
     /// let span: FloatSpan = (12.9..67.8).into();;
     ///
@@ -94,8 +94,8 @@ impl Span for FloatSpan {
     ///
     /// # Example
     /// ```
-    /// # use meos::collections::number::float_span::FloatSpan;
-    /// # use meos::collections::base::span::Span;
+    /// # use meos::FloatSpan;
+    /// # use meos::Span;
     ///
     /// let span: FloatSpan = (12.9..67.8).into();
     /// let shifted_span = span.shift(5.0);
@@ -116,8 +116,8 @@ impl Span for FloatSpan {
     ///
     /// # Example
     /// ```
-    /// # use meos::collections::number::float_span::FloatSpan;
-    /// # use meos::collections::base::span::Span;
+    /// # use meos::FloatSpan;
+    /// # use meos::Span;
     ///
     /// let span: FloatSpan = (12.9..67.8).into();
     /// let scaled_span = span.scale(10.0);
@@ -139,8 +139,8 @@ impl Span for FloatSpan {
     ///
     /// # Example
     /// ```
-    /// # use meos::collections::number::float_span::FloatSpan;
-    /// # use meos::collections::base::span::Span;
+    /// # use meos::FloatSpan;
+    /// # use meos::Span;
     ///
     /// let span: FloatSpan = (12.9..67.8).into();
     /// let shifted_scaled_span = span.shift_scale(Some(5.0), Some(10.0));
@@ -197,8 +197,8 @@ impl std::str::FromStr for FloatSpan {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::number::float_span::FloatSpan;
-    /// # use meos::collections::base::span::Span;
+    /// # use meos::FloatSpan;
+    /// # use meos::Span;
     /// # use std::str::FromStr;
     ///
     /// let span: FloatSpan = "(12.9, 67.8)".parse().expect("Failed to parse span");
@@ -224,8 +224,8 @@ impl cmp::PartialEq for FloatSpan {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::number::float_span::FloatSpan;
-    /// # use meos::collections::base::span::Span;
+    /// # use meos::FloatSpan;
+    /// # use meos::Span;
     /// # use std::str::FromStr;
     ///
     /// let span1: FloatSpan = (12.9..67.8).into();
@@ -294,8 +294,8 @@ impl BitAnd for FloatSpan {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::number::float_span::FloatSpan;
-    /// # use meos::collections::base::span::Span;
+    /// # use meos::FloatSpan;
+    /// # use meos::Span;
     /// # use std::str::FromStr;
     ///
     /// let span1: FloatSpan = (12.9..67.8).into();

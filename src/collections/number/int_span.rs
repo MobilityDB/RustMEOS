@@ -56,8 +56,8 @@ impl Span for IntSpan {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::number::int_span::IntSpan;
-    /// # use meos::collections::base::span::Span;
+    /// # use meos::IntSpan;
+    /// # use meos::Span;
     ///
     /// let span: IntSpan = (12..67).into();
     /// let lower = span.lower();
@@ -73,8 +73,8 @@ impl Span for IntSpan {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::number::int_span::IntSpan;
-    /// # use meos::collections::base::span::Span;
+    /// # use meos::IntSpan;
+    /// # use meos::Span;
     ///
     /// let span: IntSpan = (12..67).into();;
     ///
@@ -94,8 +94,8 @@ impl Span for IntSpan {
     ///
     /// # Example
     /// ```
-    /// # use meos::collections::number::int_span::IntSpan;
-    /// # use meos::collections::base::span::Span;
+    /// # use meos::IntSpan;
+    /// # use meos::Span;
     ///
     /// let span: IntSpan = (12..67).into();
     /// let shifted_span = span.shift(5);
@@ -116,8 +116,8 @@ impl Span for IntSpan {
     ///
     /// # Example
     /// ```
-    /// # use meos::collections::number::int_span::IntSpan;
-    /// # use meos::collections::base::span::Span;
+    /// # use meos::IntSpan;
+    /// # use meos::Span;
     ///
     /// let span: IntSpan = (12..67).into();
     /// let scaled_span = span.scale(10);
@@ -139,8 +139,8 @@ impl Span for IntSpan {
     ///
     /// # Example
     /// ```
-    /// # use meos::collections::number::int_span::IntSpan;
-    /// # use meos::collections::base::span::Span;
+    /// # use meos::IntSpan;
+    /// # use meos::Span;
     ///
     /// let span: IntSpan = (12..67).into();
     /// let shifted_scaled_span = span.shift_scale(Some(5), Some(10));
@@ -166,8 +166,8 @@ impl Span for IntSpan {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::number::int_span::IntSpan;
-    /// # use meos::collections::base::span::Span;
+    /// # use meos::IntSpan;
+    /// # use meos::Span;
     ///
     /// let span: IntSpan = (12..67).into();
     /// let distance = span.distance_to_value(&8);
@@ -188,8 +188,8 @@ impl Span for IntSpan {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::number::int_span::IntSpan;
-    /// # use meos::collections::base::span::Span;
+    /// # use meos::IntSpan;
+    /// # use meos::Span;
     ///
     /// let span1: IntSpan = (12..67).into();
     /// let span2: IntSpan = (10..11).into();
@@ -234,8 +234,8 @@ impl std::str::FromStr for IntSpan {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::number::int_span::IntSpan;
-    /// # use meos::collections::base::span::Span;
+    /// # use meos::IntSpan;
+    /// # use meos::Span;
     /// # use std::str::FromStr;
     ///
     /// let span: IntSpan = "(12, 67)".parse().expect("Failed to parse span");
@@ -261,8 +261,8 @@ impl cmp::PartialEq for IntSpan {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::number::int_span::IntSpan;
-    /// # use meos::collections::base::span::Span;
+    /// # use meos::IntSpan;
+    /// # use meos::Span;
     /// # use std::str::FromStr;
     ///
     /// let span1: IntSpan = (12..67).into();
@@ -323,8 +323,8 @@ impl BitAnd for IntSpan {
     ///
     /// ## Example
     /// ```
-    /// # use meos::collections::number::int_span::IntSpan;
-    /// # use meos::collections::base::span::Span;
+    /// # use meos::IntSpan;
+    /// # use meos::Span;
     /// # use std::str::FromStr;
     ///
     /// let span1: IntSpan = (12..67).into();
