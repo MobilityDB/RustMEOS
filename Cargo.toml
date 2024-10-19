@@ -13,7 +13,7 @@ edition = "2021"
 
 [dependencies]
 paste = "1.0.15"
-meos-sys = { path = "sys", version = "0.1.5" }
+meos-sys = { path = "sys", version = "0.1.7", features = ["v1_2"] }
 chrono = "0.4.38"
 libc = "0.2.155"
 bitmask-enum = "2.2.4"

@@ -13,15 +13,11 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
-#[cfg(all(
-    feature = "v1_1",
-    not(feature = "v1_2"),
-    not(feature = "buildtime_bindgen")
-))]
+#[cfg(all(feature = "v1_1", not(feature = "v1_2"), not(feature = "bindgen")))]
 include!("../prebuilt-bindings/meos_1.1.rs");
 
-#[cfg(all(feature = "v1_2", not(feature = "buildtime_bindgen")))]
+#[cfg(all(feature = "v1_2", not(feature = "bindgen")))]
 include!("../prebuilt-bindings/meos_1.2.rs");
 
-#[cfg(feature = "buildtime_bindgen")]
+#[cfg(feature = "bindgen")]
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));

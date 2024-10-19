@@ -1,0 +1,17 @@
+[package]
+name = "meos-src"
+version = "0.1.1"
+edition = "2021"
+links = "meossrc"
+build = "build.rs"
+description = "static library build for meos-sys"
+repository = "https://github.com/MobilityDB/meos-rs"
+authors = ["David García Morillo <david.garcia.morillo@ulb.be>"]
+license-file = "../LICENSE"
+exclude = ["source/mobilitydb", "source/meos/examples"]
+
+[dependencies]
+
+[build-dependencies]
+cmake = "0.1"
+
