@@ -1,9 +1,9 @@
 [package]
 name = "meos"
-version = "0.2.0"
+version = "0.2.1"
 license-file = "LICENSE"
 authors = ["David García Morillo <david.garcia.morillo@ulb.be>"]
-repository = "https://github.com/MobilityDB/RustMEOS"
+repository = "https://github.com/MobilityDB/meos-rs"
 documentation = "https://docs.rs/crate/meos/"
 keywords = ["meos", "libmeos", "mobility", "geotemporal", "gis"]
 categories = ["external-ffi-bindings", "algorithms"]

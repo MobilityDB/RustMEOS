@@ -1,6 +1,9 @@
-# RustMEOS
+# meos-rs
+[<img alt="github" src="https://img.shields.io/badge/github-meos--rs-8da0cb?&logo=github" height="20">](https://github.com/MobilityDB/meos-rs)
+[<img alt="crates.io" src="https://img.shields.io/crates/v/meos.svg?&logo=rust" height="20">](https://crates.io/crates/meos)
+[<img alt="docs.rs" src="https://img.shields.io/badge/docs.rs-meos-66c2a5?&logo=docs.rs" height="20">](https://docs.rs/meos)
 
-RustMEOS is a Rust library providing bindings for the [MEOS](https://libmeos.org/) C library, designed for spatiotemporal data management and analysis. It enables handling of temporal and spatial data, making it ideal for applications that need to work with moving objects, trajectories, and time-varying geographical data.
+**meos-rs** is a Rust library providing bindings for the [MEOS](https://libmeos.org/) C library, designed for spatiotemporal data management and analysis. It enables handling of temporal and spatial data, making it ideal for applications that need to work with moving objects, trajectories, and time-varying geographical data.
 
 It supports MEOS version >= 1.2
 
