@@ -32,5 +32,10 @@ DYLD_FALLBACK_LIBRARY_PATH=<path to MEOS>/lib MEOS_LIB_DIR=<path to MEOS>/lib ME
 
 ```
 
+You can also enable the `bundled` feature to build MEOS from scratch. Note you will still have to have installed in your system GEOS, PROJ and JSON-C libraries. You can install all of them by running the following command in your (Debian based) machine:
+```bash
+sudo apt-get install libgeos-dev proj-bin libproj-dev proj-data libjson-c-dev
+```
+
 ## Binding generation
 By default, meos-sys will use the pregenerated bindings for the 1.2 version, the 1.1 ones is also available. Alternatively, you can generate your own bindings from your `libmeos` installation by specifying the `bindgen` feature.
