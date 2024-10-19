@@ -1,6 +1,6 @@
 [package]
 name = "meos-sys"
-version = "0.1.7"
+version = "0.1.8"
 authors = ["David García Morillo <david.garcia.morillo@ulb.be>"]
 
 repository = "https://github.com/MobilityDB/meos-rs"
@@ -22,9 +22,9 @@ cmake = "0.1"
 bindgen = { version = "0.70.1", optional = true }
 
 [features]
-default = ["v1_2"]
+default = []
 v1_1 = []
 v1_2 = []
 
-buildtime_bindgen = ["dep:bindgen", "dep:meos-src"]
-bundled = ["buildtime_bindgen"]
+buildtime_bindgen = ["dep:bindgen"]
+bundled = ["buildtime_bindgen", "dep:meos-src"]

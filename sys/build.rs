@@ -1,23 +1,24 @@
 use std::env;
 use std::ffi::OsString;
-use std::path::PathBuf;
 
-/// Detect MEOS config parameters using pkg-config (not available for all GEOS
+const MINIMUM_MEOS_VERSION: &str = "1.1.0";
+
+/// Detect MEOS config parameters using pkg-config (not available for all MEOS
 /// versions)
-fn detect_meos_via_pkg_config() -> Option<PathBuf> {
+fn detect_meos_via_pkg_config() -> Result<pkg_config::Library, pkg_config::Error> {
     use pkg_config::Config;
 
-    let meos_pkg_config = Config::new().probe("meos");
-
-    meos_pkg_config.map(|pk| pk.include_paths[0].clone()).ok()
+    Config::new()
+        .atleast_version(MINIMUM_MEOS_VERSION)
+        .probe("meos")
 }
 
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
-    println!("cargo:rerun-if-env-changed=MEOS_LIB_DIR");
 
     // If `bundled` is on, use the git submodule to build MEOS from scratch
     let include_path = if cfg!(feature = "bundled") {
+        // Defined in `meos-src` build.rs file
         let meos_path = std::env::var("DEP_MEOSSRC_SEARCH").unwrap();
 
         // Tell cargo to tell rustc to link the system meos shared library.
@@ -25,28 +26,36 @@ fn main() {
         println!("cargo:rustc-link-lib=meos");
 
         meos_path
-    // Else use pkg-config, using a default as a fallback
     } else {
-        let pk_include_path = detect_meos_via_pkg_config();
+        let pk = detect_meos_via_pkg_config();
 
-        // Try to find the library manually
-        if !pk_include_path.is_some() {
-            let default_include_path = String::from("/usr/local/lib/");
-            let lib_dir_env = env::var_os("MEOS_LIB_DIR")
-                .map(OsString::into_string)
-                .transpose()
-                .ok()
-                .flatten()
-                .unwrap_or(default_include_path.clone());
+        match pk {
+            Ok(meos) => meos.include_paths[0].clone().display().to_string(),
+            Err(pkg_config_err) => {
+                if matches!(pkg_config_err, pkg_config::Error::Command { cause, .. } if cause.kind() == std::io::ErrorKind::NotFound)
+                {
+                    panic!("Could not find `pkg-config` in your path. Please install it before running meos-sys-bind.");
+                }
+                // As a fallback, since pkg-config was not configured in meos until 1.2, we will try a default path.
+                if cfg!(feature = "v1_1") {
+                    let default_include_path = String::from("/usr/local/lib/");
+                    let lib_dir_env = env::var_os("MEOS_LIB_DIR")
+                        .map(OsString::into_string)
+                        .transpose()
+                        .ok()
+                        .flatten()
+                        .unwrap_or(default_include_path.clone());
 
-            // Tell cargo to look for shared libraries in the specified directory
-            println!("cargo:rustc-link-search={lib_dir_env}");
+                    // Tell cargo to look for shared libraries in the specified directory
+                    println!("cargo:rustc-link-search={lib_dir_env}");
 
-            // Tell cargo to tell rustc to link the system meos shared library.
-            println!("cargo:rustc-link-lib=dylib=meos");
-            default_include_path
-        } else {
-            pk_include_path.unwrap().display().to_string()
+                    // Tell cargo to tell rustc to link the system meos shared library.
+                    println!("cargo:rustc-link-lib=dylib=meos");
+                    default_include_path
+                } else {
+                    panic!("Could not detect MEOS using pkg-config.");
+                }
+            }
         }
     };
 
@@ -73,7 +82,7 @@ fn generate_bindings(include_path: std::path::PathBuf) -> Result<(), Box<dyn std
         .expect("Unable to generate bindings");
 
     // Write the bindings to the $OUT_DIR/bindings.rs file.
-    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
+    let out_path = std::path::PathBuf::from(env::var("OUT_DIR").unwrap());
     bindings.write_to_file(out_path.join("bindings.rs"))?;
 
     Ok(())
