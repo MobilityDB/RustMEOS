@@ -16,26 +16,46 @@ fn main() {
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-env-changed=MEOS_LIB_DIR");
 
-    let pk_include_path = detect_meos_via_pkg_config();
+    // If `bundled_proj` is on, use the git submodule to build MEOS from scratch
+    let include_path = if cfg!(feature = "bundled_proj") {
+        let meos_path = std::env::var("DEP_MEOSSRC_SEARCH").unwrap();
+        // println!(
+        //     "cargo:rustc-env=LD_LIBRARY_PATH=$LD_LIBRARY_PATH:{}",
+        //     env::var("OUT_DIR").unwrap()
+        // );
+        println!("cargo:rustc-link-lib=dylib=gsl");
+        println!("cargo:rustc-link-lib=dylib=proj");
+        println!("cargo:rustc-link-lib=dylib=json-c");
+        println!("cargo:rustc-link-lib=dylib=meos");
 
-    // Try to find the library manually
-    let include_path = if !pk_include_path.is_some() {
-        let default_include_path = String::from("/usr/local/lib/");
-        let lib_dir_env = env::var_os("MEOS_LIB_DIR")
-            .map(OsString::into_string)
-            .transpose()
-            .ok()
-            .flatten()
-            .unwrap_or(default_include_path.clone());
-
-        // Tell cargo to look for shared libraries in the specified directory
-        println!("cargo:rustc-link-search={lib_dir_env}");
+        println!("cargo:rustc-link-search=dylib={meos_path}");
 
         // Tell cargo to tell rustc to link the system meos shared library.
-        println!("cargo:rustc-link-lib=dylib=meos");
-        default_include_path
+
+        meos_path
+    // Else use pkg-config, using a default as a fallback
     } else {
-        pk_include_path.unwrap().display().to_string()
+        let pk_include_path = detect_meos_via_pkg_config();
+
+        // Try to find the library manually
+        if !pk_include_path.is_some() {
+            let default_include_path = String::from("/usr/local/lib/");
+            let lib_dir_env = env::var_os("MEOS_LIB_DIR")
+                .map(OsString::into_string)
+                .transpose()
+                .ok()
+                .flatten()
+                .unwrap_or(default_include_path.clone());
+
+            // Tell cargo to look for shared libraries in the specified directory
+            println!("cargo:rustc-link-search={lib_dir_env}");
+
+            // Tell cargo to tell rustc to link the system meos shared library.
+            println!("cargo:rustc-link-lib=dylib=meos");
+            default_include_path
+        } else {
+            pk_include_path.unwrap().display().to_string()
+        }
     };
 
     #[cfg(feature = "buildtime_bindgen")]

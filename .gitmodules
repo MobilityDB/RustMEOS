@@ -1,0 +1,3 @@
+[submodule "sys/meos-src/source"]
+	path = sys/meos-src/source
+	url = https://github.com/MobilityDB/MobilityDB.git

@@ -14,6 +14,7 @@ edition = "2021"
 links = "meos"
 
 [dependencies]
+meos-src = { path = "./meos-src", version = "0.1.0", optional = true }
 
 [build-dependencies]
 pkg-config = "0.3.30"
@@ -25,5 +26,5 @@ default = ["v1_2"]
 v1_1 = []
 v1_2 = []
 
-buildtime_bindgen = ["dep:bindgen"]
+buildtime_bindgen = ["dep:bindgen", "dep:meos-src"]
 bundled_proj = ["buildtime_bindgen"]

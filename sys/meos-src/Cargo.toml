@@ -1,0 +1,21 @@
+[package]
+name = "meos-src"
+version = "0.1.0"
+edition = "2021"
+links = "meossrc"
+build = "build.rs"
+description = "static library build for meos-sys"
+repository = "https://github.com/MobilityDB/meos-rs"
+authors = ["David García Morillo <david.garcia.morillo@ulb.be>"]
+license-file = "LICENSE"
+exclude = ["source/mobilitydb", "source/meos/examples"]
+
+[dependencies]
+libsqlite3-sys = { version = "0.28.0", features = ["bundled"] }
+proj-sys = { version = "0.24.0", features = ["bundled_proj"] }
+geos-sys = { version = "2.0.6" }
+geos-src = { version = "0.2.3" }
+
+[build-dependencies]
+cmake = "0.1"
+
