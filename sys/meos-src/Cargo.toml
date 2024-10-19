@@ -11,10 +11,6 @@ license-file = "LICENSE"
 exclude = ["source/mobilitydb", "source/meos/examples"]
 
 [dependencies]
-libsqlite3-sys = { version = "0.28.0", features = ["bundled"] }
-proj-sys = { version = "0.24.0", features = ["bundled_proj"] }
-geos-sys = { version = "2.0.6" }
-geos-src = { version = "0.2.3" }
 
 [build-dependencies]
 cmake = "0.1"

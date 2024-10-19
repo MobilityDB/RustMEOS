@@ -16,21 +16,13 @@ fn main() {
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-env-changed=MEOS_LIB_DIR");
 
-    // If `bundled_proj` is on, use the git submodule to build MEOS from scratch
-    let include_path = if cfg!(feature = "bundled_proj") {
+    // If `bundled` is on, use the git submodule to build MEOS from scratch
+    let include_path = if cfg!(feature = "bundled") {
         let meos_path = std::env::var("DEP_MEOSSRC_SEARCH").unwrap();
-        // println!(
-        //     "cargo:rustc-env=LD_LIBRARY_PATH=$LD_LIBRARY_PATH:{}",
-        //     env::var("OUT_DIR").unwrap()
-        // );
-        println!("cargo:rustc-link-lib=dylib=gsl");
-        println!("cargo:rustc-link-lib=dylib=proj");
-        println!("cargo:rustc-link-lib=dylib=json-c");
-        println!("cargo:rustc-link-lib=dylib=meos");
-
-        println!("cargo:rustc-link-search=dylib={meos_path}");
 
         // Tell cargo to tell rustc to link the system meos shared library.
+        println!("cargo:rustc-link-search={meos_path}");
+        println!("cargo:rustc-link-lib=meos");
 
         meos_path
     // Else use pkg-config, using a default as a fallback

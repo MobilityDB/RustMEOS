@@ -4,7 +4,6 @@ fn main() {
         .define("MEOS", "1")
         .very_verbose(true)
         .build();
-    println!("cargo:rustc-link-lib=dylib=json-c");
     println!("cargo:lib=meos");
     let search_path = format!("{}/lib", libmeos.display());
     assert!(std::path::Path::new(&search_path).exists());
