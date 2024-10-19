@@ -2,6 +2,7 @@
 name = "meos-src"
 version = "0.1.0"
 edition = "2021"
+links = "meossrc"
 build = "build.rs"
 description = "static library build for meos-sys"
 repository = "https://github.com/MobilityDB/meos-rs"

@@ -6,7 +6,7 @@ Cargo.lock
 test
 test.c
 output.rs
-wrapper.h
+/wrapper.h
 test.rs
 test.py
 data/
