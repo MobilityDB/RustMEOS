@@ -1,6 +1,6 @@
 [package]
 name = "meos-sys"
-version = "0.1.6"
+version = "0.1.7"
 authors = ["David García Morillo <david.garcia.morillo@ulb.be>"]
 
 repository = "https://github.com/MobilityDB/meos-rs"
